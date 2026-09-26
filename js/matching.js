@@ -122,26 +122,27 @@ export function calculateUnlockRecommendations() {
 }
 
 /**
- * Returns a revolving Daily Drink Recommendation.
- * Deterministic for each calendar day, prioritizing "Can Make Now" and favorites.
+ * Returns a drink recommendation.
+ * - When isSurpriseMe is true: randomly selects from ALL currently in-stock cocktails across the entire database!
+ * - When isSurpriseMe is false: deterministic daily pick from all in-stock cocktails based on today's calendar date.
  */
-export function getDailyDrinkRecommendation(seedOffset = 0) {
+export function getDrinkRecommendation({ isSurpriseMe = false, offset = 0 } = {}) {
   const analyzed = analyzeRecipesAvailability();
+  // Filter for ALL drinks the user has 100% in-stock ingredients for:
   const canMake = analyzed.filter(a => a.canMake);
 
-  // Pool to pick from: prefer favorites you can make, then any you can make, then all favorites
-  let candidatePool = canMake.filter(a => a.isFavorite);
-  if (candidatePool.length === 0) {
-    candidatePool = canMake;
-  }
-  if (candidatePool.length === 0) {
-    candidatePool = analyzed.filter(a => a.isFavorite);
-  }
-  if (candidatePool.length === 0) {
-    candidatePool = analyzed;
+  // Pool: All in-stock drinks across all categories (not just favorites).
+  // Falls back to all analyzed recipes only if nothing is in stock.
+  const pool = canMake.length > 0 ? canMake : analyzed;
+  if (pool.length === 0) return null;
+
+  if (isSurpriseMe) {
+    // Pure random pick across ALL currently in-stock drinks
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    return pool[randomIndex];
   }
 
-  // Generate deterministic index using today's date string + offset
+  // Deterministic daily pick from all in-stock drinks
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
   let hash = 0;
@@ -149,9 +150,18 @@ export function getDailyDrinkRecommendation(seedOffset = 0) {
     hash = (hash << 5) - hash + dateStr.charCodeAt(i);
     hash |= 0;
   }
-  const index = Math.abs(hash + seedOffset) % candidatePool.length;
-  return candidatePool[index];
+  const index = Math.abs(hash + offset) % pool.length;
+  return pool[index];
 }
+
+export function getDailyDrinkRecommendation(seedOffset = 0) {
+  return getDrinkRecommendation({ isSurpriseMe: false, offset: seedOffset });
+}
+
+export function getRandomInStockDrink() {
+  return getDrinkRecommendation({ isSurpriseMe: true });
+}
+
 
 /**
  * Filters the analyzed recipe list according to active UI filters.

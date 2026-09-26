@@ -9,6 +9,7 @@ import {
   analyzeRecipesAvailability,
   calculateUnlockRecommendations,
   getDailyDrinkRecommendation,
+  getRandomInStockDrink,
   filterRecipes,
   getAllRecipes
 } from './matching.js';
@@ -96,11 +97,17 @@ export function showToast(message, undoAction = null, duration = 4000) {
 // ============================================================================
 // Render: Daily Drink Hero Card
 // ============================================================================
-function renderDailyDrink() {
-  const daily = getDailyDrinkRecommendation(state.dailyOffset);
+function renderDailyDrink(forcedDrink = null) {
+  const daily = forcedDrink || state.currentDailyDrink || getDailyDrinkRecommendation(state.dailyOffset);
   if (!daily || !elements.dailyCard) return;
+  state.currentDailyDrink = daily;
 
   const { recipe, canMake, missingCount, missingIngredients } = daily;
+
+  const tagLabel = elements.dailyCard.querySelector('.daily-tag');
+  if (tagLabel) {
+    tagLabel.textContent = forcedDrink ? '🎲 Surprise Pick' : '★ Daily Cocktail Pick';
+  }
 
   document.getElementById('dailyDrinkTitle').textContent = recipe.name;
   
@@ -941,12 +948,16 @@ function setupEventListeners() {
   };
   elements.unitToggle.textContent = state.activeUnit;
 
-  // Daily drink shuffle button
+  // Daily drink shuffle button ("Surprise Me") - draws from ALL in-stock drinks!
   elements.dailyShuffleBtn.onclick = () => {
     soundEffects.playClick();
-    state.dailyOffset++;
-    renderDailyDrink();
-    showToast('Shuffled daily cocktail suggestion!');
+    const surprise = getRandomInStockDrink();
+    if (surprise) {
+      renderDailyDrink(surprise);
+      showToast(`Surprise: ${surprise.recipe.name}!`);
+    } else {
+      showToast('No drinks currently in stock.');
+    }
   };
 
   // Search input & clear
