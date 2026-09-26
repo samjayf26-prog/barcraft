@@ -1,0 +1,3 @@
+cloudflared.exe
+tunnel_url.txt
+*.log

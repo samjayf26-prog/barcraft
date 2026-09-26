@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="128" fill="#1C1B1A"/>
+  <!-- Circular Glow -->
+  <circle cx="340" cy="160" r="80" fill="#FF5E1E" opacity="0.25"/>
+  <!-- Cocktail Coupe Outline -->
+  <path d="M136 170 C136 270 236 295 244 298 L244 390 L190 390 C182 390 176 396 176 404 C176 412 182 418 190 418 L322 418 C330 418 336 412 336 404 C336 396 330 390 322 390 L268 390 L268 298 C276 295 376 270 376 170 L136 170 Z" fill="none" stroke="#F8F6F0" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Liquid Level -->
+  <path d="M154 200 Q256 220 358 200 C350 255 285 278 256 280 C227 278 162 255 154 200 Z" fill="#FF5E1E"/>
+  <!-- Fluorescent Orange Citrus Wheel Garnish -->
+  <circle cx="356" cy="160" r="44" fill="#FF5E1E" stroke="#FFFFFF" stroke-width="8"/>
+  <circle cx="356" cy="160" r="30" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-dasharray="8 6"/>
+  <!-- Coupe Stem Sparkle -->
+  <circle cx="210" cy="225" r="5" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="230" cy="245" r="3" fill="#FFFFFF" opacity="0.6"/>
+</svg>

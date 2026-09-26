@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Mobile-first & iOS Safari PWA viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>BarCraft — Home Bar & Cocktail Companion</title>
+  
+  <!-- PWA & Apple Mobile Web App Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BarCraft">
+  <meta name="theme-color" content="#F8F6F0">
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/cocktail.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-container" id="app">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon">🍸</div>
+        <div>
+          <div class="brand-title">BarCraft</div>
+          <div class="brand-subtitle">Atelier Bar Companion</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="unit-toggle-btn" id="unitToggle" title="Toggle Units (oz / ml)">oz</button>
+      </div>
+    </header>
+
+    <!-- Daily Drink Hero Card (Revolving Daily Suggestion) -->
+    <section class="daily-drink-card" id="dailyDrinkCard">
+      <div class="daily-badge-row">
+        <span class="daily-tag">★ Daily Cocktail Pick</span>
+        <button class="shuffle-btn" id="dailyShuffleBtn" title="Get another recommendation">
+          <span>🎲</span> Surprise Me
+        </button>
+      </div>
+      <div class="daily-drink-title" id="dailyDrinkTitle">The Raspberry Mint Gin Sour</div>
+      <div class="daily-drink-summary" id="dailyDrinkSummary">Coupe Glass • London Dry Gin • Fresh Raspberries • Mint</div>
+      <div class="daily-card-footer">
+        <div class="daily-status-indicator" id="dailyStatusBadge">
+          <span class="status-pill can-make">✓ Can Make Now</span>
+        </div>
+        <button class="daily-btn" id="dailyMakeBtn">Mix This Drink →</button>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 1: RECIPES & SEARCH (Default)
+         ==================================================================== -->
+    <main id="recipesScreen">
+      <!-- Search & Filters -->
+      <section class="search-filter-box">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="search" 
+            id="searchInput" 
+            class="search-input" 
+            placeholder="Search cocktails, spirits, or ingredients..."
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <button id="clearSearchBtn" class="clear-search-btn" title="Clear">✕</button>
+        </div>
+
+        <!-- Primary Filter Chips -->
+        <div class="filter-scroll-row">
+          <button class="filter-chip active" data-filter="all">
+            All Drinks <span class="chip-count" id="countAll">0</span>
+          </button>
+          <button class="filter-chip" data-filter="can-make">
+            ✓ Can Make <span class="chip-count" id="countCanMake">0</span>
+          </button>
+          <button class="filter-chip" data-filter="missing-1">
+            Missing 1 Item <span class="chip-count" id="countMissing1">0</span>
+          </button>
+          <button class="filter-chip" data-filter="favorites">
+            ★ Favorites <span class="chip-count" id="countFavorites">0</span>
+          </button>
+        </div>
+
+        <!-- Secondary Dropdowns -->
+        <div class="secondary-filters">
+          <select id="spiritFilter" class="filter-select">
+            <option value="all">All Base Spirits</option>
+            <option value="whiskey">Bourbon / Rye / Scotch</option>
+            <option value="gin">London Dry / Old Tom Gin</option>
+            <option value="rum">White & Dark Rum</option>
+            <option value="tequila">Tequila & Mezcal</option>
+            <option value="vodka">Vodka</option>
+            <option value="zero-proof">Zero-Proof (Mocktails)</option>
+          </select>
+
+          <select id="categoryFilter" class="filter-select">
+            <option value="all">All Categories</option>
+            <option value="Locked Favorites">Locked Favorites</option>
+            <option value="Spirit-Forward & Stirred">Spirit-Forward & Stirred</option>
+            <option value="Velvety Sours & Meringue">Velvety Sours & Meringue</option>
+            <option value="Equal-Parts & Modern Classics">Equal-Parts Classics</option>
+            <option value="Acid-Driven Sours & Smashes">Acid-Driven Sours & Smashes</option>
+            <option value="Zero-Proof Mocktails">Zero-Proof Division</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Recipe Cards Grid -->
+      <section class="recipe-list" id="recipeListContainer"></section>
+    </main>
+
+    <!-- ====================================================================
+         SCREEN 2: INVENTORY & PANTRY
+         ==================================================================== -->
+    <main id="inventoryScreen" style="display: none;">
+      <section class="inventory-section" id="inventoryContainer"></section>
+    </main>
+
+    <!-- ====================================================================
+         SCREEN 3: SMART SHOPPING LIST
+         ==================================================================== -->
+    <main id="shoppingScreen" style="display: none;">
+      <section class="shopping-container" id="shoppingContainer"></section>
+    </main>
+
+    <!-- ====================================================================
+         SCREEN 4: UNLOCK MORE DRINKS (Next Bottle Optimizer)
+         ==================================================================== -->
+    <main id="unlockScreen" style="display: none;">
+      <section id="unlockContainer"></section>
+    </main>
+
+    <!-- ====================================================================
+         SCREEN 5: TECHNIQUE GUIDE & BUDGETING RULES
+         ==================================================================== -->
+    <main id="guideScreen" style="display: none;">
+      <section id="guideContainer"></section>
+    </main>
+
+  </div> <!-- End .app-container -->
+
+  <!-- ======================================================================
+       RECIPE DETAIL MODAL & BARTENDER MODE
+       ====================================================================== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-sheet" id="modalSheet">
+      <!-- Dynamically filled by app.js -->
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ======================================================================
+       BOTTOM NAVIGATION BAR (iOS PWA Safe Area Aware)
+       ====================================================================== -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-tab="recipes">
+      <span class="nav-icon">🍸</span>
+      <span>Recipes</span>
+    </button>
+    <button class="nav-item" data-tab="inventory">
+      <span class="nav-icon">🥃</span>
+      <span>Bar Stock</span>
+    </button>
+    <button class="nav-item" data-tab="shopping">
+      <span class="nav-icon">🛒</span>
+      <span>Shopping</span>
+      <span class="nav-badge" id="shoppingBadge" style="display: none;">0</span>
+    </button>
+    <button class="nav-item" data-tab="unlock">
+      <span class="nav-icon">💡</span>
+      <span>Unlock</span>
+    </button>
+    <button class="nav-item" data-tab="guide">
+      <span class="nav-icon">📖</span>
+      <span>Guide</span>
+    </button>
+  </nav>
+
+  <!-- Application Entry Point -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>

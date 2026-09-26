@@ -1,0 +1,30 @@
+{
+  "name": "BarCraft — Home Bar & Cocktail Companion",
+  "short_name": "BarCraft",
+  "description": "Smart inventory tracker, recipe finder, technique guide, and mixing companion for your home bar.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F8F6F0",
+  "theme_color": "#F8F6F0",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["food", "lifestyle", "utilities"]
+}
