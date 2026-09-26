@@ -4,54 +4,52 @@
   <meta charset="UTF-8">
   <!-- Mobile-first & iOS Safari PWA viewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <title>BarCraft — Home Bar & Cocktail Companion</title>
+  <title>BarCraft — Streamlined & Minimalist (v2.3.1)</title>
   
   <!-- PWA & Apple Mobile Web App Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="BarCraft">
+  <meta name="apple-mobile-web-app-title" content="BarCraft Minimal">
   <meta name="theme-color" content="#F8F6F0">
   
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/svg+xml" href="icons/cocktail.svg">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="icon" type="image/svg+xml" href="../icons/cocktail.svg">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
   
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="../css/styles.css">
 </head>
-<body>
+<body class="minimal-mode-body">
 
   <div class="app-container" id="app">
     
-    <!-- Top Header -->
+    <!-- Top Header (Streamlined) -->
     <header class="app-header">
       <div class="brand-wrapper">
         <div class="brand-icon">🍸</div>
         <div>
-          <div class="brand-title">BarCraft <span class="brand-version">v2.3</span></div>
+          <div class="brand-title">BarCraft <span class="brand-version">v2.3.1 (Minimal)</span></div>
           <div class="brand-subtitle">Atelier Bar Companion</div>
         </div>
       </div>
       <div class="header-actions">
-        <a href="./minimal/" class="mode-switch-btn" title="Try Streamlined Minimalist View">✨ Minimal UI →</a>
+        <a href="../" class="mode-switch-btn" title="Switch to Full Standard UI">📋 Standard UI →</a>
         <button class="unit-toggle-btn" id="unitToggle" title="Toggle Units (oz / ml)">oz</button>
       </div>
     </header>
 
-    <!-- Daily Drink Hero Card (Revolving Daily Suggestion) -->
-    <section class="daily-drink-card" id="dailyDrinkCard">
-      <div class="daily-badge-row">
-        <span class="daily-tag">★ Daily Cocktail Pick</span>
-        <button class="shuffle-btn" id="dailyShuffleBtn" title="Get another recommendation">
-          <span>🎲</span> Surprise Me
-        </button>
-      </div>
-      <div class="daily-drink-title" id="dailyDrinkTitle">The Raspberry Mint Gin Sour</div>
-      <div class="daily-drink-summary" id="dailyDrinkSummary">Coupe Glass • London Dry Gin • Fresh Raspberries • Mint</div>
-      <div class="daily-card-footer">
-        <div class="daily-status-indicator" id="dailyStatusBadge">
-          <span class="status-pill can-make">✓ Can Make Now</span>
+    <!-- Compact Daily Spotlight Bar (Streamlined) -->
+    <section class="daily-spotlight-bar" id="dailyDrinkCard">
+      <div class="spotlight-left">
+        <span class="spotlight-star">★</span>
+        <div class="spotlight-info">
+          <span class="spotlight-label">Daily Pick</span>
+          <span class="spotlight-title" id="dailyDrinkTitle">The Raspberry Mint Gin Sour</span>
         </div>
-        <button class="daily-btn" id="dailyMakeBtn">Mix This Drink →</button>
+      </div>
+      <div class="spotlight-actions">
+        <div id="dailyStatusBadge" style="display:none;"><span class="status-pill can-make">✓ Can Make</span></div>
+        <button class="spotlight-shuffle-btn" id="dailyShuffleBtn" title="Surprise Me (Random in-stock drink)">🎲</button>
+        <button class="spotlight-mix-btn" id="dailyMakeBtn">Mix →</button>
       </div>
     </section>
 
@@ -67,38 +65,39 @@
             type="search" 
             id="searchInput" 
             class="search-input" 
-            placeholder="Search cocktails, spirits, or ingredients..."
+            placeholder="Search cocktails, spirits, ingredients..."
             autocomplete="off"
             autocorrect="off"
             spellcheck="false"
           >
           <button id="clearSearchBtn" class="clear-search-btn" title="Clear">✕</button>
+          <button id="toggleFilterSheetBtn" class="filter-toggle-btn" title="Toggle Spirits & Categories">Filters ▾</button>
         </div>
 
-        <!-- Primary Filter Chips -->
+        <!-- Primary Filter Chips (Streamlined Labels) -->
         <div class="filter-scroll-row">
           <button class="filter-chip active" data-filter="all">
-            All Drinks <span class="chip-count" id="countAll">0</span>
+            All <span class="chip-count" id="countAll">0</span>
           </button>
           <button class="filter-chip" data-filter="can-make">
-            ✓ Can Make <span class="chip-count" id="countCanMake">0</span>
+            Ready <span class="chip-count" id="countCanMake">0</span>
           </button>
           <button class="filter-chip" data-filter="substitutes">
-            🔄 Can Make (Sub) <span class="chip-count" id="countSubstitutes">0</span>
+            With Sub <span class="chip-count" id="countSubstitutes">0</span>
           </button>
           <button class="filter-chip" data-filter="missing-1">
-            Missing 1 Item <span class="chip-count" id="countMissing1">0</span>
+            Need 1 <span class="chip-count" id="countMissing1">0</span>
           </button>
           <button class="filter-chip" data-filter="favorites">
-            ★ Favorites <span class="chip-count" id="countFavorites">0</span>
+            ★ Favs <span class="chip-count" id="countFavorites">0</span>
           </button>
           <button class="filter-chip" data-filter="want-to-try">
-            🔖 Want to Try <span class="chip-count" id="countWantToTry">0</span>
+            🔖 Saved <span class="chip-count" id="countWantToTry">0</span>
           </button>
         </div>
 
-        <!-- Secondary Dropdowns -->
-        <div class="secondary-filters">
+        <!-- Secondary Dropdowns (Collapsible by default) -->
+        <div class="secondary-filters collapsed" id="secondaryFilters">
           <select id="spiritFilter" class="filter-select">
             <option value="all">All Base Spirits</option>
             <option value="whiskey">Bourbon / Rye / Scotch</option>
@@ -205,8 +204,13 @@
     </button>
   </nav>
 
+  <!-- Enable Minimal Mode Flag Before Script Load -->
+  <script>
+    window.BARCRAFT_MINIMAL = true;
+  </script>
+
   <!-- Application Entry Point -->
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="../js/app.js"></script>
 
 </body>
 </html>

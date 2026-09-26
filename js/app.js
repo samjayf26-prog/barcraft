@@ -36,6 +36,13 @@ const state = {
   quizAutoAdvanceInterval: null
 };
 
+// Check if running in minimalist streamlined mode (via window flag, URL query param, or path)
+const isMinimalMode = Boolean(
+  window.BARCRAFT_MINIMAL ||
+  new URLSearchParams(window.location.search).get('ui') === 'minimal' ||
+  window.location.pathname.includes('/minimal')
+);
+
 function clearQuizAutoAdvance() {
   if (state.quizAutoAdvanceInterval) {
     clearInterval(state.quizAutoAdvanceInterval);
@@ -198,56 +205,114 @@ function renderRecipesTab() {
   elements.recipeListContainer.innerHTML = filtered.map(item => {
     const { recipe, canMake, canMakeWithSub, missingCount, missingIngredients, isFavorite, isWantToTry } = item;
 
-    // Minimal Status Indicator
-    let statusBadgeHtml = '';
-    if (canMake) {
-      statusBadgeHtml = `<span class="minimal-status ready" title="Ready to Mix">● Ready</span>`;
-    } else if (canMakeWithSub) {
-      statusBadgeHtml = `<span class="minimal-status sub" title="Can Make with In-Stock Substitute">● Sub</span>`;
-    } else if (missingCount === 1) {
-      statusBadgeHtml = `<span class="minimal-status need1" title="Missing: ${missingIngredients[0].name}">Need 1</span>`;
-    } else {
-      statusBadgeHtml = `<span class="minimal-status missing">${missingCount} miss</span>`;
-    }
-
-    // Clean typographical ingredient list (calm, elegant, no chunky pills)
-    const ingredientText = recipe.ingredients.map(ing => {
-      const isMissing = !inStockIds.has(ing.id);
-      if (isMissing) {
-        const hasSub = item.substitutionsAvailable && item.substitutionsAvailable.some(s => s.originalIngredientId === ing.id);
-        if (hasSub) {
-          return `<span class="ing-phrase sub" title="In-stock substitute available">🔄 ${ing.name}</span>`;
-        }
-        return `<span class="ing-phrase missing" title="Missing ingredient">${ing.name}</span>`;
+    if (isMinimalMode) {
+      // Minimal Status Indicator
+      let statusBadgeHtml = '';
+      if (canMake) {
+        statusBadgeHtml = `<span class="minimal-status ready" title="Ready to Mix">● Ready</span>`;
+      } else if (canMakeWithSub) {
+        statusBadgeHtml = `<span class="minimal-status sub" title="Can Make with In-Stock Substitute">● Sub</span>`;
+      } else if (missingCount === 1) {
+        statusBadgeHtml = `<span class="minimal-status need1" title="Missing: ${missingIngredients[0].name}">Need 1</span>`;
+      } else {
+        statusBadgeHtml = `<span class="minimal-status missing">${missingCount} miss</span>`;
       }
-      return `<span class="ing-phrase">${ing.name}</span>`;
-    }).join('<span class="ing-bullet">•</span>');
 
-    const subHintLine = (canMakeWithSub && item.primarySubSummary)
-      ? `<div class="minimal-subnote"><span>🔄</span> Sub: ${item.primarySubSummary}</div>`
-      : '';
+      // Clean typographical ingredient list (calm, elegant, no chunky pills)
+      const ingredientText = recipe.ingredients.map(ing => {
+        const isMissing = !inStockIds.has(ing.id);
+        if (isMissing) {
+          const hasSub = item.substitutionsAvailable && item.substitutionsAvailable.some(s => s.originalIngredientId === ing.id);
+          if (hasSub) {
+            return `<span class="ing-phrase sub" title="In-stock substitute available">🔄 ${ing.name}</span>`;
+          }
+          return `<span class="ing-phrase missing" title="Missing ingredient">${ing.name}</span>`;
+        }
+        return `<span class="ing-phrase">${ing.name}</span>`;
+      }).join('<span class="ing-bullet">•</span>');
 
-    return `
-      <div class="recipe-card minimal-card" data-recipe-id="${recipe.id}">
-        <div class="minimal-card-top">
-          <div class="minimal-card-title">${recipe.name}</div>
-          <div class="minimal-card-actions">
-            ${statusBadgeHtml}
-            <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
-            <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" data-try-id="${recipe.id}" title="Want to Try">🔖</span>
+      const subHintLine = (canMakeWithSub && item.primarySubSummary)
+        ? `<div class="minimal-subnote"><span>🔄</span> Sub: ${item.primarySubSummary}</div>`
+        : '';
+
+      return `
+        <div class="recipe-card minimal-card" data-recipe-id="${recipe.id}">
+          <div class="minimal-card-top">
+            <div class="minimal-card-title">${recipe.name}</div>
+            <div class="minimal-card-actions">
+              ${statusBadgeHtml}
+              <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
+              <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" data-try-id="${recipe.id}" title="Want to Try">🔖</span>
+            </div>
+          </div>
+
+          <div class="minimal-card-ingredients">
+            ${ingredientText}
+          </div>
+
+          ${subHintLine}
+
+          <div class="minimal-card-footer">
+            <span>${recipe.category}</span>
+            <span>•</span>
+            <span>${recipe.glass}</span>
           </div>
         </div>
+      `;
+    }
 
-        <div class="minimal-card-ingredients">
-          ${ingredientText}
+    // Standard Full Card (for Standard UI)
+    let badgeHtml = '';
+    let subHintHtml = '';
+    if (canMake) {
+      badgeHtml = `<span class="status-pill can-make">✓ Can Make</span>`;
+    } else if (canMakeWithSub) {
+      badgeHtml = `<span class="status-pill can-sub">🔄 Can Make (Sub)</span>`;
+      if (item.primarySubSummary) {
+        subHintHtml = `<div class="recipe-sub-hint"><span>🔄</span> Sub: ${item.primarySubSummary}</div>`;
+      }
+    } else if (missingCount === 1) {
+      badgeHtml = `<span class="status-pill missing-one">Need ${missingIngredients[0].name}</span>`;
+    } else {
+      badgeHtml = `<span class="status-pill missing-many">${missingCount} missing</span>`;
+    }
+
+    const ingTagsHtml = recipe.ingredients.map(ing => {
+      const isMissing = !inStockIds.has(ing.id);
+      if (isMissing && item.substitutionsAvailable && item.substitutionsAvailable.some(s => s.originalIngredientId === ing.id)) {
+        return `<span class="ing-tag sub-match" title="In-stock substitute available">🔄 ${ing.name}</span>`;
+      }
+      return `<span class="ing-tag ${isMissing ? 'missing' : ''}">${isMissing ? '✕ ' : ''}${ing.name}</span>`;
+    }).join('');
+
+    return `
+      <div class="recipe-card" data-recipe-id="${recipe.id}">
+        <div class="recipe-card-header">
+          <div class="recipe-title-group">
+            <div class="recipe-title">
+              <span>${recipe.name}</span>
+              <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
+              <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" data-try-id="${recipe.id}" title="Want to Try">🔖</span>
+            </div>
+            <div class="recipe-meta-row">
+              <span>${recipe.category}</span>
+              <span>•</span>
+              <span>${recipe.glass}</span>
+            </div>
+            ${subHintHtml}
+          </div>
+          <div>${badgeHtml}</div>
         </div>
 
-        ${subHintLine}
+        <div class="recipe-ingredients-preview">
+          <div class="ing-tag-list">${ingTagsHtml}</div>
+        </div>
 
-        <div class="minimal-card-footer">
-          <span>${recipe.category}</span>
-          <span>•</span>
-          <span>${recipe.glass}</span>
+        <div class="recipe-card-footer">
+          <div class="recipe-footer-tags">
+            ${(recipe.tags || []).slice(0, 3).map(t => `<span class="tag-label">${t}</span>`).join('')}
+          </div>
+          <span style="font-weight: 600; color: var(--accent-orange);">View Specs →</span>
         </div>
       </div>
     `;
@@ -1661,13 +1726,24 @@ function renderModalContent() {
 
     ${subDeskHtml}
 
-    <!-- Mechanical Technique Box (Collapsible in Minimal Mode) -->
-    ${recipe.techniqueRule ? `
-      <details class="technique-details">
-        <summary class="technique-summary">💡 Execution Rule & Science ▾</summary>
-        <div class="technique-desc">${recipe.techniqueRule}</div>
-      </details>
-    ` : ''}
+    <!-- Mechanical Technique Box (Collapsible in Minimal Mode, Styled Callout in Standard Mode) -->
+    ${recipe.techniqueRule ? (
+      isMinimalMode ? `
+        <details class="technique-details">
+          <summary class="technique-summary">💡 Execution Rule & Science ▾</summary>
+          <div class="technique-desc">${recipe.techniqueRule}</div>
+        </details>
+      ` : `
+        <div style="background: rgba(224, 86, 36, 0.06); border-left: 3px solid var(--accent-orange); padding: 12px 14px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
+          <div style="font-size: 11px; font-weight: 800; color: var(--accent-orange); text-transform: uppercase; margin-bottom: 4px;">
+            Execution Rule & Science
+          </div>
+          <div style="font-size: 13px; line-height: 1.5; color: var(--text-primary);">
+            ${recipe.techniqueRule}
+          </div>
+        </div>
+      `
+    ) : ''}
 
     ${timerSectionHtml}
 
@@ -2013,7 +2089,8 @@ function switchTab(tabName) {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
+      const swUrl = window.location.pathname.includes('/minimal') ? '../sw.js' : './sw.js';
+      navigator.serviceWorker.register(swUrl)
         .then(reg => console.log('Service Worker registered successfully:', reg.scope))
         .catch(err => console.warn('Service Worker registration failed:', err));
     });

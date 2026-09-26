@@ -6,6 +6,8 @@ const CACHE_NAME = 'barcraft-cache-v2.3.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './minimal/',
+  './minimal/index.html',
   './manifest.json',
   './css/styles.css',
   './js/app.js',
