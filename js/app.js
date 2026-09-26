@@ -15,10 +15,11 @@ import {
 } from './matching.js';
 import { scaleIngredient, calculateBatchMetrics, formatFractionalOz, ozToMl } from './scaler.js';
 import { soundEffects, wakeLockManager, CocktailTimer } from './timers.js';
+import { quizEngine } from './quiz.js';
 
 // Application State
 const state = {
-  activeTab: 'recipes', // 'recipes' | 'inventory' | 'shopping' | 'unlock' | 'guide'
+  activeTab: 'recipes', // 'recipes' | 'inventory' | 'shopping' | 'unlock' | 'guide' | 'quiz'
   activeUnit: localStorage.getItem('barcraft_unit') || 'oz', // 'oz' | 'ml'
   availabilityFilter: 'all', // 'all' | 'can-make' | 'missing-1' | 'favorites'
   categoryFilter: 'all',
@@ -51,6 +52,7 @@ function initDom() {
   elements.shoppingContainer = document.getElementById('shoppingContainer');
   elements.unlockContainer = document.getElementById('unlockContainer');
   elements.guideContainer = document.getElementById('guideContainer');
+  elements.quizContainer = document.getElementById('quizContainer');
   elements.bottomNav = document.getElementById('bottomNav');
   elements.modalOverlay = document.getElementById('modalOverlay');
   elements.modalSheet = document.getElementById('modalSheet');
@@ -776,6 +778,537 @@ function renderGuideTab() {
 }
 
 // ============================================================================
+// Render: Quiz / Mixology Academy Screen
+// Zero-typing interactive formats, scorecard, rank progression & celebrations
+// ============================================================================
+function renderQuizTab() {
+  if (!elements.quizContainer) return;
+
+  const currentRank = quizEngine.getCurrentRank();
+  const nextRank = quizEngine.getNextRank();
+  const progressPct = quizEngine.getRankProgressPercent();
+  const progress = quizEngine.progress;
+
+  if (quizEngine.state === 'hub') {
+    // Render Academy Hub View
+    const totalAns = progress.totalAnswered || 0;
+    const totalCorr = progress.totalCorrect || 0;
+    const accuracy = totalAns > 0 ? Math.round((totalCorr / totalAns) * 100) : 0;
+
+    let html = `
+      <div class="quiz-container">
+        <!-- Hub Header -->
+        <div class="quiz-header">
+          <div class="quiz-header-badge">🎓 BarCraft Mixology Academy</div>
+          <h2 class="quiz-header-title">Test Your Bar Knowledge</h2>
+          <p class="quiz-header-sub">Sharpen your palate, spot rogue ingredients, craft recipes, and master bar economics with 100% touch drills.</p>
+        </div>
+
+        <!-- Bartender Rank Hero Card -->
+        <div class="quiz-rank-card">
+          <div class="quiz-rank-top">
+            <div class="quiz-rank-icon">${currentRank.icon}</div>
+            <div class="quiz-rank-info">
+              <div class="quiz-rank-badge">Rank ${currentRank.level} • Bartender Certification</div>
+              <div class="quiz-rank-title">${currentRank.title}</div>
+            </div>
+          </div>
+          <div class="quiz-xp-track">
+            <div class="quiz-xp-fill" style="width: ${progressPct}%;"></div>
+          </div>
+          <div class="quiz-xp-labels">
+            <span>${progress.xp} XP</span>
+            <span>${nextRank ? `Next Rank: ${nextRank.title} (${nextRank.minXp} XP)` : 'Max Rank Reached! 👑'}</span>
+          </div>
+        </div>
+
+        <!-- Mini Stats Grid -->
+        <div class="quiz-stats-row">
+          <div class="quiz-stat-pill">
+            <div class="quiz-stat-val">⭐ ${progress.xp}</div>
+            <div class="quiz-stat-label">Total XP</div>
+          </div>
+          <div class="quiz-stat-pill">
+            <div class="quiz-stat-val">🎯 ${accuracy}%</div>
+            <div class="quiz-stat-label">Accuracy</div>
+          </div>
+          <div class="quiz-stat-pill">
+            <div class="quiz-stat-val">🔥 ${progress.bestStreak}</div>
+            <div class="quiz-stat-label">Best Streak</div>
+          </div>
+        </div>
+
+        <!-- Quiz Workout Modes -->
+        <div class="inv-category-header" style="margin-top: 6px;">
+          <span>Choose Your Challenge</span>
+          <span style="color: var(--accent-orange);">100% Tap & Shake</span>
+        </div>
+
+        <div class="quiz-modes-list">
+          <button class="quiz-mode-btn featured" id="startDailyWorkoutBtn">
+            <div class="quiz-mode-icon">⚡</div>
+            <div class="quiz-mode-text">
+              <div class="quiz-mode-header">
+                <span class="quiz-mode-title">Daily Mixology Workout</span>
+                <span class="quiz-mode-tag">5 Quick Questions</span>
+              </div>
+              <div class="quiz-mode-desc">A rapid blend of What's Missing, Spot the Imposter, and Technique drills.</div>
+            </div>
+            <div class="quiz-mode-arrow">➔</div>
+          </button>
+
+          <button class="quiz-mode-btn" id="startCertificationBtn">
+            <div class="quiz-mode-icon">🎓</div>
+            <div class="quiz-mode-text">
+              <div class="quiz-mode-header">
+                <span class="quiz-mode-title">Academy Certification Exam</span>
+                <span class="quiz-mode-tag">10 Questions • +150 XP</span>
+              </div>
+              <div class="quiz-mode-desc">Comprehensive test spanning bottle budgeting, shaker ratios, and classic specs.</div>
+            </div>
+            <div class="quiz-mode-arrow">➔</div>
+          </button>
+
+          <button class="quiz-mode-btn" id="startShakerDrillBtn">
+            <div class="quiz-mode-icon">🍸</div>
+            <div class="quiz-mode-text">
+              <div class="quiz-mode-header">
+                <span class="quiz-mode-title">Shaker Masterclass</span>
+                <span class="quiz-mode-tag">5 Build Challenges</span>
+              </div>
+              <div class="quiz-mode-desc">Select correct spirits, modifiers, and citrus from the shelf to build real cocktails.</div>
+            </div>
+            <div class="quiz-mode-arrow">➔</div>
+          </button>
+        </div>
+
+        <!-- Pro Bartender Wisdom Box -->
+        <div class="quiz-tip-box">
+          <div class="quiz-tip-icon">💡</div>
+          <div>
+            <strong>Bar Rule of Thumb:</strong> When shaking citrus drinks, always build from cheapest to most expensive ingredient (citrus & syrup first, expensive spirit last) so a spill costs pennies, not dollars!
+          </div>
+        </div>
+      </div>
+    `;
+
+    elements.quizContainer.innerHTML = html;
+
+    // Mode listeners
+    document.getElementById('startDailyWorkoutBtn').onclick = () => {
+      soundEffects.playClick();
+      quizEngine.startNewRound(5);
+      renderQuizTab();
+    };
+
+    document.getElementById('startCertificationBtn').onclick = () => {
+      soundEffects.playClick();
+      quizEngine.startNewRound(10);
+      renderQuizTab();
+    };
+
+    document.getElementById('startShakerDrillBtn').onclick = () => {
+      soundEffects.playClick();
+      quizEngine.startNewRound(5);
+      for (let i = 0; i < 3; i++) {
+        quizEngine.currentRound[i] = quizEngine.generateBuildCocktailQuestion();
+      }
+      quizEngine.activeQuestion = quizEngine.currentRound[0];
+      renderQuizTab();
+    };
+
+    return;
+  }
+
+  if (quizEngine.state === 'question' || quizEngine.state === 'feedback') {
+    // Render Active Question
+    const q = quizEngine.activeQuestion;
+    const qIdx = quizEngine.currentQuestionIndex + 1;
+    const totalQ = quizEngine.currentRound.length;
+    const progressPct = Math.round((qIdx / totalQ) * 100);
+    const streak = quizEngine.roundStreak;
+    const comboMult = streak >= 5 ? 2.0 : streak >= 3 ? 1.5 : 1.0;
+
+    let questionContentHtml = '';
+
+    if (q.type === 'WHATS_MISSING') {
+      // Recipe Card with a blank mystery slot
+      questionContentHtml = `
+        <div class="quiz-recipe-spec-box">
+          <div class="quiz-spec-drink">🍸 ${q.cocktailName} Spec</div>
+          <div class="quiz-spec-list">
+            ${q.recipe.ingredients.map(ing => {
+              if (ing.id === q.targetIng.id) {
+                return `
+                  <div class="quiz-spec-item blank-target">
+                    <span>❓ ??? (${ing.amount || 'standard'})</span>
+                    <span style="font-size: 11px; text-transform: uppercase;">[ MISSING ]</span>
+                  </div>
+                `;
+              } else {
+                return `
+                  <div class="quiz-spec-item">
+                    <span>${ing.name}</span>
+                    <span style="color: var(--text-muted); font-size: 12px;">${ing.amount || ''}</span>
+                  </div>
+                `;
+              }
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="quiz-options-list" style="margin-top: 14px;">
+          ${q.options.map((opt, i) => {
+            let stateClass = '';
+            if (quizEngine.isAnswered) {
+              if (opt.isCorrect) stateClass = 'correct';
+              else if (quizEngine.selectedAnswer === opt) stateClass = 'incorrect';
+            }
+            return `
+              <button class="quiz-option-btn ${stateClass}" data-opt-idx="${i}" ${quizEngine.isAnswered ? 'disabled' : ''}>
+                <span>${opt.text}</span>
+                <span class="quiz-opt-icon">${quizEngine.isAnswered ? (opt.isCorrect ? '✅' : quizEngine.selectedAnswer === opt ? '❌' : '') : '👉'}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else if (q.type === 'WHATS_EXTRA') {
+      // Imposter Grid
+      questionContentHtml = `
+        <div class="quiz-imposter-grid">
+          ${q.options.map((opt, i) => {
+            let stateClass = '';
+            if (quizEngine.isAnswered) {
+              if (opt.isCorrect) stateClass = 'busted'; // Tapped imposter
+              else if (quizEngine.selectedAnswer === opt) stateClass = 'innocent';
+            }
+            return `
+              <div class="quiz-imposter-tile ${stateClass}" data-opt-idx="${i}">
+                <div class="quiz-imposter-icon">${opt.icon}</div>
+                <div class="quiz-imposter-name">${opt.text}</div>
+                ${quizEngine.isAnswered && opt.isCorrect ? '<span style="font-size: 10px; font-weight: 800; color: var(--status-green);">🕵️ THE IMPOSTER!</span>' : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else if (q.type === 'BUILD_COCKTAIL') {
+      // Shaker Bench
+      const selected = Array.from(quizEngine.selectedBuilderIngredients);
+      const isReadyToShake = selected.length === q.requiredCount;
+
+      questionContentHtml = `
+        <div class="quiz-workbench">
+          <!-- Shaker Vessel -->
+          <div class="quiz-shaker-box">
+            <div class="quiz-shaker-header">
+              <span>🍸 Shaker Tin (${selected.length} / ${q.requiredCount} ingredients)</span>
+              <span>Tap pill to remove</span>
+            </div>
+            <div class="quiz-shaker-slots">
+              ${selected.length === 0 ? '<div class="quiz-shaker-empty">Shaker is empty. Tap ingredients below to add!</div>' : ''}
+              ${selected.map(id => {
+                const item = q.shelf.find(x => x.id === id);
+                return `
+                  <div class="quiz-shaker-pill" data-remove-id="${id}">
+                    <span>${item ? item.name : id}</span>
+                    <span class="remove-icon">✕</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Ingredient Shelf -->
+          <div class="quiz-shelf-title">Bar Shelf (Select ${q.requiredCount}):</div>
+          <div class="quiz-shelf-grid">
+            ${q.shelf.map(item => {
+              const inShaker = quizEngine.selectedBuilderIngredients.has(item.id);
+              return `
+                <button class="quiz-shelf-chip ${inShaker ? 'in-shaker' : ''}" data-shelf-id="${item.id}" ${quizEngine.isAnswered ? 'disabled' : ''}>
+                  ${item.name}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          ${!quizEngine.isAnswered ? `
+            <button class="quiz-shake-btn ${isReadyToShake ? 'ready' : ''}" id="shakeCocktailBtn" ${!isReadyToShake ? 'disabled' : ''}>
+              <span>🍸</span>
+              <span>SHAKE & SERVE!</span>
+            </button>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      // Multiple Choice (Technique & Budgeting)
+      questionContentHtml = `
+        <div class="quiz-options-list">
+          ${q.options.map((opt, i) => {
+            let stateClass = '';
+            if (quizEngine.isAnswered) {
+              if (opt.isCorrect) stateClass = 'correct';
+              else if (quizEngine.selectedAnswer === opt) stateClass = 'incorrect';
+            }
+            return `
+              <button class="quiz-option-btn ${stateClass}" data-opt-idx="${i}" ${quizEngine.isAnswered ? 'disabled' : ''}>
+                <span>${opt.text}</span>
+                <span class="quiz-opt-icon">${quizEngine.isAnswered ? (opt.isCorrect ? '✅' : quizEngine.selectedAnswer === opt ? '❌' : '') : '👉'}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    let feedbackHtml = '';
+    if (quizEngine.isAnswered) {
+      const isCorrect = (q.type === 'BUILD_COCKTAIL')
+        ? (Array.from(quizEngine.selectedBuilderIngredients).length === q.targetIds.size && Array.from(quizEngine.selectedBuilderIngredients).every(id => q.targetIds.has(id)))
+        : !!quizEngine.selectedAnswer?.isCorrect;
+
+      feedbackHtml = `
+        <div class="quiz-feedback-box ${isCorrect ? 'correct' : 'incorrect'}">
+          <div class="quiz-feedback-header">
+            <div class="quiz-feedback-status">
+              <span>${isCorrect ? '🎉 Flawless Execution!' : '❌ Not Quite Right'}</span>
+            </div>
+            ${isCorrect ? `<div class="quiz-xp-gain">+${25 * comboMult} XP</div>` : ''}
+          </div>
+          <div class="quiz-explanation">
+            <strong>💡 The Bartender's Notebook:</strong> ${q.explanation}
+          </div>
+          <button class="quiz-next-btn" id="quizNextBtn">
+            <span>Next Challenge</span>
+            <span>➔</span>
+          </button>
+        </div>
+      `;
+    }
+
+    let html = `
+      <div class="quiz-container">
+        <!-- Active HUD -->
+        <div class="quiz-hud">
+          <button class="quiz-exit-btn" id="quizExitBtn">✕ Quit</button>
+          <div class="quiz-hud-center">Question ${qIdx} of ${totalQ}</div>
+          <div class="quiz-streak-pill">
+            <span>🔥</span>
+            <span>${streak > 1 ? `${streak}x Streak` : 'Active'}</span>
+            ${comboMult > 1 ? `<span style="opacity: 0.9; font-size: 10px;">(${comboMult}x XP)</span>` : ''}
+          </div>
+        </div>
+
+        <div class="quiz-progress-track">
+          <div class="quiz-progress-fill" style="width: ${progressPct}%;"></div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="quiz-card">
+          <div class="quiz-card-header">
+            <span class="quiz-category-tag">${q.badge}</span>
+            <h3 class="quiz-question-title">${q.cocktailName ? q.cocktailName : q.typeName}</h3>
+            <p class="quiz-question-prompt">${q.prompt}</p>
+          </div>
+
+          ${questionContentHtml}
+
+          ${feedbackHtml}
+        </div>
+      </div>
+    `;
+
+    elements.quizContainer.innerHTML = html;
+
+    // Bind Question Handlers
+    document.getElementById('quizExitBtn').onclick = () => {
+      soundEffects.playClick();
+      if (confirm('Exit current workout and return to the Academy Hub?')) {
+        quizEngine.state = 'hub';
+        renderQuizTab();
+      }
+    };
+
+    if (!quizEngine.isAnswered) {
+      if (q.type === 'BUILD_COCKTAIL') {
+        // Shelf chips
+        elements.quizContainer.querySelectorAll('.quiz-shelf-chip').forEach(btn => {
+          btn.onclick = () => {
+            const id = btn.getAttribute('data-shelf-id');
+            quizEngine.toggleBuilderIngredient(id);
+            renderQuizTab();
+          };
+        });
+
+        // Remove pills
+        elements.quizContainer.querySelectorAll('.quiz-shaker-pill').forEach(pill => {
+          pill.onclick = () => {
+            const id = pill.getAttribute('data-remove-id');
+            quizEngine.toggleBuilderIngredient(id);
+            renderQuizTab();
+          };
+        });
+
+        // Shake button
+        const shakeBtn = document.getElementById('shakeCocktailBtn');
+        if (shakeBtn) {
+          shakeBtn.onclick = () => {
+            soundEffects.playShaker();
+            shakeBtn.classList.add('ready');
+            setTimeout(() => {
+              quizEngine.submitAnswer({ isCorrect: true });
+              renderQuizTab();
+            }, 600);
+          };
+        }
+      } else if (q.type === 'WHATS_EXTRA') {
+        // Imposter tiles
+        elements.quizContainer.querySelectorAll('.quiz-imposter-tile').forEach(tile => {
+          tile.onclick = () => {
+            const idx = parseInt(tile.getAttribute('data-opt-idx'), 10);
+            const selectedOpt = q.options[idx];
+            quizEngine.submitAnswer(selectedOpt);
+            renderQuizTab();
+          };
+        });
+      } else {
+        // Standard Multiple Choice / Fill in Blank
+        elements.quizContainer.querySelectorAll('.quiz-option-btn').forEach(btn => {
+          btn.onclick = () => {
+            const idx = parseInt(btn.getAttribute('data-opt-idx'), 10);
+            const selectedOpt = q.options[idx];
+            quizEngine.submitAnswer(selectedOpt);
+            renderQuizTab();
+          };
+        });
+      }
+    } else {
+      // Feedback next button
+      const nextBtn = document.getElementById('quizNextBtn');
+      if (nextBtn) {
+        nextBtn.onclick = () => {
+          soundEffects.playClick();
+          quizEngine.nextQuestion();
+          renderQuizTab();
+        };
+      }
+    }
+
+    return;
+  }
+
+  if (quizEngine.state === 'scorecard') {
+    // Render Scorecard View
+    const score = quizEngine.roundScore;
+    const total = quizEngine.currentRound.length;
+    const pct = Math.round((score / total) * 100);
+    const xp = quizEngine.roundXpEarned;
+
+    let heroIcon = '🍸';
+    let title = 'Workout Complete!';
+    let stars = '⭐⭐';
+    if (pct === 100) {
+      heroIcon = '🏆';
+      title = 'Flawless Masterclass!';
+      stars = '⭐⭐⭐';
+    } else if (pct >= 80) {
+      heroIcon = '🎖️';
+      title = 'Distinguished Bartender!';
+      stars = '⭐⭐⭐';
+    } else if (pct >= 60) {
+      heroIcon = '🍋';
+      title = 'Solid Shift Behind the Bar!';
+      stars = '⭐⭐';
+    } else {
+      heroIcon = '🧼';
+      title = 'Keep Polishing the Glasses!';
+      stars = '⭐';
+    }
+
+    let html = `
+      <div class="quiz-container">
+        <div class="quiz-scorecard">
+          <div class="quiz-score-hero-icon">${heroIcon}</div>
+          <h2 class="quiz-score-title">${title}</h2>
+          <div class="quiz-score-stars">${stars}</div>
+          <div style="font-size: 14px; color: var(--text-secondary);">
+            You scored <strong>${score} out of ${total}</strong> (${pct}% accuracy).
+          </div>
+
+          <div class="quiz-score-metrics">
+            <div class="quiz-metric-item">
+              <div class="quiz-metric-num" style="color: var(--accent-orange);">+${xp}</div>
+              <div class="quiz-metric-lbl">XP Earned</div>
+            </div>
+            <div class="quiz-metric-item">
+              <div class="quiz-metric-num">${pct}%</div>
+              <div class="quiz-metric-lbl">Accuracy</div>
+            </div>
+            <div class="quiz-metric-item">
+              <div class="quiz-metric-num">🔥 ${quizEngine.roundStreak}</div>
+              <div class="quiz-metric-lbl">Final Streak</div>
+            </div>
+          </div>
+
+          <!-- Rank Progress Update -->
+          <div class="quiz-rank-card" style="text-align: left; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-weight: 800; font-size: 13px;">${currentRank.icon} ${currentRank.title}</span>
+              <span style="font-size: 11px; color: #FFA57D; font-weight: 700;">Total: ${progress.xp} XP</span>
+            </div>
+            <div class="quiz-xp-track" style="margin-bottom: 0;">
+              <div class="quiz-xp-fill" style="width: ${progressPct}%;"></div>
+            </div>
+          </div>
+
+          <!-- Mistakes Review Drawer if any -->
+          ${quizEngine.roundMistakes.length > 0 ? `
+            <div class="quiz-review-box">
+              <div class="quiz-review-header">
+                <span>📝 Bar Notes & Refresher (${quizEngine.roundMistakes.length} to review)</span>
+              </div>
+              ${quizEngine.roundMistakes.map(m => `
+                <div class="quiz-review-item">
+                  <div class="quiz-review-item-q">${m.question.cocktailName || m.question.typeName}: ${m.question.prompt}</div>
+                  <div class="quiz-review-item-a">💡 ${m.question.explanation}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div style="background: var(--status-green-bg); border: 1px solid rgba(46,125,50,0.3); border-radius: var(--radius-md); padding: 12px; color: var(--status-green); font-size: 13px; font-weight: 700;">
+              🎉 Zero mistakes! Your bar specs are encyclopedic.
+            </div>
+          `}
+
+          <!-- Action buttons -->
+          <div class="quiz-actions-row">
+            <button class="quiz-btn-primary" id="quizPlayAgainBtn">Play Again 🔄</button>
+            <button class="quiz-btn-secondary" id="quizReturnHubBtn">Academy Hub 🎓</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    elements.quizContainer.innerHTML = html;
+
+    document.getElementById('quizPlayAgainBtn').onclick = () => {
+      soundEffects.playClick();
+      quizEngine.startNewRound(quizEngine.currentRound.length || 5);
+      renderQuizTab();
+    };
+
+    document.getElementById('quizReturnHubBtn').onclick = () => {
+      soundEffects.playClick();
+      quizEngine.state = 'hub';
+      renderQuizTab();
+    };
+
+    return;
+  }
+}
+
+// ============================================================================
 // Recipe Modal & Bartender Mode Controller
 // ============================================================================
 function openRecipeModal(recipe) {
@@ -1076,6 +1609,7 @@ function renderAll() {
   renderShoppingTab();
   renderUnlockTab();
   renderGuideTab();
+  renderQuizTab();
 }
 
 // ============================================================================
@@ -1185,7 +1719,8 @@ function switchTab(tabName) {
     inventory: document.getElementById('inventoryScreen'),
     shopping: document.getElementById('shoppingScreen'),
     unlock: document.getElementById('unlockScreen'),
-    guide: document.getElementById('guideScreen')
+    guide: document.getElementById('guideScreen'),
+    quiz: document.getElementById('quizScreen')
   };
 
   Object.keys(screens).forEach(key => {
@@ -1193,6 +1728,10 @@ function switchTab(tabName) {
       screens[key].style.display = key === tabName ? 'block' : 'none';
     }
   });
+
+  if (tabName === 'quiz') {
+    renderQuizTab();
+  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
