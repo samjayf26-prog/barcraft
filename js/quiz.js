@@ -82,14 +82,30 @@ export class QuizEngine {
     return Math.min(100, Math.max(0, Math.round((progress / range) * 100)));
   }
 
+  // Helper: Get visual icon for any ingredient
+  getIngredientIcon(item) {
+    const name = (typeof item === 'string' ? item : (item?.name || item?.text || '')).toLowerCase();
+    const cat = (typeof item === 'object' ? (item?.category || '') : '').toLowerCase();
+
+    if (name.includes('bitter')) return '🪵';
+    if (name.includes('lime') || name.includes('lemon') || name.includes('grapefruit') || name.includes('citrus') || name.includes('orange juice')) return '🍋';
+    if (name.includes('syrup') || name.includes('sugar') || name.includes('honey') || name.includes('grenadine') || name.includes('agave') || name.includes('orgeat')) return '🍯';
+    if (name.includes('egg') || name.includes('cream') || name.includes('milk')) return '🥚';
+    if (name.includes('soda') || name.includes('tonic') || name.includes('ginger beer') || name.includes('ale') || name.includes('prosecco') || name.includes('champagne') || name.includes('sparkling') || name.includes('cider')) return '🫧';
+    if (name.includes('mint') || name.includes('basil') || name.includes('rosemary') || name.includes('olive') || name.includes('cherry') || name.includes('berry') || name.includes('raspberry') || name.includes('strawberry')) return '🌿';
+    if (name.includes('vermouth') || name.includes('campari') || name.includes('aperol') || name.includes('curaçao') || name.includes('curacao') || name.includes('cointreau') || name.includes('maraschino') || name.includes('chartreuse') || name.includes('amaro') || name.includes('liqueur') || name.includes('triple sec') || cat.includes('modifier')) return '🍸';
+    if (name.includes('whiskey') || name.includes('bourbon') || name.includes('rye') || name.includes('scotch') || name.includes('rum') || name.includes('gin') || name.includes('tequila') || name.includes('mezcal') || name.includes('vodka') || name.includes('cognac') || name.includes('brandy') || cat.includes('spirit') || cat.includes('base')) return '🥃';
+    return '✨';
+  }
+
   // ==========================================================================
   // Question Generators (100% Touch-Driven, Diverse Formats)
   // ==========================================================================
 
   // Format 1: "What's Missing?" (Fill in the blank spec)
   generateWhatsMissingQuestion() {
-    // Select recipe with at least 3 ingredients
-    const validRecipes = MASTER_RECIPES.filter(r => r.ingredients.length >= 3);
+    // Select recipe with at least 3 required ingredients
+    const validRecipes = MASTER_RECIPES.filter(r => r.ingredients.filter(i => !i.optional).length >= 3);
     const recipe = validRecipes[Math.floor(Math.random() * validRecipes.length)];
 
     // Pick one required ingredient to hide
@@ -101,15 +117,23 @@ export class QuizEngine {
     const pool = INITIAL_INVENTORY.filter(i => !recipeIngIds.has(i.id));
 
     // Prefer distractors of same general category (base vs modifier vs pantry)
-    let categorizedPool = pool.filter(i => i.category === targetIng.category);
+    const targetInventoryItem = INITIAL_INVENTORY.find(inv => inv.id === targetIng.id);
+    const targetCategory = targetInventoryItem?.category || '';
+    let categorizedPool = pool.filter(i => i.category === targetCategory);
     if (categorizedPool.length < 3) categorizedPool = pool;
 
     const shuffledPool = [...categorizedPool].sort(() => 0.5 - Math.random());
-    const distractors = shuffledPool.slice(0, 3).map(i => ({ id: i.id, name: i.name }));
+    const distractors = shuffledPool.slice(0, 3).map(i => ({
+      id: i.id,
+      name: i.name,
+      text: i.name,
+      icon: this.getIngredientIcon(i),
+      isCorrect: false
+    }));
 
     const options = [
-      { id: targetIng.id, name: targetIng.name, isCorrect: true },
-      ...distractors.map(d => ({ id: d.id, name: d.name, isCorrect: false }))
+      { id: targetIng.id, name: targetIng.name, text: targetIng.name, icon: this.getIngredientIcon(targetIng), isCorrect: true },
+      ...distractors
     ].sort(() => 0.5 - Math.random());
 
     const maskedIngredients = recipe.ingredients.map(i => {
@@ -125,23 +149,27 @@ export class QuizEngine {
       badge: '🧩 Fill the Blank',
       cocktailName: recipe.name,
       recipe,
+      targetIng,
       targetIngredient: targetIng,
       maskedIngredients,
       options,
       prompt: `Complete the authentic spec for <strong>${recipe.name}</strong>. Which key ingredient is missing?`,
-      explanation: `<strong>${recipe.name}</strong> requires <strong>${targetIng.amount ? `${targetIng.amount} ${targetIng.unit || 'oz'} ` : ''}${targetIng.name}</strong>. ${recipe.techniqueRule || ''}`
+      explanation: `<strong>${recipe.name}</strong> calls for <strong>${targetIng.amount ? `${targetIng.amount} ${targetIng.unit || 'oz'} ` : ''}${targetIng.name}</strong>. ${recipe.techniqueRule || ''}`
     };
   }
 
   // Format 2: "Spot the Imposter" (What's Extra?)
   generateWhatsExtraQuestion() {
-    const validRecipes = MASTER_RECIPES.filter(r => r.ingredients.length >= 3 && r.ingredients.length <= 5);
+    const validRecipes = MASTER_RECIPES.filter(r => {
+      const req = r.ingredients.filter(i => !i.optional);
+      return req.length >= 3 && req.length <= 5;
+    });
     const recipe = validRecipes[Math.floor(Math.random() * validRecipes.length)];
     const recipeIngIds = new Set(recipe.ingredients.map(i => i.id));
 
     // Common fun mixology traps
     const trapMap = {
-      'classic-mai-tai': { name: 'Pineapple Juice', category: 'Pantry & Juices', reason: "Trader Vic's authentic 1944 Mai Tai never contains pineapple juice—only rum, lime, curaçao, and orgeat!" },
+      'classic-mai-tai': { name: 'Pineapple Juice', category: 'Pantry & Juices', reason: "Authentic 1944 Mai Tai never contains pineapple juice—only rum, lime, curaçao, and orgeat!" },
       'sidecar': { name: 'Sweet Vermouth', category: 'Modifiers & Liqueurs', reason: "The Sidecar is a crisp French sour of Cognac, orange curaçao, and lemon; sweet vermouth belongs in a Metropolitan." },
       'classic-negroni': { name: 'Vodka', category: 'Base Spirits', reason: "The Negroni is equal parts London Dry Gin, sweet vermouth, and Campari. Using vodka turns it into a Camparinha!" },
       'house-old-fashioned': { name: 'Fresh Lime Juice', category: 'Pantry & Juices', reason: "An Old Fashioned is strictly spirit-forward with whiskey, sugar, and bitters. Zero citrus juice!" },
@@ -152,16 +180,35 @@ export class QuizEngine {
     let imposter = null;
     let customReason = '';
     if (trapMap[recipe.id]) {
-      imposter = { id: 'imposter-trap', name: trapMap[recipe.id].name, isCorrect: true };
-      customReason = trapMap[recipe.id].reason;
+      const trap = trapMap[recipe.id];
+      imposter = {
+        id: 'imposter-trap',
+        name: trap.name,
+        text: trap.name,
+        icon: this.getIngredientIcon(trap.name),
+        isCorrect: true
+      };
+      customReason = trap.reason;
     } else {
       const pool = INITIAL_INVENTORY.filter(i => !recipeIngIds.has(i.id));
       const randomFake = pool[Math.floor(Math.random() * pool.length)];
-      imposter = { id: randomFake.id, name: randomFake.name, isCorrect: true };
-      customReason = `Real ${recipe.name} does not call for ${randomFake.name}. It relies on the balance of its core ingredients.`;
+      imposter = {
+        id: randomFake.id,
+        name: randomFake.name,
+        text: randomFake.name,
+        icon: this.getIngredientIcon(randomFake),
+        isCorrect: true
+      };
+      customReason = `Real ${recipe.name} does not call for ${randomFake.name}. It relies on the balance of its core authentic ingredients.`;
     }
 
-    const realIngredients = recipe.ingredients.map(i => ({ id: i.id, name: i.name, isCorrect: false }));
+    const realIngredients = recipe.ingredients.filter(i => !i.optional).map(i => ({
+      id: i.id,
+      name: i.name,
+      text: i.name,
+      icon: this.getIngredientIcon(i),
+      isCorrect: false
+    }));
     const options = [...realIngredients, imposter].sort(() => 0.5 - Math.random());
 
     return {
@@ -177,18 +224,34 @@ export class QuizEngine {
     };
   }
 
-  // Format 3: "Bar Crafting Bench" (Tap to select exact 3-4 ingredients)
+  // Format 3: "Bar Crafting Bench" (Tap to select exact 2-4 ingredients)
   generateBuildCocktailQuestion() {
-    const validRecipes = MASTER_RECIPES.filter(r => r.ingredients.length >= 3 && r.ingredients.length <= 5);
+    const validRecipes = MASTER_RECIPES.filter(r => {
+      const req = r.ingredients.filter(i => !i.optional);
+      return req.length >= 2 && req.length <= 4;
+    });
     const recipe = validRecipes[Math.floor(Math.random() * validRecipes.length)];
-    const recipeIngIds = new Set(recipe.ingredients.filter(i => !i.optional).map(i => i.id));
+    const reqIngredients = recipe.ingredients.filter(i => !i.optional);
+    const recipeIngIds = new Set(reqIngredients.map(i => i.id));
 
     // Plausible distractors (4 distractors)
     const pool = INITIAL_INVENTORY.filter(i => !recipeIngIds.has(i.id));
     const shuffledPool = [...pool].sort(() => 0.5 - Math.random());
-    const distractors = shuffledPool.slice(0, 4).map(i => ({ id: i.id, name: i.name, isRequired: false }));
+    const distractors = shuffledPool.slice(0, 4).map(i => ({
+      id: i.id,
+      name: i.name,
+      text: i.name,
+      icon: this.getIngredientIcon(i),
+      isRequired: false
+    }));
 
-    const required = recipe.ingredients.filter(i => !i.optional).map(i => ({ id: i.id, name: i.name, isRequired: true }));
+    const required = reqIngredients.map(i => ({
+      id: i.id,
+      name: i.name,
+      text: i.name,
+      icon: this.getIngredientIcon(i),
+      isRequired: true
+    }));
     const shelf = [...required, ...distractors].sort(() => 0.5 - Math.random());
 
     return {
@@ -201,7 +264,7 @@ export class QuizEngine {
       targetIds: recipeIngIds,
       shelf,
       prompt: `Assemble <strong>${recipe.name}</strong> at your station! Tap the exact <strong>${required.length} ingredients</strong> needed:`,
-      explanation: `<strong>${recipe.name}</strong> is crafted from: ${recipe.ingredients.map(i => `<strong>${i.name}</strong>`).join(', ')}. ${recipe.techniqueRule || ''}`
+      explanation: `<strong>${recipe.name}</strong> is crafted from: ${reqIngredients.map(i => `<strong>${i.name}</strong>`).join(', ')}. ${recipe.techniqueRule || ''}`
     };
   }
 
@@ -210,20 +273,17 @@ export class QuizEngine {
     const validRecipes = MASTER_RECIPES.filter(r => r.glass && r.method);
     const recipe = validRecipes[Math.floor(Math.random() * validRecipes.length)];
 
-    const isStirred = recipe.method.toLowerCase().includes('stir') || recipe.category.includes('Stirred');
-    const correctMethodDesc = isStirred ? 'Continuous 35s Cold Stir with Dense Ice (Zero Aeration)' : 'Vigorous 12s Violent Shake (Aeration & Frost)';
-    const wrongMethodDesc = isStirred ? 'Violent 15s Hard Shake' : 'Gentle 10s Lazy Stir';
-
+    const isStirred = recipe.method.toLowerCase().includes('stir') || (recipe.category && recipe.category.includes('Stirred'));
     const correctSpec = `${recipe.glass} Glass • ${recipe.ice} • ${isStirred ? 'Stirred' : 'Shaken'}`;
 
     const fakeGlasses = ['Nick & Nora Glass', 'Highball Glass', 'Coupe Glass', 'Double Rocks Glass'].filter(g => !recipe.glass.includes(g.split(' ')[0]));
-    const wrongSpec1 = `${fakeGlasses[0]} • ${recipe.ice.includes('None') ? 'Packed Crushed Ice' : 'None (Chilled Glass)'} • ${isStirred ? 'Shaken' : 'Stirred'}`;
+    const wrongSpec1 = `${fakeGlasses[0] || 'Coupe Glass'} • ${recipe.ice.includes('None') ? 'Packed Crushed Ice' : 'None (Chilled Glass)'} • ${isStirred ? 'Shaken' : 'Stirred'}`;
     const wrongSpec2 = `${fakeGlasses[1] || 'Copper Mug'} • Cubed Ice • ${isStirred ? 'Shaken' : 'Stirred'}`;
 
     const options = [
-      { text: correctSpec, isCorrect: true },
-      { text: wrongSpec1, isCorrect: false },
-      { text: wrongSpec2, isCorrect: false }
+      { text: correctSpec, name: correctSpec, isCorrect: true },
+      { text: wrongSpec1, name: wrongSpec1, isCorrect: false },
+      { text: wrongSpec2, name: wrongSpec2, isCorrect: false }
     ].sort(() => 0.5 - Math.random());
 
     return {
@@ -288,6 +348,8 @@ export class QuizEngine {
       ];
       explanation = 'Never buy bottled simple syrup! Shaking equal parts white cane sugar and warm water in a mason jar yields crystal-clear syrup for pennies.';
     }
+
+    options.forEach(o => { o.name = o.text; });
 
     return {
       type: 'BUDGET_SAVVY',

@@ -30,8 +30,16 @@ const state = {
   activeTimer: null,
   activeTimerPhase: '',
   dailyOffset: 0,
-  lastToastTimeout: null
+  lastToastTimeout: null,
+  quizAutoAdvanceInterval: null
 };
+
+function clearQuizAutoAdvance() {
+  if (state.quizAutoAdvanceInterval) {
+    clearInterval(state.quizAutoAdvanceInterval);
+    state.quizAutoAdvanceInterval = null;
+  }
+}
 
 // DOM Elements Cache
 const elements = {};
@@ -783,6 +791,9 @@ function renderGuideTab() {
 // ============================================================================
 function renderQuizTab() {
   if (!elements.quizContainer) return;
+  if (!quizEngine.isAnswered) {
+    clearQuizAutoAdvance();
+  }
 
   const currentRank = quizEngine.getCurrentRank();
   const nextRank = quizEngine.getNextRank();
@@ -933,15 +944,16 @@ function renderQuizTab() {
 
     if (q.type === 'WHATS_MISSING') {
       // Recipe Card with a blank mystery slot
+      const targetId = q.targetIng?.id || q.targetIngredient?.id;
       questionContentHtml = `
         <div class="quiz-recipe-spec-box">
           <div class="quiz-spec-drink">🍸 ${q.cocktailName} Spec</div>
           <div class="quiz-spec-list">
             ${q.recipe.ingredients.map(ing => {
-              if (ing.id === q.targetIng.id) {
+              if (ing.id === targetId) {
                 return `
                   <div class="quiz-spec-item blank-target">
-                    <span>❓ ??? (${ing.amount || 'standard'})</span>
+                    <span>❓ ??? (${ing.amount || 'standard'}${ing.unit ? ` ${ing.unit}` : ''})</span>
                     <span style="font-size: 11px; text-transform: uppercase;">[ MISSING ]</span>
                   </div>
                 `;
@@ -949,7 +961,7 @@ function renderQuizTab() {
                 return `
                   <div class="quiz-spec-item">
                     <span>${ing.name}</span>
-                    <span style="color: var(--text-muted); font-size: 12px;">${ing.amount || ''}</span>
+                    <span style="color: var(--text-muted); font-size: 12px;">${ing.amount || ''}${ing.unit ? ` ${ing.unit}` : ''}</span>
                   </div>
                 `;
               }
@@ -966,7 +978,7 @@ function renderQuizTab() {
             }
             return `
               <button class="quiz-option-btn ${stateClass}" data-opt-idx="${i}" ${quizEngine.isAnswered ? 'disabled' : ''}>
-                <span>${opt.text}</span>
+                <span>${opt.text || opt.name || 'Option'}</span>
                 <span class="quiz-opt-icon">${quizEngine.isAnswered ? (opt.isCorrect ? '✅' : quizEngine.selectedAnswer === opt ? '❌' : '') : '👉'}</span>
               </button>
             `;
@@ -985,8 +997,8 @@ function renderQuizTab() {
             }
             return `
               <div class="quiz-imposter-tile ${stateClass}" data-opt-idx="${i}">
-                <div class="quiz-imposter-icon">${opt.icon}</div>
-                <div class="quiz-imposter-name">${opt.text}</div>
+                <div class="quiz-imposter-icon">${opt.icon || '🥃'}</div>
+                <div class="quiz-imposter-name">${opt.text || opt.name || 'Ingredient'}</div>
                 ${quizEngine.isAnswered && opt.isCorrect ? '<span style="font-size: 10px; font-weight: 800; color: var(--status-green);">🕵️ THE IMPOSTER!</span>' : ''}
               </div>
             `;
@@ -1012,7 +1024,7 @@ function renderQuizTab() {
                 const item = q.shelf.find(x => x.id === id);
                 return `
                   <div class="quiz-shaker-pill" data-remove-id="${id}">
-                    <span>${item ? item.name : id}</span>
+                    <span>${item ? (item.name || item.text) : id}</span>
                     <span class="remove-icon">✕</span>
                   </div>
                 `;
@@ -1027,7 +1039,7 @@ function renderQuizTab() {
               const inShaker = quizEngine.selectedBuilderIngredients.has(item.id);
               return `
                 <button class="quiz-shelf-chip ${inShaker ? 'in-shaker' : ''}" data-shelf-id="${item.id}" ${quizEngine.isAnswered ? 'disabled' : ''}>
-                  ${item.name}
+                  <span>${item.icon || '🥃'}</span> <span>${item.name || item.text}</span>
                 </button>
               `;
             }).join('')}
@@ -1053,7 +1065,7 @@ function renderQuizTab() {
             }
             return `
               <button class="quiz-option-btn ${stateClass}" data-opt-idx="${i}" ${quizEngine.isAnswered ? 'disabled' : ''}>
-                <span>${opt.text}</span>
+                <span>${opt.text || opt.name || 'Option'}</span>
                 <span class="quiz-opt-icon">${quizEngine.isAnswered ? (opt.isCorrect ? '✅' : quizEngine.selectedAnswer === opt ? '❌' : '') : '👉'}</span>
               </button>
             `;
@@ -1081,7 +1093,9 @@ function renderQuizTab() {
           </div>
           <button class="quiz-next-btn" id="quizNextBtn">
             <span>Next Challenge</span>
+            <span class="auto-advance-badge" id="autoAdvanceCountdown">4s</span>
             <span>➔</span>
+            <div class="auto-advance-bar" id="autoAdvanceBar"></div>
           </button>
         </div>
       `;
@@ -1123,6 +1137,7 @@ function renderQuizTab() {
 
     // Bind Question Handlers
     document.getElementById('quizExitBtn').onclick = () => {
+      clearQuizAutoAdvance();
       soundEffects.playClick();
       if (confirm('Exit current workout and return to the Academy Hub?')) {
         quizEngine.state = 'hub';
@@ -1184,13 +1199,50 @@ function renderQuizTab() {
         });
       }
     } else {
-      // Feedback next button
-      const nextBtn = document.getElementById('quizNextBtn');
-      if (nextBtn) {
-        nextBtn.onclick = () => {
+      // Auto-scroll to feedback drawer so the explanation is instantly visible to read
+      setTimeout(() => {
+        const feedbackBox = elements.quizContainer?.querySelector('.quiz-feedback-box');
+        if (feedbackBox) {
+          feedbackBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+
+      // Start auto-advance timer with visual progress bar
+      const durationSec = 4;
+      let remaining = durationSec;
+      const countdownEl = document.getElementById('autoAdvanceCountdown');
+      const barEl = document.getElementById('autoAdvanceBar');
+
+      if (barEl) {
+        requestAnimationFrame(() => {
+          barEl.style.transition = `width ${durationSec}s linear`;
+          barEl.style.width = '100%';
+        });
+      }
+
+      state.quizAutoAdvanceInterval = setInterval(() => {
+        remaining -= 1;
+        if (countdownEl && remaining > 0) {
+          countdownEl.textContent = `${remaining}s`;
+        }
+        if (remaining <= 0) {
+          clearQuizAutoAdvance();
           soundEffects.playClick();
           quizEngine.nextQuestion();
           renderQuizTab();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 1000);
+
+      // Feedback next button click (advances immediately)
+      const nextBtn = document.getElementById('quizNextBtn');
+      if (nextBtn) {
+        nextBtn.onclick = () => {
+          clearQuizAutoAdvance();
+          soundEffects.playClick();
+          quizEngine.nextQuestion();
+          renderQuizTab();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         };
       }
     }
@@ -1293,12 +1345,14 @@ function renderQuizTab() {
     elements.quizContainer.innerHTML = html;
 
     document.getElementById('quizPlayAgainBtn').onclick = () => {
+      clearQuizAutoAdvance();
       soundEffects.playClick();
       quizEngine.startNewRound(quizEngine.currentRound.length || 5);
       renderQuizTab();
     };
 
     document.getElementById('quizReturnHubBtn').onclick = () => {
+      clearQuizAutoAdvance();
       soundEffects.playClick();
       quizEngine.state = 'hub';
       renderQuizTab();
@@ -1702,6 +1756,7 @@ function setupEventListeners() {
 }
 
 function switchTab(tabName) {
+  clearQuizAutoAdvance();
   state.activeTab = tabName;
 
   // Update navbar styling
