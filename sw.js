@@ -2,7 +2,7 @@
 // BarCraft Service Worker for Offline PWA Support
 // ============================================================================
 
-const CACHE_NAME = 'barcraft-cache-v2.3.1';
+const CACHE_NAME = 'barcraft-cache-v2.3.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -51,25 +51,26 @@ self.addEventListener('fetch', event => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
+  // Network-first with cache fallback for fresh updates and seamless offline support
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        // Return cached version, revalidate in background
-        fetch(event.request).then(networkResponse => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, networkResponse);
-            });
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // If offline and request is navigation, fallback to index
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
+    fetch(event.request)
+      .then(networkResponse => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then(cached => {
+          if (cached) return cached;
+          if (event.request.mode === 'navigate') {
+            if (event.request.url.includes('/minimal')) {
+              return caches.match('./minimal/index.html');
+            }
+            return caches.match('./index.html');
+          }
+        });
+      })
   );
 });

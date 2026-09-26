@@ -130,7 +130,10 @@ function renderDailyDrink(forcedDrink = null) {
     tagLabel.textContent = forcedDrink ? '🎲 Surprise Pick' : '★ Daily Cocktail Pick';
   }
 
-  document.getElementById('dailyDrinkTitle').textContent = recipe.name;
+  const titleEl = document.getElementById('dailyDrinkTitle');
+  if (titleEl) {
+    titleEl.textContent = recipe.name;
+  }
   
   let statusBadgeHtml = '';
   if (canMake) {
@@ -140,19 +143,41 @@ function renderDailyDrink(forcedDrink = null) {
   } else {
     statusBadgeHtml = `<span class="status-pill missing-many">Missing ${missingCount} ingredients</span>`;
   }
-  document.getElementById('dailyStatusBadge').innerHTML = statusBadgeHtml;
+  
+  const statusBadgeEl = document.getElementById('dailyStatusBadge');
+  if (statusBadgeEl) {
+    if (isMinimalMode) {
+      if (canMake) {
+        statusBadgeEl.style.display = 'inline-block';
+        statusBadgeEl.innerHTML = `<span class="minimal-status ready">● Ready</span>`;
+      } else if (missingCount === 1) {
+        statusBadgeEl.style.display = 'inline-block';
+        statusBadgeEl.innerHTML = `<span class="minimal-status need1">Need 1</span>`;
+      } else {
+        statusBadgeEl.style.display = 'none';
+      }
+    } else {
+      statusBadgeEl.style.display = 'block';
+      statusBadgeEl.innerHTML = statusBadgeHtml;
+    }
+  }
 
-  // Primary ingredients summary
-  const spiritAndModifier = recipe.ingredients
-    .slice(0, 3)
-    .map(i => i.name)
-    .join(' • ');
-  document.getElementById('dailyDrinkSummary').textContent = `${recipe.glass} Glass • ${spiritAndModifier}`;
+  // Primary ingredients summary (present in standard UI)
+  const summaryEl = document.getElementById('dailyDrinkSummary');
+  if (summaryEl) {
+    const spiritAndModifier = recipe.ingredients
+      .slice(0, 3)
+      .map(i => i.name)
+      .join(' • ');
+    summaryEl.textContent = `${recipe.glass} Glass • ${spiritAndModifier}`;
+  }
 
-  elements.dailyMakeBtn.onclick = () => {
-    soundEffects.playClick();
-    openRecipeModal(recipe);
-  };
+  if (elements.dailyMakeBtn) {
+    elements.dailyMakeBtn.onclick = () => {
+      soundEffects.playClick();
+      openRecipeModal(recipe);
+    };
+  }
 }
 
 // ============================================================================
