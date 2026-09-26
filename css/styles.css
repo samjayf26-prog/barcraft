@@ -552,6 +552,22 @@ body {
   color: var(--text-secondary);
 }
 
+.status-pill.can-sub {
+  background-color: #FFF3E0;
+  color: #D84315;
+  border: 1px solid rgba(216, 67, 21, 0.3);
+}
+
+.recipe-sub-hint {
+  font-size: 11px;
+  color: #D84315;
+  font-weight: 600;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .recipe-ingredients-preview {
   font-size: 13px;
   color: var(--text-secondary);
@@ -582,6 +598,13 @@ body {
   background-color: var(--status-red-bg);
   border-color: rgba(211, 47, 47, 0.25);
   color: var(--status-red);
+  font-weight: 600;
+}
+
+.ing-tag.sub-match {
+  background-color: #FFF8E1;
+  border: 1px dashed #FFA000;
+  color: #BF360C;
   font-weight: 600;
 }
 
@@ -779,6 +802,283 @@ body {
 .spec-status-btn.out-stock {
   background-color: var(--status-red-bg);
   color: var(--status-red);
+}
+
+.spec-status-btn.subbed {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+/* Substituted Ingredient Styling in Spec Rows */
+.spec-original-subbed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.spec-subbed-arrow {
+  color: #FF9800;
+  font-weight: 700;
+  font-size: 13px;
+  margin: 0 4px;
+}
+
+.spec-subbed-name {
+  font-weight: 700;
+  color: #BF360C;
+}
+
+.sub-badge-inline {
+  font-size: 10px;
+  background-color: #FFF3E0;
+  color: #D84315;
+  border: 1px solid rgba(216, 67, 21, 0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-left: 4px;
+}
+
+/* Active Substitution Banner */
+.sub-active-banner {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFE0B2 100%);
+  border: 1px solid rgba(255, 152, 0, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #BF360C;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Mixology Substitution Desk */
+.substitution-desk-section {
+  background-color: #FAF9F6;
+  border: 1.5px solid #FFE082;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 22px;
+}
+
+.sub-desk-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #B26A00;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sub-desk-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+.sub-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sub-desk-card {
+  background: #FFFFFF;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.sub-desk-card.active {
+  border-color: #FF9800;
+  background-color: #FFFDF8;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.12);
+}
+
+.sub-desk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.sub-desk-title-group {
+  flex: 1;
+}
+
+.sub-desk-pair {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sub-original-name {
+  color: var(--text-secondary);
+}
+
+.sub-arrow {
+  color: #FF9800;
+  font-weight: 900;
+}
+
+.sub-replacement-name {
+  color: #BF360C;
+}
+
+.sub-badge-wrapper {
+  margin-top: 5px;
+}
+
+/* Recommendation Badges / Widgets */
+.sub-widget-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sub-widget-badge.recommended {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+.sub-widget-badge.acceptable {
+  background-color: #FFF3E0;
+  color: #E65100;
+  border: 1px solid rgba(230, 81, 0, 0.3);
+}
+
+.sub-widget-badge.creative {
+  background-color: #EDE7F6;
+  color: #512DA8;
+  border: 1px solid rgba(81, 45, 168, 0.3);
+}
+
+/* iOS-Style Toggle Switch Control */
+.sub-toggle-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sub-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.sub-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sub-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #D1D5DB;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 26px;
+}
+
+.sub-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.sub-switch input:checked + .sub-slider {
+  background-color: #FF9800;
+}
+
+.sub-switch input:checked + .sub-slider:before {
+  transform: translateX(20px);
+}
+
+.sub-switch-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: right;
+  transition: color 0.15s ease;
+}
+
+.sub-desk-card.active .sub-switch-label {
+  color: #E65100;
+}
+
+.sub-desk-body {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-flavor-impact {
+  color: var(--text-primary);
+}
+
+.sub-flavor-impact strong,
+.sub-ratio-tip strong {
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.sub-ratio-tip {
+  background-color: #FFF9E6;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: #8D6E63;
+  border-left: 3px solid #FFA000;
+  font-size: 12px;
 }
 
 /* Mechanical Technique Alert Box */

@@ -3,7 +3,7 @@
 // 'What Can I Make?', Missing 1 Ingredient, Unlock Yield, and Daily Drink
 // ============================================================================
 
-import { MASTER_RECIPES } from './db.js';
+import { MASTER_RECIPES, SUBSTITUTION_KNOWLEDGE_BASE } from './db.js';
 import { inventoryManager } from './inventory.js';
 
 export function getAllRecipes() {
@@ -12,7 +12,57 @@ export function getAllRecipes() {
 }
 
 /**
+ * Returns all substitutions applicable to a given recipe, prioritized by
+ * whether the original ingredient is currently missing and the substitute is in stock.
+ */
+export function getSubstitutionsForRecipe(recipe, inStockIds) {
+  if (!recipe || !recipe.ingredients) return [];
+  const inStock = inStockIds || inventoryManager.getInStockIngredientIds();
+  const allIngredients = inventoryManager.getAllIngredients();
+  const ingNameMap = new Map(allIngredients.map(i => [i.id, i.name]));
+  const results = [];
+
+  recipe.ingredients.forEach(ing => {
+    const isMissing = !inStock.has(ing.id);
+    const readableOriginalName = ingNameMap.get(ing.id) || ing.name;
+
+    // Find all substitution pairings from knowledge base where originalId matches this recipe ingredient
+    const candidates = SUBSTITUTION_KNOWLEDGE_BASE.filter(sub => sub.originalId === ing.id);
+
+    candidates.forEach(sub => {
+      const substituteInStock = inStock.has(sub.substituteId);
+      const readableSubName = ingNameMap.get(sub.substituteId) || sub.substituteId;
+
+      results.push({
+        ...sub,
+        originalIngredientId: ing.id,
+        originalIngredientName: readableOriginalName,
+        substituteName: readableSubName,
+        isOriginalMissing: isMissing,
+        substituteInStock
+      });
+    });
+  });
+
+  // Sort candidates:
+  // 1. Missing original with in-stock substitute (highest priority)
+  // 2. In-stock substitute
+  // 3. Recommended > Acceptable > Creative
+  const confScore = { 'recommended': 1, 'acceptable': 2, 'creative': 3 };
+  results.sort((a, b) => {
+    if (a.isOriginalMissing && a.substituteInStock && (!b.isOriginalMissing || !b.substituteInStock)) return -1;
+    if (b.isOriginalMissing && b.substituteInStock && (!a.isOriginalMissing || !a.substituteInStock)) return 1;
+    if (a.substituteInStock && !b.substituteInStock) return -1;
+    if (b.substituteInStock && !a.substituteInStock) return 1;
+    return (confScore[a.confidence] || 9) - (confScore[b.confidence] || 9);
+  });
+
+  return results;
+}
+
+/**
  * Computes availability status for all recipes against current in-stock inventory.
+ * Also evaluates smart substitutions for missing ingredients.
  */
 export function analyzeRecipesAvailability() {
   const recipes = getAllRecipes();
@@ -45,13 +95,34 @@ export function analyzeRecipesAvailability() {
     });
 
     const totalRequired = recipe.ingredients.filter(i => !i.optional).length;
+    const canMake = missing.length === 0;
+
+    // Check intelligent substitution options
+    const allSubs = getSubstitutionsForRecipe(recipe, inStockIds);
+    // Find substitutions that resolve missing ingredients with in-stock items
+    const activeSubCandidates = allSubs.filter(s => s.isOriginalMissing && s.substituteInStock);
+    const resolvedMissingIds = new Set(activeSubCandidates.map(s => s.originalIngredientId));
+
+    // canMakeWithSub is true when not directly makeable, but EVERY missing ingredient has an in-stock substitute!
+    const canMakeWithSub = !canMake && missing.length > 0 && missing.every(m => resolvedMissingIds.has(m.id));
+
+    // Summary of primary substitution (for cards and previews)
+    const primarySub = activeSubCandidates[0] || null;
+    const primarySubSummary = primarySub 
+      ? `${primarySub.substituteName} for ${primarySub.originalIngredientName}`
+      : null;
+
     const matchPercentage = totalRequired > 0 
       ? Math.round(((totalRequired - missing.length) / totalRequired) * 100)
       : 100;
 
     return {
       recipe,
-      canMake: missing.length === 0,
+      canMake,
+      canMakeWithSub,
+      substitutions: allSubs,
+      substitutionsAvailable: allSubs.filter(s => s.substituteInStock),
+      primarySubSummary,
       missingCount: missing.length,
       missingIngredients: missing,
       availableIngredients: available,
@@ -133,8 +204,8 @@ export function getDrinkRecommendation({ isSurpriseMe = false, offset = 0 } = {}
   const canMake = analyzed.filter(a => a.canMake);
 
   // Pool: All in-stock drinks across all categories (not just favorites).
-  // Falls back to all analyzed recipes only if nothing is in stock.
-  const pool = canMake.length > 0 ? canMake : analyzed;
+  // Falls back to drinks makeable with smart substitutes, then to all analyzed recipes.
+  const pool = canMake.length > 0 ? canMake : (canMakeWithSub.length > 0 ? canMakeWithSub : analyzed);
   if (pool.length === 0) return null;
 
   if (isSurpriseMe) {
@@ -168,7 +239,7 @@ export function getRandomInStockDrink() {
  * Filters the analyzed recipe list according to active UI filters.
  */
 export function filterRecipes(analyzedList, {
-  availabilityFilter = 'all', // 'all', 'can-make', 'missing-1', 'favorites'
+  availabilityFilter = 'all', // 'all', 'can-make', 'substitutes', 'missing-1', 'favorites', 'want-to-try'
   categoryFilter = 'all',
   spiritFilter = 'all',
   tagFilter = 'all',
@@ -177,13 +248,14 @@ export function filterRecipes(analyzedList, {
   const query = searchQuery.trim().toLowerCase();
 
   return analyzedList.filter(item => {
-    const { recipe, canMake, missingCount, isFavorite } = item;
+    const { recipe, canMake, canMakeWithSub, missingCount, isFavorite, isWantToTry } = item;
 
     // Availability Filter
     if (availabilityFilter === 'can-make' && !canMake) return false;
+    if (availabilityFilter === 'substitutes' && !canMake && !canMakeWithSub) return false;
     if (availabilityFilter === 'missing-1' && missingCount !== 1) return false;
     if (availabilityFilter === 'favorites' && !isFavorite) return false;
-    if (availabilityFilter === 'want-to-try' && !item.isWantToTry) return false;
+    if (availabilityFilter === 'want-to-try' && !isWantToTry) return false;
 
     // Category Filter
     if (categoryFilter !== 'all' && recipe.category !== categoryFilter) {

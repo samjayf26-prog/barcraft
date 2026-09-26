@@ -11,7 +11,8 @@ import {
   getDailyDrinkRecommendation,
   getRandomInStockDrink,
   filterRecipes,
-  getAllRecipes
+  getAllRecipes,
+  getSubstitutionsForRecipe
 } from './matching.js';
 import { scaleIngredient, calculateBatchMetrics, formatFractionalOz, ozToMl } from './scaler.js';
 import { soundEffects, wakeLockManager, CocktailTimer } from './timers.js';
@@ -21,11 +22,12 @@ import { quizEngine } from './quiz.js';
 const state = {
   activeTab: 'recipes', // 'recipes' | 'inventory' | 'shopping' | 'unlock' | 'guide' | 'quiz'
   activeUnit: localStorage.getItem('barcraft_unit') || 'oz', // 'oz' | 'ml'
-  availabilityFilter: 'all', // 'all' | 'can-make' | 'missing-1' | 'favorites'
+  availabilityFilter: 'all', // 'all' | 'can-make' | 'substitutes' | 'missing-1' | 'favorites' | 'want-to-try'
   categoryFilter: 'all',
   spiritFilter: 'all',
   searchQuery: '',
   activeModalRecipe: null,
+  activeSubstitutions: {}, // recipeId -> { [subId]: boolean }
   activeMultiplier: 1,
   activeTimer: null,
   activeTimerPhase: '',
@@ -152,6 +154,7 @@ function renderRecipesTab() {
 
   // Update counts on filter chips
   const canMakeCount = analyzed.filter(a => a.canMake).length;
+  const canMakeSubCount = analyzed.filter(a => a.canMakeWithSub).length;
   const missingOneCount = analyzed.filter(a => a.missingCount === 1).length;
   const favoritesCount = analyzed.filter(a => a.isFavorite).length;
   const wantToTryCount = analyzed.filter(a => a.isWantToTry).length;
@@ -160,6 +163,8 @@ function renderRecipesTab() {
   if (countAllEl) countAllEl.textContent = analyzed.length;
   const countCanMakeEl = document.getElementById('countCanMake');
   if (countCanMakeEl) countCanMakeEl.textContent = canMakeCount;
+  const countSubstitutesEl = document.getElementById('countSubstitutes');
+  if (countSubstitutesEl) countSubstitutesEl.textContent = canMakeSubCount > 0 ? `+${canMakeSubCount}` : 0;
   const countMissing1El = document.getElementById('countMissing1');
   if (countMissing1El) countMissing1El.textContent = missingOneCount;
   const countFavEl = document.getElementById('countFavorites');
@@ -189,12 +194,18 @@ function renderRecipesTab() {
   const inStockIds = inventoryManager.getInStockIngredientIds();
 
   elements.recipeListContainer.innerHTML = filtered.map(item => {
-    const { recipe, canMake, missingCount, missingIngredients, isFavorite, isWantToTry } = item;
+    const { recipe, canMake, canMakeWithSub, missingCount, missingIngredients, isFavorite, isWantToTry } = item;
 
-    // Status Pill
+    // Status Pill & Substitution Hint
     let badgeHtml = '';
+    let subHintHtml = '';
     if (canMake) {
       badgeHtml = `<span class="status-pill can-make">✓ Can Make</span>`;
+    } else if (canMakeWithSub) {
+      badgeHtml = `<span class="status-pill can-sub">🔄 Can Make (Sub)</span>`;
+      if (item.primarySubSummary) {
+        subHintHtml = `<div class="recipe-sub-hint"><span>🔄</span> Sub: ${item.primarySubSummary}</div>`;
+      }
     } else if (missingCount === 1) {
       badgeHtml = `<span class="status-pill missing-one">Need ${missingIngredients[0].name}</span>`;
     } else {
@@ -204,6 +215,9 @@ function renderRecipesTab() {
     // Ingredients preview tags
     const ingTagsHtml = recipe.ingredients.map(ing => {
       const isMissing = !inStockIds.has(ing.id);
+      if (isMissing && item.substitutionsAvailable && item.substitutionsAvailable.some(s => s.originalIngredientId === ing.id)) {
+        return `<span class="ing-tag sub-match" title="In-stock substitute available">🔄 ${ing.name}</span>`;
+      }
       return `<span class="ing-tag ${isMissing ? 'missing' : ''}">${isMissing ? '✕ ' : ''}${ing.name}</span>`;
     }).join('');
 
@@ -221,6 +235,7 @@ function renderRecipesTab() {
               <span>•</span>
               <span>${recipe.glass}</span>
             </div>
+            ${subHintHtml}
           </div>
           <div>${badgeHtml}</div>
         </div>
@@ -1368,6 +1383,23 @@ function renderQuizTab() {
 function openRecipeModal(recipe) {
   state.activeModalRecipe = recipe;
   state.activeMultiplier = 1;
+
+  // Initialize substitutions for this recipe if not set yet
+  if (!state.activeSubstitutions[recipe.id]) {
+    state.activeSubstitutions[recipe.id] = {};
+    const inStockIds = inventoryManager.getInStockIngredientIds();
+    const subs = getSubstitutionsForRecipe(recipe, inStockIds);
+    // If the recipe is missing ingredients, auto-enable the highest priority in-stock substitution
+    // so the drink is immediately ready to mix for the user, while displaying the toggle ON so they can choose!
+    const coveredOriginals = new Set();
+    subs.filter(s => s.isOriginalMissing && s.substituteInStock).forEach(s => {
+      if (!coveredOriginals.has(s.originalIngredientId)) {
+        state.activeSubstitutions[recipe.id][s.id] = true;
+        coveredOriginals.add(s.originalIngredientId);
+      }
+    });
+  }
+
   renderModalContent();
 
   elements.modalOverlay.classList.add('active');
@@ -1393,9 +1425,36 @@ function renderModalContent() {
   const isFav = inventoryManager.isFavorite(recipe.id);
   const isWantToTry = inventoryManager.isWantToTry(recipe.id);
 
-  // Scaled Ingredients
+  // Substitution Engine
+  const subs = getSubstitutionsForRecipe(recipe, inStockIds);
+  const recipeSubState = state.activeSubstitutions[recipe.id] || {};
+  const activeSubs = subs.filter(s => recipeSubState[s.id]);
+  const activeSubByOriginal = new Map(activeSubs.map(s => [s.originalIngredientId, s]));
+
+  // Active Substitution Banner
+  let subBannerHtml = '';
+  if (activeSubs.length > 0) {
+    const subNames = activeSubs.map(s => `${s.substituteName} (for ${s.originalIngredientName})`).join(', ');
+    subBannerHtml = `
+      <div class="sub-active-banner">
+        <span>🔄</span>
+        <span><strong>Custom Spec Active:</strong> Substituted with ${subNames}. Ready to mix!</span>
+      </div>
+    `;
+  }
+
+  // Scaled Ingredients (applying active substitutions)
   const scaledIngredients = recipe.ingredients.map(ing => {
-    return scaleIngredient(ing, state.activeMultiplier, state.activeUnit);
+    const activeSub = activeSubByOriginal.get(ing.id);
+    const scaled = scaleIngredient(ing, state.activeMultiplier, state.activeUnit);
+    return {
+      ...scaled,
+      isSubstituted: !!activeSub,
+      originalName: ing.name,
+      substituteName: activeSub ? activeSub.substituteName : null,
+      substituteId: activeSub ? activeSub.substituteId : null,
+      activeSub
+    };
   });
 
   // Batching Dilution calculation if multiplier >= 4
@@ -1424,6 +1483,67 @@ function renderModalContent() {
     `;
   }
 
+  // Substitution Desk Menu HTML
+  let subDeskHtml = '';
+  if (subs.length > 0) {
+    subDeskHtml = `
+      <div class="substitution-desk-section">
+        <div class="sub-desk-title">🔄 Mixology Substitution Desk</div>
+        <div class="sub-desk-subtitle">
+          Customize this spec with in-stock substitutions. Select whether you want to perform each substitution below:
+        </div>
+        <div class="sub-card-list">
+          ${subs.map(s => {
+            const isActive = !!recipeSubState[s.id];
+            const badgeClass = s.confidence === 'recommended' ? 'recommended' : (s.confidence === 'acceptable' ? 'acceptable' : 'creative');
+            const badgeIcon = s.confidence === 'recommended' ? '★' : (s.confidence === 'acceptable' ? '⚖️' : '💡');
+
+            return `
+              <div class="sub-desk-card ${isActive ? 'active' : ''}">
+                <div class="sub-desk-header">
+                  <div class="sub-desk-title-group">
+                    <div class="sub-desk-pair">
+                      <span class="sub-original-name">${s.originalIngredientName}</span>
+                      <span class="sub-arrow">➔</span>
+                      <span class="sub-replacement-name">${s.substituteName}</span>
+                    </div>
+                    <div class="sub-badge-wrapper">
+                      <span class="sub-widget-badge ${badgeClass}">${badgeIcon} ${s.confidenceLabel}</span>
+                      ${!s.substituteInStock ? '<span style="font-size: 11px; color: var(--status-red); margin-left: 6px; font-weight: 600;">(Out of Stock)</span>' : ''}
+                    </div>
+                  </div>
+                  <div class="sub-toggle-control">
+                    <label class="sub-switch" title="Select if you want to perform this substitution">
+                      <input 
+                        type="checkbox" 
+                        class="sub-toggle-input" 
+                        data-sub-id="${s.id}" 
+                        ${isActive ? 'checked' : ''} 
+                        ${!s.substituteInStock ? 'disabled' : ''}
+                      >
+                      <span class="sub-slider"></span>
+                    </label>
+                    <span class="sub-switch-label">${isActive ? 'Applied' : 'Original Spec'}</span>
+                  </div>
+                </div>
+                <div class="sub-desk-body">
+                  <div class="sub-flavor-impact">
+                    <strong>Mixology Flavor Impact:</strong>
+                    ${s.flavorNote}
+                  </div>
+                  <div class="sub-ratio-tip">
+                    <strong>Bartender Ratio & Technique Tip:</strong>
+                    ${s.ratioAdjustment}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   // Timer Section HTML
   let timerSectionHtml = '';
   if (recipe.timer) {
@@ -1438,6 +1558,17 @@ function renderModalContent() {
       </div>
     `;
   }
+
+  // Instructions adapted for active substitutions
+  const displayInstructions = recipe.instructions.map(step => {
+    let modified = step;
+    activeSubs.forEach(s => {
+      const escaped = s.originalIngredientName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'gi');
+      modified = modified.replace(regex, `<strong>${s.substituteName}</strong>`);
+    });
+    return modified;
+  });
 
   elements.modalSheet.innerHTML = `
     <div class="sheet-handle"></div>
@@ -1471,10 +1602,30 @@ function renderModalContent() {
     </div>
 
     ${batchMetricsHtml}
+    ${subBannerHtml}
 
     <!-- Ingredients Table -->
     <div class="spec-table">
       ${scaledIngredients.map(ing => {
+        if (ing.isSubstituted) {
+          return `
+            <div class="spec-row">
+              <div class="spec-name-group">
+                <span class="spec-amount">${ing.displayText}</span>
+                <span class="spec-name">
+                  <span class="spec-original-subbed">${ing.originalName}</span>
+                  <span class="spec-subbed-arrow">➔</span>
+                  <span class="spec-subbed-name">${ing.substituteName}</span>
+                  <span class="sub-badge-inline">Substituted</span>
+                </span>
+              </div>
+              <button class="spec-status-btn subbed" title="Substituted ingredient is in stock">
+                ✓ In Stock (Sub)
+              </button>
+            </div>
+          `;
+        }
+
         const inStock = inStockIds.has(ing.id);
         return `
           <div class="spec-row">
@@ -1489,6 +1640,8 @@ function renderModalContent() {
         `;
       }).join('')}
     </div>
+
+    ${subDeskHtml}
 
     <!-- Mechanical Technique Box -->
     ${recipe.techniqueRule ? `
@@ -1506,7 +1659,7 @@ function renderModalContent() {
         Preparation Method
       </div>
       <ol style="padding-left: 20px; font-size: 14px; line-height: 1.6; color: var(--text-primary);">
-        ${recipe.instructions.map(step => `<li style="margin-bottom: 6px;">${step}</li>`).join('')}
+        ${displayInstructions.map(step => `<li style="margin-bottom: 6px;">${step}</li>`).join('')}
       </ol>
     </div>
   `;
@@ -1540,6 +1693,33 @@ function renderModalContent() {
       soundEffects.playClick();
       state.activeMultiplier = parseInt(btn.getAttribute('data-scale'), 10);
       renderModalContent();
+    };
+  });
+
+  // Bind substitution toggle switches
+  elements.modalSheet.querySelectorAll('.sub-toggle-input').forEach(input => {
+    input.onchange = (e) => {
+      e.stopPropagation();
+      soundEffects.playClick();
+      const subId = input.getAttribute('data-sub-id');
+      const isChecked = input.checked;
+      state.activeSubstitutions[recipe.id] = state.activeSubstitutions[recipe.id] || {};
+      
+      const subObj = subs.find(s => s.id === subId);
+      if (isChecked && subObj) {
+        // Auto-disable any other substitution for this original ingredient to avoid conflicts
+        subs.filter(s => s.originalIngredientId === subObj.originalIngredientId && s.id !== subId)
+            .forEach(other => {
+              state.activeSubstitutions[recipe.id][other.id] = false;
+            });
+        state.activeSubstitutions[recipe.id][subId] = true;
+        showToast(`Applied: ${subObj.substituteName} for ${subObj.originalIngredientName}`);
+      } else if (subObj) {
+        state.activeSubstitutions[recipe.id][subId] = false;
+        showToast(`Reverted to original spec: ${subObj.originalIngredientName}`);
+      }
+      renderModalContent();
+      renderRecipesTab();
     };
   });
 

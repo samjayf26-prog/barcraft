@@ -6608,3 +6608,461 @@ export const MASTER_RECIPES = [
   ]
 }
 ];
+
+// ============================================================================
+// BarCraft Mixology Substitution Engine Knowledge Base
+// Curated ingredient substitutions with mixology flavor shift notes,
+// bartender ratio tips, and recommendation confidence tiers
+// ============================================================================
+export const SUBSTITUTION_KNOWLEDGE_BASE = [
+  {
+    id: "old-tom-to-barrel-rested",
+    originalId: "old-tom-gin",
+    substituteId: "barrel-rested-gin",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Barrel-Rested Gin for Old Tom Gin",
+    flavorNote: "Charred oak aging imparts rich vanilla, gentle warmth, and malty botanicals that closely emulate 19th-century barrel-stored Old Tom gins.",
+    ratioAdjustment: "1:1 ratio. For cocktails needing sweetness, consider a tiny dash of simple syrup."
+  },
+  {
+    id: "barrel-rested-to-old-tom",
+    originalId: "barrel-rested-gin",
+    substituteId: "old-tom-gin",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Old Tom for Barrel-Rested Gin",
+    flavorNote: "Soft botanical maltiness and gentle sweetness evoke oak aging without heavy wood tannins.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "old-tom-to-london-dry",
+    originalId: "old-tom-gin",
+    substituteId: "london-dry-gin",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "London Dry Gin for Old Tom",
+    flavorNote: "London Dry is crisp and sharp with piney juniper; lacks the historic malted sweetness of Old Tom.",
+    ratioAdjustment: "1:1 ratio. Add 1 barspoon (0.125 oz) of simple syrup to balance sweetness."
+  },
+  {
+    id: "london-dry-to-old-tom",
+    originalId: "london-dry-gin",
+    substituteId: "old-tom-gin",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Old Tom for London Dry Gin",
+    flavorNote: "Slightly rounder and sweeter than London Dry; lowers the dry botanical sharpness.",
+    ratioAdjustment: "1:1 ratio. Reduce syrup in the cocktail by a barspoon if applicable."
+  },
+  {
+    id: "bourbon-to-rye",
+    originalId: "bourbon",
+    substituteId: "rye-whiskey",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Rye Whiskey for Bourbon",
+    flavorNote: "Exchanges corn sweetness for black pepper spice and minty dryness. Makes a bolder, drier cocktail.",
+    ratioAdjustment: "1:1 ratio. If drink needs sweetness, add a barspoon of simple syrup."
+  },
+  {
+    id: "rye-to-bourbon",
+    originalId: "rye-whiskey",
+    substituteId: "bourbon",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Bourbon for Rye Whiskey",
+    flavorNote: "Exchanges rye's baking spice for rich vanilla, caramel, and round corn body.",
+    ratioAdjustment: "1:1 ratio. Excellent in Manhattans, Sazeracs, and Whiskey Sours."
+  },
+  {
+    id: "blended-scotch-to-bourbon",
+    originalId: "blended-scotch",
+    substituteId: "bourbon",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Bourbon for Blended Scotch",
+    flavorNote: "Sweeter and more vanilla-heavy than Scottish malt, but structurally solid in sours and highballs.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "islay-scotch-to-mezcal",
+    originalId: "islay-scotch",
+    substituteId: "mezcal",
+    confidence: "creative",
+    confidenceLabel: "Creative Riff",
+    title: "Mezcal for Islay Scotch",
+    flavorNote: "Swaps maritime peat smoke for pit-roasted agave smoke and earthy terroir. A fantastic modern riff in Penicillins!",
+    ratioAdjustment: "1:1 ratio for floats or cocktail base."
+  },
+  {
+    id: "mezcal-to-tequila-blanco",
+    originalId: "mezcal",
+    substituteId: "tequila-blanco",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Tequila Blanco for Mezcal",
+    flavorNote: "Delivers clean, bright agave sweetness and pepper, but lacks smoky campfire notes.",
+    ratioAdjustment: "1:1 ratio. Add a pinch of smoked sea salt if campfire smoke is desired."
+  },
+  {
+    id: "tequila-blanco-to-mezcal",
+    originalId: "tequila-blanco",
+    substituteId: "mezcal",
+    confidence: "creative",
+    confidenceLabel: "Creative Riff",
+    title: "Mezcal for Tequila Blanco",
+    flavorNote: "Elevates standard Margaritas and Palomas into rich, smoky artisan spectacles.",
+    ratioAdjustment: "1:1 ratio (or split 50/50 with blanco if available)."
+  },
+  {
+    id: "tequila-reposado-to-bourbon",
+    originalId: "tequila-reposado",
+    substituteId: "bourbon",
+    confidence: "creative",
+    confidenceLabel: "Creative Riff",
+    title: "Bourbon for Tequila Reposado",
+    flavorNote: "Offers oak, vanilla, and caramel notes that mirror aged tequila barrel influence.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "dry-curacao-to-grand-marnier",
+    originalId: "dry-curacao",
+    substituteId: "grand-marnier",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Grand Marnier for Dry Curaçao",
+    flavorNote: "Grand Marnier uses a Cognac base with bitter Caribbean orange peel, providing rich, velvety body.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "grand-marnier-to-dry-curacao",
+    originalId: "grand-marnier",
+    substituteId: "dry-curacao",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Dry Curaçao for Grand Marnier",
+    flavorNote: "Dry Curaçao delivers crisp, dry orange notes with slightly less heavy sweetness.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "sweet-vermouth-to-averna",
+    originalId: "sweet-vermouth",
+    substituteId: "averna-amaro",
+    confidence: "creative",
+    confidenceLabel: "Creative Riff",
+    title: "Averna Amaro for Sweet Vermouth",
+    flavorNote: "Transforms a classic Manhattan into a Black Manhattan! Delivers rich cola, bitter chocolate, and orange zest.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "dry-vermouth-to-lillet-blanc",
+    originalId: "dry-vermouth",
+    substituteId: "lillet-blanc",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Lillet Blanc for Dry Vermouth",
+    flavorNote: "Lillet Blanc brings honeyed candied orange and floral notes. Makes a softer, slightly more aromatic Martini (Vesper style).",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "lillet-blanc-to-dry-vermouth",
+    originalId: "lillet-blanc",
+    substituteId: "dry-vermouth",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Dry Vermouth for Lillet Blanc",
+    flavorNote: "Drier and more herbal than Lillet Blanc.",
+    ratioAdjustment: "1:1 ratio. Add 1 barspoon of simple syrup to mirror Lillet's sweetness."
+  },
+  {
+    id: "campari-to-aperol",
+    originalId: "campari",
+    substituteId: "aperol",
+    confidence: "creative",
+    confidenceLabel: "Creative Riff",
+    title: "Aperol for Campari",
+    flavorNote: "Bright, sweet, and approachable orange profile with ~11% ABV instead of Campari's intense 24% ABV gentian bitterness.",
+    ratioAdjustment: "1:1 ratio. Expect a gentler, fruitier Negroni or Boulevardier."
+  },
+  {
+    id: "aperol-to-campari",
+    originalId: "aperol",
+    substituteId: "campari",
+    confidence: "creative",
+    confidenceLabel: "Creative Riff",
+    title: "Campari for Aperol",
+    flavorNote: "Brings bold gentian bitterness, red rhubarb, and higher proof.",
+    ratioAdjustment: "Use 0.75x ratio or add a splash of soda to soften bitterness."
+  },
+  {
+    id: "amaro-nonino-to-averna",
+    originalId: "amaro-nonino",
+    substituteId: "averna-amaro",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Averna for Amaro Nonino",
+    flavorNote: "Averna is richer, with heavy caramel, cola, and citrus tones compared to Nonino's lighter grappa-based alpine herbs.",
+    ratioAdjustment: "1:1 ratio. Superb in Paper Plane variations."
+  },
+  {
+    id: "averna-to-amaro-nonino",
+    originalId: "averna-amaro",
+    substituteId: "amaro-nonino",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Amaro Nonino for Averna",
+    flavorNote: "Lighter, more delicate, and floral with gentle bitter orange and alpine herbs.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "cynar-to-averna",
+    originalId: "cynar",
+    substituteId: "averna-amaro",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Averna for Cynar",
+    flavorNote: "Replaces artichoke leaf and savory herbal bitterness with deep Sicilian caramel and orange peel.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "st-germain-to-lillet-blanc",
+    originalId: "st-germain",
+    substituteId: "lillet-blanc",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Lillet Blanc for St. Germain",
+    flavorNote: "Lillet Blanc carries subtle floral and orange honey notes, but is significantly less sweet than elderflower liqueur.",
+    ratioAdjustment: "1:1 ratio. Add 1 barspoon of simple syrup if needed."
+  },
+  {
+    id: "green-chartreuse-to-yellow",
+    originalId: "green-chartreuse",
+    substituteId: "yellow-chartreuse",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Yellow Chartreuse for Green Chartreuse",
+    flavorNote: "Yellow Chartreuse is 86 proof (vs 110 proof) and highlights honey, saffron, and anise rather than piercing alpine herbal bite.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "yellow-chartreuse-to-green",
+    originalId: "yellow-chartreuse",
+    substituteId: "green-chartreuse",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Green Chartreuse for Yellow Chartreuse",
+    flavorNote: "Much bolder, more herbal, and higher proof (110 proof).",
+    ratioAdjustment: "Reduce volume by 20-25% to prevent overpowering other ingredients."
+  },
+  {
+    id: "rhum-agricole-to-cachaca",
+    originalId: "rhum-agricole",
+    substituteId: "cachaca",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Cachaça for Rhum Agricole",
+    flavorNote: "Both are pure distillates of fresh-pressed raw sugarcane juice! Cachaça provides the identical grassy, vegetal, and fruity terroir.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "cachaca-to-rhum-agricole",
+    originalId: "cachaca",
+    substituteId: "rhum-agricole",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Rhum Agricole for Cachaça",
+    flavorNote: "Fresh Martinique sugarcane juice mirrors Brazilian cachaça's rustic vegetal cane sweetness.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "dark-rum-to-bourbon",
+    originalId: "dark-rum",
+    substituteId: "bourbon",
+    confidence: "creative",
+    confidenceLabel: "Creative Riff",
+    title: "Bourbon for Dark Rum",
+    flavorNote: "Swaps molasses sweetness for charred American oak, vanilla, and corn sweetness. Known in classic cocktail circles as a 'Nor'easter' swap.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "white-rum-to-vodka",
+    originalId: "white-rum",
+    substituteId: "vodka",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Vodka for White Rum",
+    flavorNote: "Provides the same clean alcohol structure, though lacking subtle sugarcane grassy sweetness.",
+    ratioAdjustment: "1:1 ratio. Add a tiny splash of simple syrup if needed."
+  },
+  {
+    id: "cognac-to-applejack",
+    originalId: "cognac",
+    substituteId: "applejack",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Applejack for Cognac",
+    flavorNote: "100-proof apple brandy brings robust baked apple and barrel spice in place of French grape distillate.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "applejack-to-cognac",
+    originalId: "applejack",
+    substituteId: "cognac",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Cognac for Applejack",
+    flavorNote: "Silky grape body and French oak vanilla replace baked apple notes.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "lime-juice-to-lemon-juice",
+    originalId: "lime-juice",
+    substituteId: "lemon-juice",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Lemon Juice for Lime Juice",
+    flavorNote: "Both have ~5-6% acid. Lemon is primarily citric acid, whereas lime has succinic acid and sharper astringency. Works seamlessly in nearly all sours.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "lemon-juice-to-lime-juice",
+    originalId: "lemon-juice",
+    substituteId: "lime-juice",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Lime Juice for Lemon Juice",
+    flavorNote: "Gives a punchier, slightly sharper acid profile than lemon.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "angostura-to-australian",
+    originalId: "angostura-bitters",
+    substituteId: "australian-bitters",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Australian Bitters for Angostura Bitters",
+    flavorNote: "Shares the classic gentian, clove, cinnamon, and herbal spice architecture of aromatic bitters.",
+    ratioAdjustment: "1:1 ratio (2 dashes)."
+  },
+  {
+    id: "australian-to-angostura",
+    originalId: "australian-bitters",
+    substituteId: "angostura-bitters",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Angostura for Australian Bitters",
+    flavorNote: "The gold standard aromatic bitter; identical role in Old Fashioneds and Manhattans.",
+    ratioAdjustment: "1:1 ratio (2 dashes)."
+  },
+  {
+    id: "peychauds-to-angostura",
+    originalId: "peychauds-bitters",
+    substituteId: "angostura-bitters",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Angostura for Peychaud's Bitters",
+    flavorNote: "Angostura is deeper and woodier (clove/allspice), whereas Peychaud's is bright cherry and anise. Structurally sound in Sazeracs.",
+    ratioAdjustment: "Use 1 dash Angostura for every 2 dashes Peychaud's."
+  },
+  {
+    id: "orange-bitters-to-blood-orange",
+    originalId: "orange-bitters",
+    substituteId: "blood-orange-bitters",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Blood Orange Bitters for Orange Bitters",
+    flavorNote: "Bright, aromatic citrus peel bitterness with slightly deeper berry/citrus nuance.",
+    ratioAdjustment: "1:1 ratio (2 dashes)."
+  },
+  {
+    id: "blood-orange-to-orange-bitters",
+    originalId: "blood-orange-bitters",
+    substituteId: "orange-bitters",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Orange Bitters for Blood Orange Bitters",
+    flavorNote: "Crisp Seville orange peel and cardamom notes.",
+    ratioAdjustment: "1:1 ratio (2 dashes)."
+  },
+  {
+    id: "brown-simple-to-simple",
+    originalId: "brown-simple-syrup",
+    substituteId: "simple-syrup",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Simple Syrup for Brown Simple Syrup",
+    flavorNote: "Clean, neutral cane sugar sweetness; lacks the toffee and molasses depth of turbinado/demerara sugar.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "simple-to-brown-simple",
+    originalId: "simple-syrup",
+    substituteId: "brown-simple-syrup",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Brown Simple Syrup for Simple Syrup",
+    flavorNote: "Adds rich demerara molasses and caramel depth, fantastic in whiskey and dark rum cocktails.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "honey-syrup-to-agave",
+    originalId: "honey-syrup",
+    substituteId: "agave-syrup",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Agave Syrup for Honey Syrup",
+    flavorNote: "Replaces floral wildflower honey notes with earthy, caramel-rich agave nectar.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "agave-syrup-to-honey",
+    originalId: "agave-syrup",
+    substituteId: "honey-syrup",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Honey Syrup for Agave Syrup",
+    flavorNote: "Adds floral sweetness and rich mouthfeel.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "maple-syrup-to-brown-simple",
+    originalId: "maple-syrup",
+    substituteId: "brown-simple-syrup",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Brown Simple for Maple Syrup",
+    flavorNote: "Demerara brown sugar replicates the rich, unrefined caramel body of maple syrup.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "brown-simple-to-maple",
+    originalId: "brown-simple-syrup",
+    substituteId: "maple-syrup",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Maple Syrup for Brown Simple Syrup",
+    flavorNote: "Pure grade-A maple syrup brings rich woodsy caramel and vanilla to Old Fashioneds.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "champagne-to-club-soda",
+    originalId: "champagne",
+    substituteId: "club-soda",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Club Soda for Champagne / Sparkling Wine",
+    flavorNote: "Provides crisp effervescence with zero alcohol and clean finish. Excellent for low-proof riffs on French 75.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "ginger-beer-to-club-soda",
+    originalId: "ginger-beer",
+    substituteId: "club-soda",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Club Soda for Ginger Beer",
+    flavorNote: "Provides effervescence without ginger heat and sugar. Add a dash of aromatic bitters or ginger syrup if available.",
+    ratioAdjustment: "1:1 ratio."
+  }
+];
