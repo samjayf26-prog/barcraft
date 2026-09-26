@@ -300,65 +300,100 @@ export class QuizEngine {
 
   // Format 5: Bottle Budgeting & Resource Optimization
   generateBudgetingQuestion() {
-    const categories = BOTTLE_PRICING_KNOWLEDGE_BASE.categories;
-    const cat = categories[Math.floor(Math.random() * categories.length)];
+    const questions = [
+      {
+        category: 'American Whiskey (Bourbon & Rye)',
+        prompt: 'When shopping for Bourbon or Rye for craft cocktails, what is the single most critical quality indicator?',
+        options: [
+          { text: 'Target 100+ proof (Bottled-in-Bond) to resist ice melt dilution', isCorrect: true },
+          { text: 'Buy the most expensive 80-proof whiskey in a heavy crystal decanter', isCorrect: false },
+          { text: 'Whiskey proof does not matter once you add sugar and ice', isCorrect: false }
+        ],
+        explanation: 'High proof is king! 100+ proof (or barrel-proof) whiskey contains higher alcohol density that withstands melted ice dilution in Old Fashioneds and Manhattans without washing out.'
+      },
+      {
+        category: 'Gin (London Dry & Botanical)',
+        prompt: 'When selecting a workhorse Gin for classic cocktails (Martinis, Negronis, Gimlets), what is the optimal spend strategy?',
+        options: [
+          { text: 'Stick to high-proof London Dry ($22–$30) like Beefeater or Tanqueray with bold juniper backbones', isCorrect: true },
+          { text: 'Always buy fragile $60 floral craft gins that get overwhelmed by citrus and vermouth', isCorrect: false },
+          { text: 'Gin quality doesn\'t matter; buy 35% ABV flavored gin liqueurs', isCorrect: false }
+        ],
+        explanation: 'Do not overspend on delicate boutique gins for classic cocktail work! High botanical volume and 44–47% ABV density (Beefeater at 44%, Tanqueray at 47.3%, Ford\'s at 45%) provide the piney juniper skeleton needed to hold up against vermouth, Campari, and fresh citrus.'
+      },
+      {
+        category: 'Rum & Sugarcane',
+        prompt: 'What is the smartest guideline when buying rum for home cocktails?',
+        options: [
+          { text: 'Avoid artificially sweetened spiced rums; target multi-island blends with pot-still funk ($20–$26) like Planteray 3 Stars', isCorrect: true },
+          { text: 'Spend $75 on ultra-luxury sipping rums to drown in cola and sugary juices', isCorrect: false },
+          { text: 'All rums are chemically identical neutral spirits distilled from potatoes', isCorrect: false }
+        ],
+        explanation: 'Avoid artificially sweetened and flavored spiced rums! High-value authentic multi-island blends (like Planteray 3 Stars at $22) blend crisp light rums with rich pot-still Jamaican rum, offering genuine sugarcane terroir and ester funk for Daiquiris and Sours.'
+      },
+      {
+        category: 'Agave Spirits (Tequila & Mezcal)',
+        prompt: 'What should you ALWAYS look for on the label when buying Tequila for Margaritas & Palomas?',
+        options: [
+          { text: '"100% de Agave" and additive-free production (Target: $40–$60)', isCorrect: true },
+          { text: '"Mixto" (made with 49% industrial cane sugar) to save $5', isCorrect: false },
+          { text: 'Gold coloring added to simulate oak aging', isCorrect: false }
+        ],
+        explanation: 'Always verify "100% de Agave". Mixto tequilas are cut with industrial cane sugar and artificial caramel color that cause headaches and lack real agave terroir.'
+      },
+      {
+        category: 'Vodka',
+        prompt: 'What is the optimal budgeting strategy when buying vodka for home cocktails?',
+        options: [
+          { text: 'Spend $15–$20 on Smirnoff or Stolichnaya; expensive vodkas taste identical in mixed drinks', isCorrect: true },
+          { text: 'Always spend $50+ on ultra-luxury French or artisanal vodkas', isCorrect: false },
+          { text: 'Vodka requires 15 years of oak barrel aging to taste good', isCorrect: false }
+        ],
+        explanation: 'By US law, vodka is chemically defined as a neutral spirit without distinctive character. In blind taste tests, $16 vodka performs identically to $60 luxury brands in Espresso Martinis, Mules, and Cosmopolitans.'
+      },
+      {
+        category: 'Aromatized Wines (Sweet & Dry Vermouth)',
+        prompt: 'What is the golden rule of Sweet and Dry Vermouth storage?',
+        options: [
+          { text: 'Buy 375ml half-bottles and ALWAYS store inside the refrigerator at 38°F', isCorrect: true },
+          { text: 'Keep 1-liter bottles at room temperature on the bar cart indefinitely', isCorrect: false },
+          { text: 'Vermouth is high-proof distilled liquor that never oxidizes', isCorrect: false }
+        ],
+        explanation: 'Vermouth is fortified wine, NOT a distilled spirit! Once opened, it begins oxidizing immediately at room temperature. Always buy 375ml half-bottles and keep refrigerated.'
+      },
+      {
+        category: 'Specialty Herbal Liqueurs & Amari',
+        prompt: 'Why is spending $35–$70 on bottles like Green Chartreuse, Maraschino, or Campari considered a cost-effective investment?',
+        options: [
+          { text: 'They are intensely concentrated and used in small 0.25–0.75 oz measures, yielding 40–80+ cocktails per bottle ($0.50–$0.90/drink)', isCorrect: true },
+          { text: 'You must pour 4 oz of liqueur into every glass, so the bottle finishes in two drinks', isCorrect: false },
+          { text: 'Specialty botanical liqueurs spoil within 3 days of opening', isCorrect: false }
+        ],
+        explanation: 'Botanical liqueurs and amari are concentrated flavor bombs! A standard 750ml bottle yields 40 to 80+ drinks when measured in quarter- or half-ounce specs, making the actual cost-per-cocktail surprisingly low.'
+      },
+      {
+        category: 'Bar Pantry & Syrups',
+        prompt: 'Why is buying pre-bottled simple syrup ($7 for 12 oz) considered poor resource allocation?',
+        options: [
+          { text: 'You can make 1:1 simple syrup at home in 2 minutes for under $0.20 using cane sugar and warm water', isCorrect: true },
+          { text: 'Commercial syrups contain special mixology preservatives you cannot recreate', isCorrect: false },
+          { text: 'Simple syrup requires a professional industrial distillery', isCorrect: false }
+        ],
+        explanation: 'Never buy bottled simple syrup! Shaking equal parts white cane sugar and warm water in a mason jar yields crystal-clear syrup for pennies.'
+      }
+    ];
 
-    let prompt = '';
-    let options = [];
-    let explanation = '';
-
-    if (cat.category.includes('Whiskey')) {
-      prompt = 'When shopping for Bourbon or Rye for craft cocktails, what is the single most critical quality indicator?';
-      options = [
-        { text: 'Target 100+ proof (Bottled-in-Bond) to resist ice melt dilution', isCorrect: true },
-        { text: 'Buy the most expensive 80-proof whiskey in a heavy crystal decanter', isCorrect: false },
-        { text: 'Whiskey proof does not matter once you add sugar and ice', isCorrect: false }
-      ];
-      explanation = 'High proof is king! 100+ proof (or barrel-proof) whiskey contains higher alcohol density that withstands melted ice dilution in Old Fashioneds and Manhattans without washing out.';
-    } else if (cat.category.includes('Vodka')) {
-      prompt = 'What is the optimal budgeting strategy when buying vodka for home cocktails?';
-      options = [
-        { text: 'Spend $15–$20 on Smirnoff or Stolichnaya; expensive vodkas taste identical in mixed drinks', isCorrect: true },
-        { text: 'Always spend $50+ on ultra-luxury French or artisanal vodkas', isCorrect: false },
-        { text: 'Vodka requires 15 years of oak barrel aging to taste good', isCorrect: false }
-      ];
-      explanation = 'By US law, vodka is chemically defined as a neutral spirit without distinctive character. In blind taste tests, $16 vodka performs identically to $60 luxury brands in Espresso Martinis, Mules, and Cosmopolitans.';
-    } else if (cat.category.includes('Agave')) {
-      prompt = 'What should you ALWAYS look for on the label when buying Tequila for Margaritas & Palomas?';
-      options = [
-        { text: '"100% de Agave" and additive-free production (Target: $50–$65)', isCorrect: true },
-        { text: '"Mixto" (made with 49% industrial cane sugar) to save $5', isCorrect: false },
-        { text: 'Gold coloring added to simulate oak aging', isCorrect: false }
-      ];
-      explanation = 'Always verify "100% de Agave". Mixto tequilas are cut with industrial cane sugar and artificial caramel color that cause headaches and lack real agave terroir.';
-    } else if (cat.category.includes('Vermouth')) {
-      prompt = 'What is the golden rule of Sweet and Dry Vermouth storage?';
-      options = [
-        { text: 'Buy 375ml half-bottles and ALWAYS store inside the refrigerator at 38°F', isCorrect: true },
-        { text: 'Keep 1-liter bottles at room temperature on the bar cart indefinitely', isCorrect: false },
-        { text: 'Vermouth is high-proof distilled liquor that never oxidizes', isCorrect: false }
-      ];
-      explanation = 'Vermouth is fortified wine, NOT a distilled spirit! Once opened, it begins oxidizing immediately at room temperature. Always buy 375ml half-bottles and keep refrigerated.';
-    } else {
-      prompt = 'Why is buying pre-bottled simple syrup ($7 for 12 oz) considered poor resource allocation?';
-      options = [
-        { text: 'You can make 1:1 simple syrup at home in 2 minutes for under $0.20 using cane sugar and warm water', isCorrect: true },
-        { text: 'Commercial syrups contain special mixology preservatives you cannot recreate', isCorrect: false },
-        { text: 'Simple syrup requires a professional industrial distillery', isCorrect: false }
-      ];
-      explanation = 'Never buy bottled simple syrup! Shaking equal parts white cane sugar and warm water in a mason jar yields crystal-clear syrup for pennies.';
-    }
-
-    options.forEach(o => { o.name = o.text; });
+    const q = questions[Math.floor(Math.random() * questions.length)];
+    const options = q.options.map(o => ({ ...o, name: o.text })).sort(() => 0.5 - Math.random());
 
     return {
       type: 'BUDGET_SAVVY',
       typeName: 'Bar Economics',
       badge: '🍾 Spend Savvy',
-      cocktailName: cat.category,
-      options: options.sort(() => 0.5 - Math.random()),
-      prompt,
-      explanation
+      cocktailName: q.category,
+      options,
+      prompt: q.prompt,
+      explanation: q.explanation
     };
   }
 
