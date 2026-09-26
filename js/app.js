@@ -54,6 +54,8 @@ function initDom() {
   elements.dailyMakeBtn = document.getElementById('dailyMakeBtn');
   elements.searchInput = document.getElementById('searchInput');
   elements.clearSearchBtn = document.getElementById('clearSearchBtn');
+  elements.toggleFilterSheetBtn = document.getElementById('toggleFilterSheetBtn');
+  elements.secondaryFilters = document.getElementById('secondaryFilters');
   elements.filterChips = document.querySelectorAll('.filter-chip');
   elements.categoryFilter = document.getElementById('categoryFilter');
   elements.spiritFilter = document.getElementById('spiritFilter');
@@ -196,59 +198,56 @@ function renderRecipesTab() {
   elements.recipeListContainer.innerHTML = filtered.map(item => {
     const { recipe, canMake, canMakeWithSub, missingCount, missingIngredients, isFavorite, isWantToTry } = item;
 
-    // Status Pill & Substitution Hint
-    let badgeHtml = '';
-    let subHintHtml = '';
+    // Minimal Status Indicator
+    let statusBadgeHtml = '';
     if (canMake) {
-      badgeHtml = `<span class="status-pill can-make">✓ Can Make</span>`;
+      statusBadgeHtml = `<span class="minimal-status ready" title="Ready to Mix">● Ready</span>`;
     } else if (canMakeWithSub) {
-      badgeHtml = `<span class="status-pill can-sub">🔄 Can Make (Sub)</span>`;
-      if (item.primarySubSummary) {
-        subHintHtml = `<div class="recipe-sub-hint"><span>🔄</span> Sub: ${item.primarySubSummary}</div>`;
-      }
+      statusBadgeHtml = `<span class="minimal-status sub" title="Can Make with In-Stock Substitute">● Sub</span>`;
     } else if (missingCount === 1) {
-      badgeHtml = `<span class="status-pill missing-one">Need ${missingIngredients[0].name}</span>`;
+      statusBadgeHtml = `<span class="minimal-status need1" title="Missing: ${missingIngredients[0].name}">Need 1</span>`;
     } else {
-      badgeHtml = `<span class="status-pill missing-many">${missingCount} missing</span>`;
+      statusBadgeHtml = `<span class="minimal-status missing">${missingCount} miss</span>`;
     }
 
-    // Ingredients preview tags
-    const ingTagsHtml = recipe.ingredients.map(ing => {
+    // Clean typographical ingredient list (calm, elegant, no chunky pills)
+    const ingredientText = recipe.ingredients.map(ing => {
       const isMissing = !inStockIds.has(ing.id);
-      if (isMissing && item.substitutionsAvailable && item.substitutionsAvailable.some(s => s.originalIngredientId === ing.id)) {
-        return `<span class="ing-tag sub-match" title="In-stock substitute available">🔄 ${ing.name}</span>`;
+      if (isMissing) {
+        const hasSub = item.substitutionsAvailable && item.substitutionsAvailable.some(s => s.originalIngredientId === ing.id);
+        if (hasSub) {
+          return `<span class="ing-phrase sub" title="In-stock substitute available">🔄 ${ing.name}</span>`;
+        }
+        return `<span class="ing-phrase missing" title="Missing ingredient">${ing.name}</span>`;
       }
-      return `<span class="ing-tag ${isMissing ? 'missing' : ''}">${isMissing ? '✕ ' : ''}${ing.name}</span>`;
-    }).join('');
+      return `<span class="ing-phrase">${ing.name}</span>`;
+    }).join('<span class="ing-bullet">•</span>');
+
+    const subHintLine = (canMakeWithSub && item.primarySubSummary)
+      ? `<div class="minimal-subnote"><span>🔄</span> Sub: ${item.primarySubSummary}</div>`
+      : '';
 
     return `
-      <div class="recipe-card" data-recipe-id="${recipe.id}">
-        <div class="recipe-card-header">
-          <div class="recipe-title-group">
-            <div class="recipe-title">
-              <span>${recipe.name}</span>
-              <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
-              <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" data-try-id="${recipe.id}" title="Want to Try">🔖</span>
-            </div>
-            <div class="recipe-meta-row">
-              <span>${recipe.category}</span>
-              <span>•</span>
-              <span>${recipe.glass}</span>
-            </div>
-            ${subHintHtml}
+      <div class="recipe-card minimal-card" data-recipe-id="${recipe.id}">
+        <div class="minimal-card-top">
+          <div class="minimal-card-title">${recipe.name}</div>
+          <div class="minimal-card-actions">
+            ${statusBadgeHtml}
+            <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
+            <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" data-try-id="${recipe.id}" title="Want to Try">🔖</span>
           </div>
-          <div>${badgeHtml}</div>
         </div>
 
-        <div class="recipe-ingredients-preview">
-          <div class="ing-tag-list">${ingTagsHtml}</div>
+        <div class="minimal-card-ingredients">
+          ${ingredientText}
         </div>
 
-        <div class="recipe-card-footer">
-          <div class="recipe-footer-tags">
-            ${(recipe.tags || []).slice(0, 3).map(t => `<span class="tag-label">${t}</span>`).join('')}
-          </div>
-          <span style="font-weight: 600; color: var(--accent-orange);">View Specs →</span>
+        ${subHintLine}
+
+        <div class="minimal-card-footer">
+          <span>${recipe.category}</span>
+          <span>•</span>
+          <span>${recipe.glass}</span>
         </div>
       </div>
     `;
@@ -341,10 +340,21 @@ function renderInventoryTab() {
           <div class="inv-item-row">
             <div class="inv-item-info">
               <div class="inv-item-name">${item.name}</div>
-              ${item.benchmark ? `<div class="inv-item-benchmark">${item.benchmark}</div>` : ''}
+              ${(item.suggestedPrice || item.benchmark) ? `
+                <div class="inv-item-meta-line">
+                  ${item.suggestedPrice ? `<span class="inv-price-tag">${item.suggestedPrice}</span>` : ''}
+                  ${item.benchmark ? `<span class="inv-benchmark-text">${item.benchmark}</span>` : ''}
+                </div>
+              ` : ''}
+              ${item.valueRationale ? `
+                <details class="inv-guide-details">
+                  <summary class="inv-guide-summary">Buying Guide ▾</summary>
+                  <div class="inv-guide-text">${item.valueRationale}</div>
+                </details>
+              ` : ''}
             </div>
             <button class="inv-toggle-btn ${item.inStock ? 'in-stock' : 'out-stock'}" data-inv-id="${item.id}">
-              ${item.inStock ? '✓ In Stock' : '✕ Out of Stock'}
+              ${item.inStock ? '✓ Stocked' : '✕ Out'}
             </button>
           </div>
         `).join('')}
@@ -456,13 +466,18 @@ function renderShoppingTab() {
               <div class="shopping-item-details">
                 <div class="shopping-item-text ${item.checked ? 'checked' : ''}">
                   <span>${item.name}</span>
-                  ${item.suggestedPrice ? `<span class="shopping-price-tag" title="Optimal Price Target">🎯 Target: ${item.suggestedPrice}</span>` : ''}
+                  ${item.suggestedPrice ? `<span class="shopping-price-tag">${item.suggestedPrice}</span>` : ''}
                 </div>
                 <div class="shopping-item-sub">
                   <span>${item.category}</span>
                   ${item.benchmark ? ` • <em>${item.benchmark}</em>` : ''}
                 </div>
-                ${item.valueRationale ? `<div class="shopping-rationale">💡 ${item.valueRationale}</div>` : ''}
+                ${item.valueRationale ? `
+                  <details class="inv-guide-details" style="margin-top: 4px;">
+                    <summary class="inv-guide-summary">Pricing Rationale ▾</summary>
+                    <div class="inv-guide-text">${item.valueRationale}</div>
+                  </details>
+                ` : ''}
               </div>
             </div>
             <div class="shopping-actions">
@@ -1526,16 +1541,19 @@ function renderModalContent() {
                     <span class="sub-switch-label">${isActive ? 'Applied' : 'Original Spec'}</span>
                   </div>
                 </div>
-                <div class="sub-desk-body">
-                  <div class="sub-flavor-impact">
-                    <strong>Mixology Flavor Impact:</strong>
-                    ${s.flavorNote}
+                <details class="sub-details-toggle">
+                  <summary class="sub-details-summary">Flavor Impact & Tips ▾</summary>
+                  <div class="sub-desk-body">
+                    <div class="sub-flavor-impact">
+                      <strong>Mixology Flavor Impact:</strong>
+                      ${s.flavorNote}
+                    </div>
+                    <div class="sub-ratio-tip">
+                      <strong>Bartender Technique Tip:</strong>
+                      ${s.ratioAdjustment}
+                    </div>
                   </div>
-                  <div class="sub-ratio-tip">
-                    <strong>Bartender Ratio & Technique Tip:</strong>
-                    ${s.ratioAdjustment}
-                  </div>
-                </div>
+                </details>
               </div>
             `;
           }).join('')}
@@ -1643,12 +1661,12 @@ function renderModalContent() {
 
     ${subDeskHtml}
 
-    <!-- Mechanical Technique Box -->
+    <!-- Mechanical Technique Box (Collapsible in Minimal Mode) -->
     ${recipe.techniqueRule ? `
-      <div class="technique-box">
-        <div class="technique-title">Execution Rule & Science</div>
+      <details class="technique-details">
+        <summary class="technique-summary">💡 Execution Rule & Science ▾</summary>
         <div class="technique-desc">${recipe.techniqueRule}</div>
-      </div>
+      </details>
     ` : ''}
 
     ${timerSectionHtml}
@@ -1914,13 +1932,31 @@ function setupEventListeners() {
   // Secondary dropdown filters
   elements.categoryFilter.onchange = (e) => {
     state.categoryFilter = e.target.value;
+    updateFilterBtnLabel();
     renderRecipesTab();
   };
 
   elements.spiritFilter.onchange = (e) => {
     state.spiritFilter = e.target.value;
+    updateFilterBtnLabel();
     renderRecipesTab();
   };
+
+  function updateFilterBtnLabel() {
+    if (!elements.toggleFilterSheetBtn) return;
+    const hasFilter = state.categoryFilter !== 'all' || state.spiritFilter !== 'all';
+    elements.toggleFilterSheetBtn.classList.toggle('has-filter', hasFilter);
+  }
+
+  // Toggle collapsible secondary filters (minimalist mode)
+  if (elements.toggleFilterSheetBtn && elements.secondaryFilters) {
+    elements.toggleFilterSheetBtn.onclick = () => {
+      soundEffects.playClick();
+      elements.secondaryFilters.classList.toggle('collapsed');
+      const isCollapsed = elements.secondaryFilters.classList.contains('collapsed');
+      elements.toggleFilterSheetBtn.textContent = isCollapsed ? 'Filters ▾' : 'Filters ▴';
+    };
+  }
 
   // Modal overlay click outside to close
   elements.modalOverlay.onclick = (e) => {

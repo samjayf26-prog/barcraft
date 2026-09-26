@@ -2,7 +2,7 @@
 // BarCraft Service Worker for Offline PWA Support
 // ============================================================================
 
-const CACHE_NAME = 'barcraft-cache-v7';
+const CACHE_NAME = 'barcraft-cache-v2.3.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

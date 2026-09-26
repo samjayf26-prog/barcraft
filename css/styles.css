@@ -311,26 +311,28 @@ body {
 
 .search-input-wrapper {
   position: relative;
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .search-icon {
   position: absolute;
-  left: 14px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 15px;
   pointer-events: none;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 14px 12px 42px;
+  padding: 10px 84px 10px 36px;
   background-color: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  font-size: 16px; /* Prevents iOS Safari auto-zoom! */
+  font-size: 15px; /* iOS Safari zoom prevention */
   color: var(--text-primary);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -343,15 +345,44 @@ body {
 
 .clear-search-btn {
   position: absolute;
-  right: 12px;
+  right: 76px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   display: none;
+  padding: 4px;
+}
+
+.filter-toggle-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--bg-cream);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.filter-toggle-btn:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.filter-toggle-btn.has-filter {
+  background-color: var(--accent-orange-light);
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
 }
 
 /* Filter Chips / Horizontal Scroll */
@@ -409,6 +440,10 @@ body {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+
+.secondary-filters.collapsed {
+  display: none;
 }
 
 .filter-select {
@@ -2576,4 +2611,311 @@ body {
   0% { transform: scale(0.6); opacity: 0; }
   70% { transform: scale(1.1); }
   100% { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   v2.3.1 Minimalist & Streamlined Interface Styles
+   Reduces visual noise, declutters text density, and uses progressive disclosure
+   ========================================================================== */
+
+/* Compact Daily Spotlight Bar */
+.daily-spotlight-bar {
+  background: #1C1B1A;
+  color: #FFFFFF;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+}
+
+.spotlight-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.spotlight-star {
+  color: #FFA57D;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.spotlight-info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.spotlight-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #FFA57D;
+  flex-shrink: 0;
+}
+
+.spotlight-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #FFFFFF;
+}
+
+.spotlight-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.spotlight-shuffle-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.spotlight-shuffle-btn:hover {
+  background: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+.spotlight-mix-btn {
+  background: var(--accent-orange);
+  color: #FFFFFF;
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.spotlight-mix-btn:hover {
+  background: var(--accent-orange-hover);
+}
+
+/* Minimalist Recipe Cards (Quiet, Elegant, Scannable) */
+.recipe-card.minimal-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 13px 15px;
+  margin-bottom: 9px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+}
+
+.recipe-card.minimal-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  border-color: #D6D2CA;
+}
+
+.recipe-card.minimal-card:active {
+  transform: scale(0.99);
+}
+
+.minimal-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.minimal-card-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+}
+
+.minimal-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Minimal Status Indicators */
+.minimal-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.minimal-status.ready {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid rgba(46, 125, 50, 0.25);
+}
+
+.minimal-status.sub {
+  background-color: #FFF3E0;
+  color: #D84315;
+  border: 1px solid rgba(216, 67, 21, 0.25);
+}
+
+.minimal-status.need1 {
+  background-color: var(--accent-orange-light);
+  color: var(--accent-orange);
+  border: 1px solid rgba(255, 94, 30, 0.25);
+}
+
+.minimal-status.missing {
+  background-color: var(--bg-cream-darker);
+  color: var(--text-secondary);
+}
+
+/* Typographical Ingredients Phrase */
+.minimal-card-ingredients {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+
+.ing-phrase {
+  display: inline;
+}
+
+.ing-phrase.missing {
+  color: #C62828;
+  opacity: 0.85;
+}
+
+.ing-phrase.sub {
+  color: #D84315;
+  font-weight: 600;
+}
+
+.ing-bullet {
+  margin: 0 5px;
+  color: var(--border-light);
+  font-size: 11px;
+}
+
+.minimal-subnote {
+  font-size: 11px;
+  color: #D84315;
+  font-weight: 600;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.minimal-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* Minimalist Collapsible Details (Progressive Disclosure) */
+.sub-details-toggle,
+.technique-details,
+.inv-guide-details {
+  margin-top: 6px;
+  border: none;
+  background: transparent;
+}
+
+.sub-details-summary,
+.technique-summary,
+.inv-guide-summary {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  transition: color 0.15s ease;
+  user-select: none;
+}
+
+.sub-details-summary::-webkit-details-marker,
+.technique-summary::-webkit-details-marker,
+.inv-guide-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sub-details-summary:hover,
+.technique-summary:hover,
+.inv-guide-summary:hover {
+  color: var(--accent-orange);
+}
+
+.technique-details[open] .technique-summary,
+.sub-details-toggle[open] .sub-details-summary,
+.inv-guide-details[open] .inv-guide-summary {
+  color: var(--accent-orange);
+  margin-bottom: 6px;
+}
+
+.inv-item-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.inv-price-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2E7D32;
+  background-color: #E8F5E9;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+
+.inv-benchmark-text {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.inv-guide-text {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  background-color: #F7F5EE;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+  border-left: 3px solid var(--accent-orange);
 }
