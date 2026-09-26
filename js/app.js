@@ -3,7 +3,7 @@
 // Tab routing, reactive rendering, modals, timers, and user interactions
 // ============================================================================
 
-import { BUDGETING_RULES, MECHANICAL_RULES } from './db.js';
+import { BUDGETING_RULES, BOTTLE_PRICING_KNOWLEDGE_BASE, MECHANICAL_RULES } from './db.js';
 import { inventoryManager } from './inventory.js';
 import {
   analyzeRecipesAvailability,
@@ -144,11 +144,18 @@ function renderRecipesTab() {
   const canMakeCount = analyzed.filter(a => a.canMake).length;
   const missingOneCount = analyzed.filter(a => a.missingCount === 1).length;
   const favoritesCount = analyzed.filter(a => a.isFavorite).length;
+  const wantToTryCount = analyzed.filter(a => a.isWantToTry).length;
 
-  document.getElementById('countAll').textContent = analyzed.length;
-  document.getElementById('countCanMake').textContent = canMakeCount;
-  document.getElementById('countMissing1').textContent = missingOneCount;
-  document.getElementById('countFavorites').textContent = favoritesCount;
+  const countAllEl = document.getElementById('countAll');
+  if (countAllEl) countAllEl.textContent = analyzed.length;
+  const countCanMakeEl = document.getElementById('countCanMake');
+  if (countCanMakeEl) countCanMakeEl.textContent = canMakeCount;
+  const countMissing1El = document.getElementById('countMissing1');
+  if (countMissing1El) countMissing1El.textContent = missingOneCount;
+  const countFavEl = document.getElementById('countFavorites');
+  if (countFavEl) countFavEl.textContent = favoritesCount;
+  const countTryEl = document.getElementById('countWantToTry');
+  if (countTryEl) countTryEl.textContent = wantToTryCount;
 
   // Filter list
   const filtered = filterRecipes(analyzed, {
@@ -172,7 +179,7 @@ function renderRecipesTab() {
   const inStockIds = inventoryManager.getInStockIngredientIds();
 
   elements.recipeListContainer.innerHTML = filtered.map(item => {
-    const { recipe, canMake, missingCount, missingIngredients, isFavorite } = item;
+    const { recipe, canMake, missingCount, missingIngredients, isFavorite, isWantToTry } = item;
 
     // Status Pill
     let badgeHtml = '';
@@ -196,7 +203,8 @@ function renderRecipesTab() {
           <div class="recipe-title-group">
             <div class="recipe-title">
               <span>${recipe.name}</span>
-              <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}">★</span>
+              <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
+              <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" data-try-id="${recipe.id}" title="Want to Try">🔖</span>
             </div>
             <div class="recipe-meta-row">
               <span>${recipe.category}</span>
@@ -232,6 +240,15 @@ function renderRecipesTab() {
         e.stopPropagation();
         inventoryManager.toggleFavorite(recipeId);
         soundEffects.playClick();
+        renderRecipesTab();
+        return;
+      }
+      // If clicked on want to try bookmark, toggle want to try without opening modal
+      if (e.target.classList.contains('want-to-try-btn')) {
+        e.stopPropagation();
+        const isNow = inventoryManager.toggleWantToTry(recipeId);
+        soundEffects.playClick();
+        showToast(isNow ? `Added "${recipe ? recipe.name : 'drink'}" to Want to Try` : `Removed "${recipe ? recipe.name : 'drink'}" from Want to Try`);
         renderRecipesTab();
         return;
       }
@@ -339,6 +356,9 @@ function renderInventoryTab() {
 // ============================================================================
 // Render: Shopping List Tab
 // ============================================================================
+// ============================================================================
+// Render: Shopping List Tab (Staples vs. Wishlist & Price Targets)
+// ============================================================================
 function renderShoppingTab() {
   const shoppingList = inventoryManager.getShoppingList();
   const unchecked = shoppingList.filter(i => !i.checked);
@@ -359,7 +379,7 @@ function renderShoppingTab() {
         <div style="font-size: 36px; margin-bottom: 8px;">🛒</div>
         <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">Shopping List is Clear</div>
         <div style="font-size: 13px; color: var(--text-secondary); max-width: 320px; margin: 0 auto 16px auto;">
-          When you mark an ingredient as out of stock, it will automatically appear here!
+          Marking an ingredient out of stock automatically adds it here with suggested price guidelines!
         </div>
         <button id="shopAddManualBtn" class="unit-toggle-btn" style="background: var(--text-primary); color: #fff; border: none; padding: 8px 18px;">
           + Add Bottle / Ingredient
@@ -371,10 +391,75 @@ function renderShoppingTab() {
     return;
   }
 
+  const staples = shoppingList.filter(i => (i.listType || 'wishlist') === 'staples');
+  const wishlist = shoppingList.filter(i => (i.listType || 'wishlist') === 'wishlist');
+
+  function renderGroupHtml(title, icon, subtitle, items, currentType, otherType) {
+    const uncheckedCount = items.filter(i => !i.checked).length;
+    const bumpLabel = otherType === 'staples' ? '⇄ To Staples' : '⇄ To Wishlist';
+    const bumpTooltip = otherType === 'staples' ? 'Move to Staples' : 'Move to Wishlist';
+
+    let groupHtml = `
+      <div class="shopping-group">
+        <div class="shopping-group-header">
+          <div class="shopping-group-title">
+            <span>${icon} ${title}</span>
+            <span class="shopping-group-count">${uncheckedCount} Needed</span>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary);">
+            ${items.length} Total
+          </span>
+        </div>
+        <div class="shopping-group-subtext">${subtitle}</div>
+    `;
+
+    if (items.length === 0) {
+      groupHtml += `
+        <div style="font-size: 13px; color: var(--text-muted); padding: 16px 0; text-align: center; font-style: italic;">
+          No items in ${title}.
+        </div>
+      `;
+    } else {
+      groupHtml += `<div class="shopping-group-items">`;
+      items.forEach(item => {
+        groupHtml += `
+          <div class="shopping-item-row" data-shop-id="${item.id}">
+            <div class="shopping-checkbox-wrapper" data-shop-check="${item.id}">
+              <div class="custom-checkbox ${item.checked ? 'checked' : ''}">
+                ${item.checked ? '✓' : ''}
+              </div>
+              <div class="shopping-item-details">
+                <div class="shopping-item-text ${item.checked ? 'checked' : ''}">
+                  <span>${item.name}</span>
+                  ${item.suggestedPrice ? `<span class="shopping-price-tag" title="Optimal Price Target">🎯 Target: ${item.suggestedPrice}</span>` : ''}
+                </div>
+                <div class="shopping-item-sub">
+                  <span>${item.category}</span>
+                  ${item.benchmark ? ` • <em>${item.benchmark}</em>` : ''}
+                </div>
+                ${item.valueRationale ? `<div class="shopping-rationale">💡 ${item.valueRationale}</div>` : ''}
+              </div>
+            </div>
+            <div class="shopping-actions">
+              <button class="shopping-bump-btn" data-shop-bump="${item.id}" data-target-type="${otherType}" title="${bumpTooltip}">
+                ${bumpLabel}
+              </button>
+              <button class="shopping-remove-btn" data-shop-remove="${item.id}" title="Remove">×</button>
+            </div>
+          </div>
+        `;
+      });
+      groupHtml += `</div>`;
+    }
+
+    groupHtml += `</div>`;
+    return groupHtml;
+  }
+
   let html = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
       <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
-        ${unchecked.length} Item${unchecked.length === 1 ? '' : 's'} Needed
+        ${unchecked.length} Item${unchecked.length === 1 ? '' : 's'} Total Needed
       </span>
       <div style="display: flex; gap: 8px;">
         <button id="shopAddManualBtn" class="unit-toggle-btn" style="background: var(--surface-card);">+ Add Item</button>
@@ -383,27 +468,27 @@ function renderShoppingTab() {
         ` : ''}
       </div>
     </div>
-    <div class="shopping-card">
   `;
 
-  shoppingList.forEach(item => {
-    html += `
-      <div class="shopping-item-row" data-shop-id="${item.id}">
-        <div class="shopping-checkbox-wrapper" data-shop-check="${item.id}">
-          <div class="custom-checkbox ${item.checked ? 'checked' : ''}">
-            ${item.checked ? '✓' : ''}
-          </div>
-          <div>
-            <div class="shopping-item-text ${item.checked ? 'checked' : ''}">${item.name}</div>
-            <div style="font-size: 11px; color: var(--text-muted);">${item.category}</div>
-          </div>
-        </div>
-        <button class="shopping-remove-btn" data-shop-remove="${item.id}" title="Remove">×</button>
-      </div>
-    `;
-  });
+  // Render Staples group first, then Wishlist group
+  html += renderGroupHtml(
+    'Staples',
+    '🧺',
+    'Core spirits, fresh citrus, basic syrups & essential mixers needed on hand',
+    staples,
+    'staples',
+    'wishlist'
+  );
 
-  html += `</div>`;
+  html += renderGroupHtml(
+    'Wishlist',
+    '✨',
+    'Specialty liqueurs, rare amari, exotic modifiers & experimental bottles',
+    wishlist,
+    'wishlist',
+    'staples'
+  );
+
   elements.shoppingContainer.innerHTML = html;
 
   // Bind checkbox toggle (Mark bought -> Auto restocks!)
@@ -414,6 +499,19 @@ function renderShoppingTab() {
       inventoryManager.toggleShoppingItem(id);
       showToast(`Restocked item into bar inventory!`);
       renderAll();
+    };
+  });
+
+  // Bind Bump Category Button (Staples <-> Wishlist)
+  elements.shoppingContainer.querySelectorAll('[data-shop-bump]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      soundEffects.playClick();
+      const id = btn.getAttribute('data-shop-bump');
+      const targetType = btn.getAttribute('data-target-type');
+      const item = inventoryManager.moveShoppingItemCategory(id, targetType);
+      showToast(`Moved ${item ? item.name : 'item'} to ${targetType === 'staples' ? 'Staples' : 'Wishlist'}`);
+      renderShoppingTab();
     };
   });
 
@@ -531,16 +629,59 @@ function renderGuideTab() {
         <span>${BUDGETING_RULES.title}</span>
         <span style="color: var(--accent-orange);">Strategic Capital Allocation</span>
       </div>
+      <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45;">
+        ${BOTTLE_PRICING_KNOWLEDGE_BASE.corePhilosophy}
+      </div>
       <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
         ${BUDGETING_RULES.tiers.map(t => `
           <div style="padding: 12px; background: var(--bg-cream); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-orange);">
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
               <span style="font-weight: 800; font-size: 14px; color: var(--text-primary);">${t.tier}</span>
               <span style="font-size: 12px; font-weight: 700; color: var(--accent-orange);">${t.allocation}</span>
             </div>
             <div style="font-size: 13px; color: var(--text-primary); margin-bottom: 6px; line-height: 1.4;">${t.strategy}</div>
             <div style="font-size: 11px; color: var(--text-muted);">
               <strong>Benchmarks:</strong> ${t.benchmarks.join(' • ')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Spirit-by-Spirit Bottle Pricing Knowledge Base -->
+    <div class="inv-category-group" style="margin-bottom: 18px;">
+      <div class="inv-category-header">
+        <span>🍾 Spirit-by-Spirit Spend Guide</span>
+        <span style="color: var(--accent-orange);">Optimal Resource Usage</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+        ${BOTTLE_PRICING_KNOWLEDGE_BASE.categories.map(cat => `
+          <div style="padding: 14px; background: var(--bg-cream); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+              <span style="font-weight: 800; font-size: 15px; color: var(--text-primary);">${cat.category}</span>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="shopping-price-tag">${cat.recommendedRange}</span>
+                <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${cat.spendTier.includes('HIGH') ? '#FFEBE6' : cat.spendTier.includes('LOW') ? '#E8F5E9' : '#FFF3E0'}; color: ${cat.spendTier.includes('HIGH') ? 'var(--status-red)' : cat.spendTier.includes('LOW') ? 'var(--status-green)' : 'var(--accent-orange)'};">
+                  ${cat.spendTier}
+                </span>
+              </div>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.45;">
+              <strong>Rule:</strong> ${cat.keyInsight}
+            </div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+              Proven Value Benchmarks:
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${cat.topValuePicks.map(p => `
+                <div style="background: var(--surface-card); padding: 8px 10px; border-radius: 6px; font-size: 12px; border: 1px solid var(--border-light);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <span style="font-weight: 700; color: var(--text-primary);">${p.name}</span>
+                    <span style="font-weight: 700; color: var(--accent-orange);">${p.price} (${p.proof}° proof)</span>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted);">${p.role}</div>
+                </div>
+              `).join('')}
             </div>
           </div>
         `).join('')}
@@ -663,6 +804,7 @@ function renderModalContent() {
 
   const inStockIds = inventoryManager.getInStockIngredientIds();
   const isFav = inventoryManager.isFavorite(recipe.id);
+  const isWantToTry = inventoryManager.isWantToTry(recipe.id);
 
   // Scaled Ingredients
   const scaledIngredients = recipe.ingredients.map(ing => {
@@ -716,7 +858,8 @@ function renderModalContent() {
       <div>
         <div class="modal-title">
           ${recipe.name}
-          <span class="favorite-star ${isFav ? 'active' : ''}" id="modalFavStar" style="cursor: pointer; font-size: 20px;">★</span>
+          <span class="favorite-star ${isFav ? 'active' : ''}" id="modalFavStar" style="cursor: pointer; font-size: 20px;" title="Toggle Favorite">★</span>
+          <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" id="modalWantToTryBtn" style="cursor: pointer; font-size: 19px; margin-left: 6px;" title="Toggle Want to Try">🔖</span>
         </div>
         <div class="recipe-meta-row" style="margin-top: 4px;">
           <span>${recipe.category}</span>
@@ -791,6 +934,18 @@ function renderModalContent() {
     renderModalContent();
     renderRecipesTab();
   };
+
+  // Bind want to try button
+  const wantBtn = document.getElementById('modalWantToTryBtn');
+  if (wantBtn) {
+    wantBtn.onclick = () => {
+      soundEffects.playClick();
+      const isNow = inventoryManager.toggleWantToTry(recipe.id);
+      showToast(isNow ? `Added "${recipe.name}" to Want to Try` : `Removed "${recipe.name}" from Want to Try`);
+      renderModalContent();
+      renderRecipesTab();
+    };
+  }
 
   // Bind scaler buttons
   elements.modalSheet.querySelectorAll('.scaler-btn').forEach(btn => {

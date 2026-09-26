@@ -56,7 +56,8 @@ export function analyzeRecipesAvailability() {
       missingIngredients: missing,
       availableIngredients: available,
       matchPercentage,
-      isFavorite: inventoryManager.isFavorite(recipe.id)
+      isFavorite: inventoryManager.isFavorite(recipe.id),
+      isWantToTry: inventoryManager.isWantToTry(recipe.id)
     };
   });
 }
@@ -182,6 +183,7 @@ export function filterRecipes(analyzedList, {
     if (availabilityFilter === 'can-make' && !canMake) return false;
     if (availabilityFilter === 'missing-1' && missingCount !== 1) return false;
     if (availabilityFilter === 'favorites' && !isFavorite) return false;
+    if (availabilityFilter === 'want-to-try' && !item.isWantToTry) return false;
 
     // Category Filter
     if (categoryFilter !== 'all' && recipe.category !== categoryFilter) {
@@ -193,12 +195,13 @@ export function filterRecipes(analyzedList, {
       const matchSpirit = recipe.ingredients.some(ing => {
         const id = ing.id.toLowerCase();
         const name = ing.name.toLowerCase();
-        if (spiritFilter === 'whiskey') return id.includes('whiskey') || id.includes('bourbon') || id.includes('scotch');
+        if (spiritFilter === 'whiskey') return id.includes('whiskey') || id.includes('bourbon') || id.includes('scotch') || id.includes('rye');
         if (spiritFilter === 'gin') return id.includes('gin');
-        if (spiritFilter === 'rum') return id.includes('rum');
-        if (spiritFilter === 'tequila') return id.includes('tequila');
-        if (spiritFilter === 'mezcal') return id.includes('mezcal');
+        if (spiritFilter === 'rum') return id.includes('rum') || id.includes('cachaca') || id.includes('agricole');
+        if (spiritFilter === 'tequila') return id.includes('tequila') || id.includes('mezcal');
         if (spiritFilter === 'vodka') return id.includes('vodka');
+        if (spiritFilter === 'brandy') return id.includes('cognac') || id.includes('brandy') || id.includes('applejack') || id.includes('pisco');
+        if (spiritFilter === 'sparkling') return id.includes('champagne') || id.includes('prosecco');
         if (spiritFilter === 'zero-proof') return recipe.category.includes('Zero-Proof');
         return id.includes(spiritFilter) || name.includes(spiritFilter);
       });

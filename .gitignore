@@ -1,3 +1,6 @@
 cloudflared.exe
 tunnel_url.txt
 *.log
+__pycache__/
+*.pyc
+
