@@ -1,0 +1,1386 @@
+/* ==========================================================================
+   BarCraft v3 "Atelier" Stylesheet
+   Theme: Obsidian & Luminescent Amber (Tokyo Speakeasy Glassmorphism)
+   Mobile-First, Sensory, Tactile & Minimalist
+   ========================================================================== */
+
+:root {
+  /* Obsidian & Smoked Glass Canvas */
+  --bg-canvas: #09090C;
+  --bg-canvas-subtle: #111116;
+  --bg-surface-glass: rgba(22, 22, 28, 0.78);
+  --bg-surface-elevated: rgba(30, 30, 38, 0.88);
+  --bg-surface-card: rgba(26, 26, 34, 0.82);
+  --bg-surface-input: rgba(14, 14, 18, 0.9);
+  
+  /* Glass Borders & Bevels */
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-glass-subtle: rgba(255, 255, 255, 0.04);
+  --border-glass-active: rgba(245, 166, 35, 0.45);
+  --border-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  /* Typography Palette */
+  --text-primary: #F8F6F0;          /* Warm alabaster */
+  --text-secondary: #9E9AA7;        /* Smoked lavender mist */
+  --text-muted: #64606D;            /* Deep charcoal mist */
+  --text-gold: #E8C170;             /* Antique gold highlight */
+
+  /* Luminescent Amber & Speakeasy Accents */
+  --accent-amber: #F5A623;          /* Cognac / Amber */
+  --accent-amber-glow: rgba(245, 166, 35, 0.28);
+  --accent-amber-light: rgba(245, 166, 35, 0.12);
+  --accent-orange: #FF5E1E;         /* Neon apricot punch */
+  --accent-brass: #D4AF37;          /* Antique bar brass */
+  --accent-ruby: #E63946;           /* Campari vermilion */
+  --accent-emerald: #10B981;        /* Speakeasy mint emerald */
+  --accent-purple: #9B51E0;         /* Bespoke riff violet */
+
+  /* Status Colors */
+  --status-ready: #10B981;
+  --status-ready-bg: rgba(16, 185, 129, 0.14);
+  --status-sub: #F5A623;
+  --status-sub-bg: rgba(245, 166, 35, 0.14);
+  --status-need1: #EC4899;
+  --status-need1-bg: rgba(236, 72, 153, 0.14);
+  --status-missing: #6B7280;
+  --status-missing-bg: rgba(107, 114, 128, 0.14);
+
+  /* Shadows & Depth */
+  --shadow-glass: 0 12px 36px 0 rgba(0, 0, 0, 0.58);
+  --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-amber-bloom: 0 0 24px -2px rgba(245, 166, 35, 0.35);
+  --backdrop-blur: blur(24px) saturate(180%);
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 9999px;
+
+  /* Typography Stacks */
+  --font-serif: "New York", "Georgia", "Playfair Display", "Cinzel", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  line-height: 1.5;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+  min-height: 100vh;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 24px));
+  background-image: 
+    radial-gradient(circle at 15% 10%, rgba(245, 166, 35, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(230, 57, 70, 0.03) 0%, transparent 45%);
+  background-attachment: fixed;
+}
+
+/* Master Shell Container */
+.atelier-app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: max(12px, env(safe-area-inset-top, 12px)) 16px 24px 16px;
+}
+
+/* ==========================================================================
+   Header Bar (Ultra-clean, atmospheric)
+   ========================================================================== */
+.atelier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0 14px 0;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.brand-crest {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #1C1B24, #2A2834);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: var(--shadow-card), var(--border-bevel);
+  position: relative;
+}
+
+.brand-crest::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-amber);
+  box-shadow: 0 0 8px var(--accent-amber);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brand-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent-amber);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-pill {
+  background: var(--bg-surface-glass);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: var(--border-bevel);
+}
+
+.hud-pill.active {
+  border-color: var(--border-glass-active);
+  color: var(--accent-amber);
+}
+
+.hud-btn {
+  background: var(--bg-surface-glass);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  box-shadow: var(--border-bevel);
+}
+
+.hud-btn:active {
+  transform: scale(0.96);
+}
+
+.hud-btn.host-mode-btn {
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.15), rgba(230, 57, 70, 0.15));
+  border-color: rgba(245, 166, 35, 0.35);
+  color: var(--accent-amber);
+}
+
+/* ==========================================================================
+   Mood / Occasion Carousel (Contextual Discovery)
+   ========================================================================== */
+.mood-carousel-wrap {
+  margin-bottom: 12px;
+}
+
+.mood-carousel {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 0 6px 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mood-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.mood-chip {
+  flex-shrink: 0;
+  background: var(--bg-surface-glass);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  box-shadow: var(--border-bevel);
+  white-space: nowrap;
+}
+
+.mood-chip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+.mood-chip.active {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  color: #0B0B0E;
+  font-weight: 800;
+  box-shadow: var(--shadow-amber-bloom);
+}
+
+/* ==========================================================================
+   Unified Search & Quick Readiness Filter (Single Clean Row)
+   ========================================================================== */
+.atelier-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.atelier-search-box {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon-svg {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.atelier-search-input {
+  width: 100%;
+  background: var(--bg-surface-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 10px 36px 10px 38px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.atelier-search-input:focus {
+  border-color: var(--accent-amber);
+  box-shadow: 0 0 0 2px var(--accent-amber-glow), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.clear-search-x {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: none;
+}
+
+/* View Mode Switcher (Deck vs Grid) */
+.view-mode-toggle {
+  display: flex;
+  background: var(--bg-surface-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-btn.active {
+  background: var(--bg-surface-elevated);
+  color: var(--accent-amber);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Readiness Filter Pills (1-tap scroll row) */
+.readiness-pills-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.readiness-pills-row::-webkit-scrollbar {
+  display: none;
+}
+
+.readiness-pill {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-glass-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.readiness-pill:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-glass);
+}
+
+.readiness-pill.active {
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-glass-active);
+  color: var(--accent-amber);
+}
+
+/* ==========================================================================
+   VIEW 1: "TONIGHT'S POUR" SWIPEABLE DECK (Zero Decision Paralysis)
+   ========================================================================== */
+.deck-view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+  margin-bottom: 24px;
+}
+
+.deck-card {
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(175deg, rgba(32, 32, 42, 0.95), rgba(20, 20, 26, 0.95));
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  box-shadow: var(--shadow-glass), var(--border-bevel);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+.deck-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-amber), transparent);
+  opacity: 0.7;
+}
+
+.deck-card-eyebrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.deck-card-counter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.deck-card-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.deck-card-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Sensory Liquid Fill Silhouette in Deck */
+.vessel-mini-silhouette {
+  width: 100%;
+  height: 110px;
+  background: rgba(14, 14, 18, 0.75);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  position: relative;
+}
+
+.vessel-liquid-layer {
+  width: 100%;
+  transition: height 0.3s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.deck-specs-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.deck-spec-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-glass-subtle);
+  padding-bottom: 4px;
+}
+
+.deck-spec-row .spec-val {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.deck-card-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.deck-btn-mix {
+  flex: 2;
+  background: var(--accent-amber);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0B0B0E;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: var(--shadow-amber-bloom);
+  transition: all 0.15s ease;
+}
+
+.deck-btn-mix:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.deck-btn-mix:active {
+  transform: scale(0.97);
+}
+
+.deck-btn-next,
+.deck-btn-fav {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: var(--border-bevel);
+}
+
+.deck-btn-next:hover,
+.deck-btn-fav:hover {
+  color: var(--text-primary);
+  border-color: var(--border-glass-active);
+}
+
+.deck-btn-fav.active {
+  color: var(--accent-amber);
+}
+
+/* ==========================================================================
+   VIEW 2: CURATED CATALOG GRID (Atmospheric, Calm Cards)
+   ========================================================================== */
+.catalog-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 540px) {
+  .catalog-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+.catalog-card {
+  background: var(--bg-surface-card);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-card), var(--border-bevel);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+}
+
+.catalog-card:hover {
+  border-color: rgba(245, 166, 35, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.catalog-card:active {
+  transform: scale(0.98);
+}
+
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.card-title-group {
+  flex: 1;
+}
+
+.card-cocktail-name {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin-bottom: 3px;
+}
+
+.card-glass-category {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.card-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-star-btn,
+.card-want-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: all 0.15s ease;
+}
+
+.card-star-btn:hover,
+.card-want-btn:hover {
+  transform: scale(1.2);
+}
+
+.card-star-btn.active {
+  color: var(--accent-amber);
+}
+
+.card-want-btn.active {
+  color: #EC4899;
+}
+
+.card-ingredients-strip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.card-ing-item.missing {
+  color: #EF4444;
+  opacity: 0.9;
+}
+
+.card-ing-item.sub {
+  color: var(--accent-amber);
+  font-weight: 600;
+}
+
+.card-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-top: 6px;
+  border-top: 1px solid var(--border-glass-subtle);
+}
+
+/* Status Badges */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.status-tag.ready {
+  background: var(--status-ready-bg);
+  color: var(--status-ready);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-tag.sub {
+  background: var(--status-sub-bg);
+  color: var(--status-sub);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+}
+
+.status-tag.need1 {
+  background: var(--status-need1-bg);
+  color: var(--status-need1);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+.status-tag.missing {
+  background: var(--status-missing-bg);
+  color: var(--status-missing);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+/* ==========================================================================
+   HUB 2: THE BACKBAR (Inventory, Shopping List, & Unlock Optimizer)
+   ========================================================================== */
+.cabinet-tabs-switcher {
+  display: flex;
+  background: var(--bg-surface-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  margin-bottom: 16px;
+}
+
+.cabinet-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.cabinet-tab-btn.active {
+  background: var(--bg-surface-elevated);
+  color: var(--accent-amber);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.shelf-section {
+  margin-bottom: 22px;
+}
+
+.shelf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.shelf-title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shelf-bottle-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 500px) {
+  .shelf-bottle-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.bottle-item-card {
+  background: var(--bg-surface-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.15s ease;
+  box-shadow: var(--border-bevel);
+}
+
+.bottle-item-card.in-stock {
+  border-left: 3px solid var(--accent-emerald);
+}
+
+.bottle-item-card.out-of-stock {
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  opacity: 0.65;
+}
+
+.bottle-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.bottle-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.bottle-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bottle-price-pill {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--accent-emerald);
+  font-weight: 700;
+}
+
+.stock-toggle-switch {
+  background: transparent;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stock-toggle-switch.in-stock {
+  background: var(--status-ready-bg);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--status-ready);
+}
+
+.stock-toggle-switch.out-stock {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-glass);
+  color: var(--text-muted);
+}
+
+/* Shopping List Segment */
+.shopping-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.shopping-subtab-btn {
+  background: var(--bg-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.shopping-subtab-btn.active {
+  background: var(--accent-amber);
+  color: #0B0B0E;
+  border-color: var(--accent-amber);
+}
+
+.shopping-item-row {
+  background: var(--bg-surface-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--border-bevel);
+}
+
+/* ==========================================================================
+   HUB 3: THE ACADEMY (Gamified Drills & Technique Codex)
+   ========================================================================== */
+.academy-hero-card {
+  background: linear-gradient(135deg, rgba(32, 28, 42, 0.9), rgba(20, 18, 28, 0.9));
+  border: 1px solid var(--border-glass-active);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-card), var(--shadow-amber-bloom);
+}
+
+.rank-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.rank-title {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.streak-pill-academy {
+  background: linear-gradient(135deg, #FF5E1E, #FF8A50);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.xp-track-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.xp-fill-bar {
+  height: 100%;
+  background: var(--accent-amber);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+
+/* Academy Mode Launchers */
+.drill-launcher-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.drill-launcher-card {
+  background: var(--bg-surface-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drill-launcher-card:hover {
+  border-color: var(--accent-amber);
+  transform: translateY(-2px);
+}
+
+.drill-icon {
+  font-size: 24px;
+}
+
+.drill-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.drill-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   FLOATING ACTION BUTTON: CRAFT LAB (Riff & Custom Drink Studio)
+   ========================================================================== */
+.atelier-fab {
+  position: fixed;
+  bottom: calc(88px + env(safe-area-inset-bottom, 20px));
+  right: 20px;
+  background: linear-gradient(135deg, var(--accent-amber), #FF8A50);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 12px 18px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0B0B0E;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 8px 24px rgba(245, 166, 35, 0.45);
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.atelier-fab:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.1);
+}
+
+.atelier-fab:active {
+  transform: scale(0.96);
+}
+
+/* ==========================================================================
+   BOTTOM NAVIGATION BAR (3 Clean Hubs, Safe Area Aware)
+   ========================================================================== */
+.atelier-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(14, 14, 18, 0.88);
+  backdrop-filter: var(--backdrop-blur);
+  border-top: 1px solid var(--border-glass);
+  padding: 8px 16px max(10px, env(safe-area-inset-bottom, 16px)) 16px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 200;
+}
+
+.nav-hub-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.nav-hub-icon {
+  font-size: 20px;
+}
+
+.nav-hub-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.nav-hub-btn.active {
+  color: var(--accent-amber);
+}
+
+.nav-hub-btn.active .nav-hub-icon {
+  filter: drop-shadow(0 0 6px var(--accent-amber-glow));
+}
+
+/* ==========================================================================
+   BARTENDER FOCUS HUD (Full Screen Mixing View)
+   ========================================================================== */
+.hud-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  z-index: 1000;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.hud-modal-overlay.active {
+  display: flex;
+}
+
+.hud-modal-sheet {
+  width: 100%;
+  max-width: 640px;
+  max-height: 92vh;
+  background: #111116;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 16px 20px max(24px, env(safe-area-inset-bottom, 24px)) 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: var(--shadow-glass);
+  animation: slideUpHUD 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpHUD {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.hud-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.hud-close-x {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+/* Metadata Strip Pills */
+.spec-metadata-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.spec-meta-pill {
+  background: var(--bg-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Ratio Stack Container in HUD */
+.ratio-stack-vessel {
+  width: 100%;
+  background: rgba(18, 18, 24, 0.9);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.ratio-stack-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent-amber);
+  margin-bottom: 10px;
+}
+
+.ratio-row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent-amber);
+}
+
+.ratio-amount-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ratio-amt {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-amber);
+  font-size: 13.5px;
+  min-width: 50px;
+}
+
+.ratio-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Serving Scaler Controls */
+.hud-scaler-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 18px;
+}
+
+.scaler-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.scaler-pill-btn {
+  background: transparent;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.scaler-pill-btn.active {
+  background: var(--accent-amber);
+  color: #0B0B0E;
+  border-color: var(--accent-amber);
+}
+
+/* Timer in HUD */
+.hud-timer-card {
+  background: linear-gradient(135deg, rgba(32, 28, 42, 0.8), rgba(20, 18, 28, 0.8));
+  border: 1px solid var(--border-glass-active);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.hud-timer-num {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent-amber);
+}
+
+.hud-timer-btn {
+  background: var(--accent-amber);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0B0B0E;
+  cursor: pointer;
+}
+
+/* Step by Step list */
+.hud-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.hud-step-card {
+  background: var(--bg-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  display: flex;
+  gap: 10px;
+}
+
+.hud-step-idx {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--accent-amber);
+}
+
+/* ==========================================================================
+   PARTY / GUEST HOST MODE (Chic Guest Menu)
+   ========================================================================== */
+.party-mode-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #09090C;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  padding: 24px 20px;
+  overflow-y: auto;
+}
+
+.party-mode-overlay.active {
+  display: flex;
+}
+
+.party-menu-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.party-menu-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.party-menu-sub {
+  font-size: 13px;
+  color: var(--accent-amber);
+  letter-spacing: 0.5px;
+}
+
+.party-exit-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Toast Container */
+.atelier-toast-container {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.atelier-toast {
+  background: rgba(26, 26, 34, 0.95);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-glass-active);
+  color: var(--text-primary);
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  animation: toastDrop 0.25s ease;
+}
+
+@keyframes toastDrop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

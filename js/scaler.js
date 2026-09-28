@@ -69,6 +69,17 @@ export function ozToMl(ozAmount) {
   return Math.round(ozAmount * 29.5735 * 10) / 10;
 }
 
+export function formatAmount(amount, unit = 'oz', ingUnit = 'oz') {
+  if (amount === undefined || amount === null) return '';
+  if (!ingUnit || ingUnit === 'oz') {
+    if (unit === 'ml') {
+      return `${ozToMl(amount)} ml`;
+    }
+    return formatFractionalOz(amount);
+  }
+  return `${amount} ${ingUnit}`.trim();
+}
+
 /**
  * Scales an individual ingredient based on unit, count, and multiplier.
  */

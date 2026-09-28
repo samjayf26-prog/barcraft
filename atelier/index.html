@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#09090C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BarCraft Atelier — Home Cocktail Companion</title>
+  
+  <link rel="manifest" href="../manifest.json">
+  <link rel="icon" type="image/svg+xml" href="../icons/cocktail.svg">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  
+  <link rel="stylesheet" href="../css/atelier.css">
+</head>
+<body>
+
+  <div class="atelier-app" id="atelierApp">
+
+    <!-- Header Bar -->
+    <header class="atelier-header">
+      <div class="brand-block" id="headerBrandBlock">
+        <div class="brand-crest">🍸</div>
+        <div class="brand-text">
+          <span class="brand-name">BarCraft</span>
+          <span class="brand-tag">v3 Atelier</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="hud-pill" id="inStockPillCount">0 In Stock</span>
+        <button class="hud-btn" id="unitToggleBtn" title="Toggle Units (oz / ml)">oz</button>
+        <button class="hud-btn host-mode-btn" id="hostModeBtn" title="Launch Guest Party Menu">🎉 Host</button>
+        <a href="../" class="hud-btn" style="text-decoration:none; color:var(--text-secondary); font-size:11px;" title="Switch to Classic Standard UI">Classic UI →</a>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         HUB 1: THE BAR (Explore, Moods, Tonight's Pour Deck, & Catalog Grid)
+         ==================================================================== -->
+    <main id="barHub">
+      <!-- Contextual Mood Carousel -->
+      <section class="mood-carousel-wrap">
+        <div class="mood-carousel" id="moodCarousel">
+          <button class="mood-chip active" data-mood="all">✨ All Moods</button>
+          <button class="mood-chip" data-mood="nightcap">🌙 Cozy Nightcap</button>
+          <button class="mood-chip" data-mood="crisp">🍋 Crisp &amp; Refreshing</button>
+          <button class="mood-chip" data-mood="aperitivo">🍊 Aperitivo Hour</button>
+          <button class="mood-chip" data-mood="tropical">🌴 Tropical Escape</button>
+          <button class="mood-chip" data-mood="smoky">🔥 Bold &amp; Smoky</button>
+          <button class="mood-chip" data-mood="zero-proof">🍃 Zero-Proof</button>
+        </div>
+      </section>
+
+      <!-- Search & View Mode Switcher -->
+      <section class="atelier-search-row">
+        <div class="atelier-search-box">
+          <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            id="atelierSearchInput" 
+            class="atelier-search-input" 
+            placeholder="Search cocktails, spirits, or flavors..."
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button id="clearSearchBtn" class="clear-search-x">✕</button>
+        </div>
+
+        <div class="view-mode-toggle">
+          <button id="viewModeDeckBtn" class="view-btn active" title="Tonight's Pour Deck View">🎴 Deck</button>
+          <button id="viewModeGridBtn" class="view-btn" title="Curated Catalog Grid">⊞ Grid</button>
+        </div>
+      </section>
+
+      <!-- Readiness Quick-Filter Pills -->
+      <section class="readiness-pills-row" id="readinessPillsRow">
+        <button class="readiness-pill active" data-readiness="all">
+          All Pours (<span class="pill-cnt" id="cntAll">0</span>)
+        </button>
+        <button class="readiness-pill" data-readiness="can-make">
+          ✓ Ready to Pour (<span class="pill-cnt" id="cntCanMake">0</span>)
+        </button>
+        <button class="readiness-pill" data-readiness="substitutes">
+          🔄 Ready with Sub (<span class="pill-cnt" id="cntSub">0</span>)
+        </button>
+        <button class="readiness-pill" data-readiness="missing-1">
+          Need 1 Bottle (<span class="pill-cnt" id="cntNeed1">0</span>)
+        </button>
+        <button class="readiness-pill" data-readiness="favorites">
+          ★ Favorites (<span class="pill-cnt" id="cntFav">0</span>)
+        </button>
+        <button class="readiness-pill" data-readiness="want-to-try">
+          🔖 Want to Try (<span class="pill-cnt" id="cntTry">0</span>)
+        </button>
+      </section>
+
+      <!-- Dynamic Bar Content (Deck or Grid) -->
+      <section id="barContentContainer"></section>
+    </main>
+
+    <!-- ====================================================================
+         HUB 2: THE BACKBAR (Inventory, Shopping List, & Unlock Optimizer)
+         ==================================================================== -->
+    <main id="cabinetHub" style="display: none;">
+      <section id="cabinetContainer"></section>
+    </main>
+
+    <!-- ====================================================================
+         HUB 3: THE ACADEMY (Gamified Drills & Technique Codex)
+         ==================================================================== -->
+    <main id="academyHub" style="display: none;">
+      <section id="academyContainer"></section>
+    </main>
+
+  </div> <!-- End .atelier-app -->
+
+  <!-- Floating Action Button: The Craft Lab (Riff Studio) -->
+  <button class="atelier-fab" id="craftLabFab" title="Open Craft Lab (Riff or Create Cocktails)">
+    <span>🧪</span>
+    <span>Craft Lab</span>
+  </button>
+
+  <!-- ======================================================================
+       BOTTOM NAVIGATION BAR (3 Clean Hubs, Safe Area Aware)
+       ====================================================================== -->
+  <nav class="atelier-bottom-nav" id="atelierBottomNav">
+    <button class="nav-hub-btn active" data-hub="bar">
+      <span class="nav-hub-icon">🍸</span>
+      <span class="nav-hub-label">The Bar</span>
+    </button>
+    <button class="nav-hub-btn" data-hub="cabinet">
+      <span class="nav-hub-icon">🥃</span>
+      <span class="nav-hub-label">The Backbar</span>
+    </button>
+    <button class="nav-hub-btn" data-hub="academy">
+      <span class="nav-hub-icon">🎓</span>
+      <span class="nav-hub-label">The Academy</span>
+    </button>
+  </nav>
+
+  <!-- Bartender Focus Mode HUD (Full-screen mixing overlay) -->
+  <div class="hud-modal-overlay" id="hudModalOverlay">
+    <div class="hud-modal-sheet" id="hudModalSheet">
+      <!-- Filled by app_v3.js -->
+    </div>
+  </div>
+
+  <!-- Guest Party Mode Overlay -->
+  <div class="party-mode-overlay" id="partyModeOverlay">
+    <div id="partyModeContainer">
+      <!-- Filled by app_v3.js -->
+    </div>
+  </div>
+
+  <!-- Craft Lab Modal (Riff & Custom Drink Studio) -->
+  <div class="hud-modal-overlay" id="craftLabModalOverlay">
+    <div class="hud-modal-sheet" id="craftLabModalSheet">
+      <!-- Filled by app_v3.js -->
+    </div>
+  </div>
+
+  <!-- Atelier Toast Container -->
+  <div class="atelier-toast-container" id="atelierToastContainer"></div>
+
+  <!-- Service Worker Registration for Offline PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('../sw.js').catch(err => {
+          console.warn('SW registration:', err);
+        });
+      });
+    }
+  </script>
+
+  <!-- Master Application Script -->
+  <script type="module" src="../js/app_v3.js"></script>
+
+</body>
+</html>
