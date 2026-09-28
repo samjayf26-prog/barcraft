@@ -25,6 +25,8 @@ const state = {
   availabilityFilter: 'all', // 'all' | 'can-make' | 'substitutes' | 'missing-1' | 'favorites' | 'want-to-try'
   categoryFilter: 'all',
   spiritFilter: 'all',
+  modifierFilter: 'all',
+  keywordFilter: 'all',
   searchQuery: '',
   activeModalRecipe: null,
   activeSubstitutions: {}, // recipeId -> { [subId]: boolean }
@@ -33,7 +35,9 @@ const state = {
   activeTimerPhase: '',
   dailyOffset: 0,
   lastToastTimeout: null,
-  quizAutoAdvanceInterval: null
+  quizAutoAdvanceInterval: null,
+  activeEditorMode: 'create', // 'create' | 'edit' | 'riff'
+  activeEditorSourceRecipe: null
 };
 
 // Check if running in minimalist streamlined mode (via window flag, URL query param, or path)
@@ -66,6 +70,9 @@ function initDom() {
   elements.filterChips = document.querySelectorAll('.filter-chip');
   elements.categoryFilter = document.getElementById('categoryFilter');
   elements.spiritFilter = document.getElementById('spiritFilter');
+  elements.modifierFilter = document.getElementById('modifierFilter');
+  elements.addNewDrinkBtn = document.getElementById('addNewDrinkBtn');
+  elements.keywordChips = document.querySelectorAll('.keyword-chip');
   elements.recipeListContainer = document.getElementById('recipeListContainer');
   elements.inventoryContainer = document.getElementById('inventoryContainer');
   elements.shoppingContainer = document.getElementById('shoppingContainer');
@@ -76,6 +83,8 @@ function initDom() {
   elements.modalOverlay = document.getElementById('modalOverlay');
   elements.modalSheet = document.getElementById('modalSheet');
   elements.modalCloseBtn = document.getElementById('modalCloseBtn');
+  elements.recipeEditorModalOverlay = document.getElementById('recipeEditorModalOverlay');
+  elements.recipeEditorModalSheet = document.getElementById('recipeEditorModalSheet');
   elements.toastContainer = document.getElementById('toastContainer');
   elements.shoppingBadge = document.getElementById('shoppingBadge');
   elements.addIngredientModal = document.getElementById('addIngredientModal');
@@ -211,6 +220,8 @@ function renderRecipesTab() {
     availabilityFilter: state.availabilityFilter,
     categoryFilter: state.categoryFilter,
     spiritFilter: state.spiritFilter,
+    modifierFilter: state.modifierFilter,
+    keywordFilter: state.keywordFilter,
     searchQuery: state.searchQuery
   });
 
@@ -229,6 +240,16 @@ function renderRecipesTab() {
 
   elements.recipeListContainer.innerHTML = filtered.map(item => {
     const { recipe, canMake, canMakeWithSub, missingCount, missingIngredients, isFavorite, isWantToTry } = item;
+
+    // Custom or Riff Badge
+    let cardOriginBadgeHtml = '';
+    if (recipe.isRiff) {
+      cardOriginBadgeHtml = `<span class="card-riff-badge" title="Riff on ${recipe.riffParentName || 'Classic'}">🎨 Riff: ${recipe.riffParentName || 'Classic'}</span>`;
+    } else if (recipe.isCustom) {
+      cardOriginBadgeHtml = `<span class="card-custom-badge" title="User Custom Creation">★ Custom</span>`;
+    } else if (recipe.isEdited) {
+      cardOriginBadgeHtml = `<span class="card-edited-badge" title="Customized Specs">✏️ Customized</span>`;
+    }
 
     if (isMinimalMode) {
       // Minimal Status Indicator
@@ -263,7 +284,10 @@ function renderRecipesTab() {
       return `
         <div class="recipe-card minimal-card" data-recipe-id="${recipe.id}">
           <div class="minimal-card-top">
-            <div class="minimal-card-title">${recipe.name}</div>
+            <div class="minimal-card-title">
+              <span>${recipe.name}</span>
+              ${cardOriginBadgeHtml}
+            </div>
             <div class="minimal-card-actions">
               ${statusBadgeHtml}
               <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
@@ -316,6 +340,7 @@ function renderRecipesTab() {
           <div class="recipe-title-group">
             <div class="recipe-title">
               <span>${recipe.name}</span>
+              ${cardOriginBadgeHtml}
               <span class="favorite-star ${isFavorite ? 'active' : ''}" data-fav-id="${recipe.id}" title="Toggle Favorite">★</span>
               <span class="want-to-try-btn ${isWantToTry ? 'active' : ''}" data-try-id="${recipe.id}" title="Want to Try">🔖</span>
             </div>
@@ -1522,6 +1547,379 @@ function closeRecipeModal() {
   state.activeModalRecipe = null;
 }
 
+// ============================================================================
+// Recipe Editor Modal: Add Custom Drinks, Edit Specs, & Create Riffs
+// ============================================================================
+function openRecipeEditorModal({ mode = 'create', sourceRecipe = null } = {}) {
+  state.activeEditorMode = mode;
+  state.activeEditorSourceRecipe = sourceRecipe;
+
+  const titleText = mode === 'riff' 
+    ? `🎨 Create Riff on ${sourceRecipe ? sourceRecipe.name : 'Cocktail'}`
+    : (mode === 'edit' ? `✏️ Edit Specs: ${sourceRecipe ? sourceRecipe.name : 'Cocktail'}` : '🍸 Create New Cocktail');
+  
+  const subtitleText = mode === 'riff'
+    ? 'Tweak spirits, ratios, or modifiers to save your personal variation as a distinct drink'
+    : (mode === 'edit' ? 'Update ingredients, ratios, glassware, or notes for this recipe' : 'Draft your cocktail recipe specs, ratios, and technique');
+
+  // Pre-fill fields
+  let initialName = '';
+  let initialCategory = 'Spirit-Forward & Stirred';
+  let initialGlass = 'Coupe';
+  let initialIce = 'None (Chilled Glass)';
+  let initialMethod = 'Stirred with Ice & Strained';
+  let initialTechnique = '';
+  let initialTags = 'Custom';
+  let initialInstructions = 'Combine all ingredients in a mixing glass with dense ice.\nStir smoothly for 30 seconds to achieve optimal dilution and chill.\nStrain into a chilled glass.';
+  let initialIngredients = [
+    { amount: 2.0, unit: 'oz', name: '' },
+    { amount: 0.75, unit: 'oz', name: '' },
+    { amount: 0.5, unit: 'oz', name: '' }
+  ];
+
+  if (sourceRecipe) {
+    if (mode === 'riff') {
+      initialName = `${sourceRecipe.name} (Riff)`;
+      initialTags = ['Riff', 'Custom', ...(sourceRecipe.tags || [])].join(', ');
+    } else {
+      initialName = sourceRecipe.name;
+      initialTags = (sourceRecipe.tags || ['Custom']).join(', ');
+    }
+    initialCategory = sourceRecipe.category || initialCategory;
+    initialGlass = sourceRecipe.glass || initialGlass;
+    initialIce = sourceRecipe.ice || initialIce;
+    initialMethod = sourceRecipe.method || initialMethod;
+    initialTechnique = sourceRecipe.techniqueRule || '';
+    if (sourceRecipe.instructions && sourceRecipe.instructions.length > 0) {
+      initialInstructions = sourceRecipe.instructions.join('\n');
+    }
+    if (sourceRecipe.ingredients && sourceRecipe.ingredients.length > 0) {
+      initialIngredients = sourceRecipe.ingredients.map(ing => ({
+        amount: ing.amount !== undefined ? ing.amount : 1,
+        unit: ing.unit || 'oz',
+        name: ing.name || ''
+      }));
+    }
+  }
+
+  // Build ingredient options datalist
+  const allKnownIngs = inventoryManager.getAllIngredients();
+  const datalistOptionsHtml = allKnownIngs.map(i => `<option value="${i.name}"></option>`).join('');
+
+  elements.recipeEditorModalSheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="modal-header-row">
+      <div>
+        <div class="modal-title">${titleText}</div>
+        <div class="recipe-meta-row" style="margin-top: 4px;">${subtitleText}</div>
+      </div>
+      <button class="modal-close-btn" id="editorCloseBtn" type="button">✕</button>
+    </div>
+
+    <form id="recipeEditorForm" class="recipe-editor-form">
+      <datalist id="pantryIngredientSuggestions">
+        ${datalistOptionsHtml}
+      </datalist>
+
+      <!-- Cocktail Name & Category -->
+      <div class="form-row">
+        <div class="form-group flex-2">
+          <label class="form-label" for="editorDrinkName">Cocktail Name <span style="color:var(--accent-orange);">*</span></label>
+          <input type="text" id="editorDrinkName" class="form-input" placeholder="e.g. Oaxacan Mezcal Negroni" value="${initialName.replace(/"/g, '&quot;')}" required autocomplete="off">
+        </div>
+        <div class="form-group flex-1">
+          <label class="form-label" for="editorCategory">Category</label>
+          <select id="editorCategory" class="form-select">
+            <option value="Spirit-Forward & Stirred" ${initialCategory === 'Spirit-Forward & Stirred' ? 'selected' : ''}>Spirit-Forward & Stirred</option>
+            <option value="Acid-Driven Sours & Smashes" ${initialCategory === 'Acid-Driven Sours & Smashes' ? 'selected' : ''}>Acid-Driven Sours & Smashes</option>
+            <option value="Velvety Sours & Meringue" ${initialCategory === 'Velvety Sours & Meringue' ? 'selected' : ''}>Velvety Sours & Meringue</option>
+            <option value="Equal-Parts & Modern Classics" ${initialCategory === 'Equal-Parts & Modern Classics' ? 'selected' : ''}>Equal-Parts Classics</option>
+            <option value="Highballs & Spritzes" ${initialCategory === 'Highballs & Spritzes' ? 'selected' : ''}>Highballs & Spritzes</option>
+            <option value="Tiki & Tropical" ${initialCategory === 'Tiki & Tropical' ? 'selected' : ''}>Tiki & Tropical</option>
+            <option value="Locked Favorites" ${initialCategory === 'Locked Favorites' ? 'selected' : ''}>Locked Favorites</option>
+            <option value="Zero-Proof Mocktails" ${initialCategory === 'Zero-Proof Mocktails' ? 'selected' : ''}>Zero-Proof Division</option>
+            <option value="Custom & Riffs" ${initialCategory === 'Custom & Riffs' ? 'selected' : ''}>Custom & Riffs</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Glassware, Ice, and Mixing Method -->
+      <div class="form-row form-row-3">
+        <div class="form-group">
+          <label class="form-label" for="editorGlass">Glassware</label>
+          <select id="editorGlass" class="form-select">
+            <option value="Coupe" ${initialGlass.includes('Coupe') ? 'selected' : ''}>Coupe</option>
+            <option value="Nick & Nora" ${initialGlass.includes('Nick') ? 'selected' : ''}>Nick & Nora</option>
+            <option value="Rocks / Old Fashioned" ${initialGlass.includes('Rocks') || initialGlass.includes('Old Fashioned') ? 'selected' : ''}>Rocks / Old Fashioned</option>
+            <option value="Highball / Collins" ${initialGlass.includes('Highball') || initialGlass.includes('Collins') ? 'selected' : ''}>Highball / Collins</option>
+            <option value="Martini" ${initialGlass.includes('Martini') ? 'selected' : ''}>Martini</option>
+            <option value="Tiki Mug / Hurricane" ${initialGlass.includes('Tiki') ? 'selected' : ''}>Tiki Mug</option>
+            <option value="Flute / Champagne" ${initialGlass.includes('Flute') ? 'selected' : ''}>Flute</option>
+            <option value="Snifter / Glencairn" ${initialGlass.includes('Snifter') ? 'selected' : ''}>Snifter</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editorIce">Ice</label>
+          <select id="editorIce" class="form-select">
+            <option value="None (Chilled Glass)" ${initialIce.includes('None') ? 'selected' : ''}>None (Chilled Glass)</option>
+            <option value="Large Clear Ice Cube" ${initialIce.includes('Large') ? 'selected' : ''}>Large Clear Cube</option>
+            <option value="Cubed Ice" ${initialIce === 'Cubed Ice' ? 'selected' : ''}>Cubed Ice</option>
+            <option value="Crushed Ice / Pebble Ice" ${initialIce.includes('Crushed') ? 'selected' : ''}>Crushed / Pebble Ice</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editorMethod">Mixing Method</label>
+          <select id="editorMethod" class="form-select">
+            <option value="Stirred with Ice & Strained" ${initialMethod.includes('Stir') ? 'selected' : ''}>Stirred with Ice & Strained</option>
+            <option value="Hard Shake & Double Strain" ${initialMethod.includes('Hard Shake') ? 'selected' : ''}>Hard Shake & Double Strain</option>
+            <option value="Dry Shake & Wet Shake" ${initialMethod.includes('Dry Shake') ? 'selected' : ''}>Dry Shake & Wet Shake</option>
+            <option value="Build in Glass over Ice" ${initialMethod.includes('Build') ? 'selected' : ''}>Build in Glass</option>
+            <option value="Muddle & Shake" ${initialMethod.includes('Muddle') ? 'selected' : ''}>Muddle & Shake</option>
+            <option value="Swizzle with Crushed Ice" ${initialMethod.includes('Swizzle') ? 'selected' : ''}>Swizzle</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Ingredients Builder -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <label class="form-label mb-0">Ingredients & Measures <span style="color:var(--accent-orange);">*</span></label>
+          <span class="form-hint">Type to auto-complete or add new bottles</span>
+        </div>
+        <div id="editorIngredientsList" class="editor-ingredients-list">
+          <!-- Dynamic rows populated below -->
+        </div>
+        <button type="button" id="editorAddIngRowBtn" class="add-ing-row-btn">
+          <span>+</span> Add Another Ingredient
+        </button>
+      </div>
+
+      <!-- Preparation Steps -->
+      <div class="form-group">
+        <label class="form-label" for="editorInstructions">Preparation Steps <span class="form-hint">(One instruction step per line)</span></label>
+        <textarea id="editorInstructions" class="form-textarea" rows="3" placeholder="Combine all ingredients in shaker with ice.&#10;Shake hard for 12 seconds.&#10;Double strain into chilled glass.">${initialInstructions}</textarea>
+      </div>
+
+      <!-- Bartender Rule / Riff Notes -->
+      <div class="form-group">
+        <label class="form-label" for="editorTechnique">Bartender Technique Rule / Riff Rationale <span class="form-hint">(Optional)</span></label>
+        <input type="text" id="editorTechnique" class="form-input" placeholder="e.g. Subbing Mezcal brings smoky earthy notes; express grapefruit twist." value="${initialTechnique.replace(/"/g, '&quot;')}">
+      </div>
+
+      <!-- Flavor Tags -->
+      <div class="form-group">
+        <label class="form-label" for="editorTags">Flavor Tags <span class="form-hint">(Comma-separated)</span></label>
+        <input type="text" id="editorTags" class="form-input" placeholder="e.g. Riff, Smoky, Citrusy, Mezcal, Summer" value="${initialTags.replace(/"/g, '&quot;')}">
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="editor-form-actions">
+        <button type="button" id="editorCancelBtn" class="editor-btn-secondary">Cancel</button>
+        <button type="submit" id="editorSubmitBtn" class="editor-btn-primary">
+          ${mode === 'riff' ? 'Save Riff as New Drink' : (mode === 'edit' ? 'Save Specs' : 'Save to Cocktail Book')}
+        </button>
+      </div>
+    </form>
+  `;
+
+  // Render initial ingredient rows
+  const container = document.getElementById('editorIngredientsList');
+  function addIngredientRow(amt = 1, unit = 'oz', name = '') {
+    const row = document.createElement('div');
+    row.className = 'editor-ing-row';
+    row.innerHTML = `
+      <input type="number" step="0.25" min="0" class="editor-ing-amount" placeholder="Amt" value="${amt}">
+      <select class="editor-ing-unit">
+        <option value="oz" ${unit === 'oz' ? 'selected' : ''}>oz</option>
+        <option value="ml" ${unit === 'ml' ? 'selected' : ''}>ml</option>
+        <option value="dashes" ${unit.includes('dash') ? 'selected' : ''}>dash(es)</option>
+        <option value="barspoon" ${unit.includes('barspoon') ? 'selected' : ''}>barspoon</option>
+        <option value="drops" ${unit.includes('drop') ? 'selected' : ''}>drop(s)</option>
+        <option value="leaves" ${unit.includes('leaves') ? 'selected' : ''}>leaves</option>
+        <option value="berries" ${unit.includes('berries') ? 'selected' : ''}>berries</option>
+        <option value="rinse" ${unit.includes('rinse') ? 'selected' : ''}>rinse</option>
+        <option value="splash" ${unit.includes('splash') ? 'selected' : ''}>splash</option>
+        <option value="whole" ${unit.includes('whole') ? 'selected' : ''}>whole</option>
+      </select>
+      <input type="text" list="pantryIngredientSuggestions" class="editor-ing-name" placeholder="Ingredient name (e.g. Mezcal, Chartreuse)" value="${name.replace(/"/g, '&quot;')}" required autocomplete="off">
+      <button type="button" class="editor-remove-ing-btn" title="Remove ingredient">✕</button>
+    `;
+
+    row.querySelector('.editor-remove-ing-btn').onclick = () => {
+      soundEffects.playClick();
+      if (container.querySelectorAll('.editor-ing-row').length > 1) {
+        row.remove();
+      } else {
+        showToast('A recipe needs at least one ingredient');
+      }
+    };
+
+    container.appendChild(row);
+  }
+
+  initialIngredients.forEach(ing => {
+    addIngredientRow(ing.amount, ing.unit, ing.name);
+  });
+
+  // Bind add row button
+  document.getElementById('editorAddIngRowBtn').onclick = () => {
+    soundEffects.playClick();
+    addIngredientRow(1, 'oz', '');
+  };
+
+  // Bind cancel and close buttons
+  document.getElementById('editorCloseBtn').onclick = closeRecipeEditorModal;
+  document.getElementById('editorCancelBtn').onclick = closeRecipeEditorModal;
+
+  // Bind form submit
+  document.getElementById('recipeEditorForm').onsubmit = handleSaveRecipeForm;
+
+  elements.recipeEditorModalOverlay.classList.add('active');
+  elements.recipeEditorModalOverlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRecipeEditorModal() {
+  if (elements.recipeEditorModalOverlay) {
+    elements.recipeEditorModalOverlay.classList.remove('active');
+    elements.recipeEditorModalOverlay.style.display = 'none';
+  }
+  if (!state.activeModalRecipe) {
+    document.body.style.overflow = '';
+  }
+}
+
+function handleSaveRecipeForm(e) {
+  e.preventDefault();
+  const nameInput = document.getElementById('editorDrinkName');
+  const name = nameInput ? nameInput.value.trim() : '';
+  if (!name) {
+    alert('Please enter a cocktail name.');
+    return;
+  }
+
+  const category = document.getElementById('editorCategory').value;
+  const glass = document.getElementById('editorGlass').value;
+  const ice = document.getElementById('editorIce').value;
+  const method = document.getElementById('editorMethod').value;
+  const techniqueRule = document.getElementById('editorTechnique').value.trim();
+  const tagsStr = document.getElementById('editorTags').value.trim();
+  const instructionsStr = document.getElementById('editorInstructions').value.trim();
+
+  // Parse tags
+  let tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+  if (state.activeEditorMode === 'riff' && !tags.some(t => t.toLowerCase() === 'riff')) {
+    tags.unshift('Riff');
+  }
+  if (!tags.some(t => t.toLowerCase() === 'custom')) {
+    tags.unshift('Custom');
+  }
+
+  // Parse instructions
+  const instructions = instructionsStr
+    ? instructionsStr.split('\n').map(s => s.trim()).filter(Boolean)
+    : ['Combine all ingredients with ice.', 'Stir or shake according to method.', 'Strain into glassware and serve.'];
+
+  // Parse ingredients
+  const ingRows = elements.recipeEditorModalSheet.querySelectorAll('.editor-ing-row');
+  const allKnownIngs = inventoryManager.getAllIngredients();
+  const ingredients = [];
+
+  ingRows.forEach(row => {
+    const amtEl = row.querySelector('.editor-ing-amount');
+    const unitEl = row.querySelector('.editor-ing-unit');
+    const nameEl = row.querySelector('.editor-ing-name');
+    if (!nameEl) return;
+
+    const ingName = nameEl.value.trim();
+    if (!ingName) return;
+
+    const amt = parseFloat(amtEl.value) || 1;
+    const unit = unitEl.value || 'oz';
+
+    // Find or register ingredient in inventory
+    const match = allKnownIngs.find(k => k.name.toLowerCase() === ingName.toLowerCase() || k.id.toLowerCase() === ingName.toLowerCase());
+    let ingId = match ? match.id : ingName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let canonName = match ? match.name : ingName;
+
+    if (!match) {
+      // Auto-register new custom ingredient in pantry
+      inventoryManager.addCustomIngredient(canonName, 'Modifiers & Liqueurs', '', true);
+    }
+
+    ingredients.push({
+      id: ingId,
+      name: canonName,
+      amount: amt,
+      unit: unit
+    });
+  });
+
+  if (ingredients.length === 0) {
+    alert('Please add at least one ingredient.');
+    return;
+  }
+
+  const recipeData = {
+    name,
+    category,
+    glass,
+    ice,
+    method,
+    techniqueRule,
+    tags,
+    instructions,
+    ingredients
+  };
+
+  soundEffects.playSuccess ? soundEffects.playSuccess() : soundEffects.playClick();
+
+  if (state.activeEditorMode === 'riff') {
+    const parent = state.activeEditorSourceRecipe;
+    recipeData.isRiff = true;
+    recipeData.isCustom = true;
+    recipeData.parentRecipeId = parent ? parent.id : null;
+    recipeData.riffParentName = parent ? parent.name : 'Classic';
+    const saved = inventoryManager.addCustomRecipe(recipeData);
+    closeRecipeEditorModal();
+    showToast(`Created riff "${saved.name}"!`);
+    renderAll();
+    openRecipeModal(saved);
+  } else if (state.activeEditorMode === 'edit') {
+    const source = state.activeEditorSourceRecipe;
+    if (source && source.isCustom) {
+      recipeData.isCustom = true;
+      if (source.isRiff) {
+        recipeData.isRiff = true;
+        recipeData.parentRecipeId = source.parentRecipeId;
+        recipeData.riffParentName = source.riffParentName;
+      }
+      const updated = inventoryManager.updateCustomRecipe(source.id, recipeData);
+      closeRecipeEditorModal();
+      showToast(`Updated "${updated.name}" specs!`);
+      renderAll();
+      openRecipeModal(updated);
+    } else if (source) {
+      // Built-in master recipe override
+      const overridden = inventoryManager.saveRecipeOverride(source.id, recipeData);
+      closeRecipeEditorModal();
+      showToast(`Saved custom specs for "${source.name}"!`);
+      renderAll();
+      const all = getAllRecipes();
+      const current = all.find(r => r.id === source.id);
+      if (current) openRecipeModal(current);
+    }
+  } else {
+    // Mode === 'create'
+    recipeData.isCustom = true;
+    const saved = inventoryManager.addCustomRecipe(recipeData);
+    closeRecipeEditorModal();
+    showToast(`Added "${saved.name}" to Cocktail Book!`);
+    renderAll();
+    openRecipeModal(saved);
+  }
+}
+
 function renderModalContent() {
   const recipe = state.activeModalRecipe;
   if (!recipe) return;
@@ -1694,8 +2092,38 @@ function renderModalContent() {
           <span>•</span>
           <span>${recipe.ice}</span>
         </div>
+        ${recipe.isRiff ? `
+          <div class="modal-riff-callout">
+            <span>🎨</span> Custom Riff on <strong>${recipe.riffParentName || 'Original'}</strong>
+          </div>
+        ` : ''}
+        ${recipe.isEdited ? `
+          <div class="modal-edited-callout">
+            <span>✏️</span> Personal Custom Specs Active
+          </div>
+        ` : ''}
       </div>
       <button class="modal-close-btn" id="modalCloseInnerBtn">✕</button>
+    </div>
+
+    <!-- Recipe Action Toolbar (Riff, Edit Specs, Delete, Revert) -->
+    <div class="recipe-action-toolbar">
+      <button class="modal-action-btn riff-btn" id="modalRiffBtn" title="Create a new custom riff based on this drink">
+        <span>🎨</span> Riff This Drink
+      </button>
+      <button class="modal-action-btn edit-btn" id="modalEditSpecsBtn" title="Edit this cocktail's specs">
+        <span>✏️</span> Edit Specs
+      </button>
+      ${recipe.isCustom ? `
+        <button class="modal-action-btn delete-btn" id="modalDeleteCustomBtn" title="Delete custom cocktail">
+          <span>🗑️</span> Delete
+        </button>
+      ` : ''}
+      ${inventoryManager.isRecipeOverridden(recipe.id) ? `
+        <button class="modal-action-btn revert-btn" id="modalRevertOverrideBtn" title="Revert to original IBA master specs">
+          <span>↩️</span> Revert Specs
+        </button>
+      ` : ''}
     </div>
 
     <!-- Scaler Controls -->
@@ -1803,6 +2231,59 @@ function renderModalContent() {
       showToast(isNow ? `Added "${recipe.name}" to Want to Try` : `Removed "${recipe.name}" from Want to Try`);
       renderModalContent();
       renderRecipesTab();
+    };
+  }
+
+  // Bind Riff button
+  const riffBtn = document.getElementById('modalRiffBtn');
+  if (riffBtn) {
+    riffBtn.onclick = () => {
+      soundEffects.playClick();
+      openRecipeEditorModal({ mode: 'riff', sourceRecipe: recipe });
+    };
+  }
+
+  // Bind Edit Specs button
+  const editBtn = document.getElementById('modalEditSpecsBtn');
+  if (editBtn) {
+    editBtn.onclick = () => {
+      soundEffects.playClick();
+      openRecipeEditorModal({ mode: 'edit', sourceRecipe: recipe });
+    };
+  }
+
+  // Bind Delete Custom Drink button
+  const deleteCustomBtn = document.getElementById('modalDeleteCustomBtn');
+  if (deleteCustomBtn) {
+    deleteCustomBtn.onclick = () => {
+      soundEffects.playClick();
+      if (confirm(`Permanently delete "${recipe.name}" from your Cocktail Book?`)) {
+        inventoryManager.deleteCustomRecipe(recipe.id);
+        closeRecipeModal();
+        showToast(`Deleted "${recipe.name}"`);
+        renderAll();
+      }
+    };
+  }
+
+  // Bind Revert Override button
+  const revertBtn = document.getElementById('modalRevertOverrideBtn');
+  if (revertBtn) {
+    revertBtn.onclick = () => {
+      soundEffects.playClick();
+      if (confirm(`Revert "${recipe.name}" back to original master specs?`)) {
+        inventoryManager.revertRecipeOverride(recipe.id);
+        showToast(`Reverted "${recipe.name}" to original specs`);
+        const all = getAllRecipes();
+        const original = all.find(r => r.id === recipe.id);
+        if (original) {
+          state.activeModalRecipe = original;
+          renderModalContent();
+        } else {
+          closeRecipeModal();
+        }
+        renderAll();
+      }
     };
   }
 
@@ -2043,9 +2524,37 @@ function setupEventListeners() {
     renderRecipesTab();
   };
 
+  // New Drink button (+ New Drink in header)
+  if (elements.addNewDrinkBtn) {
+    elements.addNewDrinkBtn.onclick = () => {
+      soundEffects.playClick();
+      openRecipeEditorModal({ mode: 'create' });
+    };
+  }
+
+  // Modifier / Liqueur dropdown filter
+  if (elements.modifierFilter) {
+    elements.modifierFilter.onchange = (e) => {
+      state.modifierFilter = e.target.value;
+      updateFilterBtnLabel();
+      renderRecipesTab();
+    };
+  }
+
+  // Interactive Keyword Quick-Filter Chips
+  elements.keywordChips.forEach(chip => {
+    chip.onclick = () => {
+      soundEffects.playClick();
+      elements.keywordChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.keywordFilter = chip.getAttribute('data-keyword') || 'all';
+      renderRecipesTab();
+    };
+  });
+
   function updateFilterBtnLabel() {
     if (!elements.toggleFilterSheetBtn) return;
-    const hasFilter = state.categoryFilter !== 'all' || state.spiritFilter !== 'all';
+    const hasFilter = state.categoryFilter !== 'all' || state.spiritFilter !== 'all' || (state.modifierFilter && state.modifierFilter !== 'all');
     elements.toggleFilterSheetBtn.classList.toggle('has-filter', hasFilter);
   }
 
@@ -2059,12 +2568,20 @@ function setupEventListeners() {
     };
   }
 
-  // Modal overlay click outside to close
+  // Modal overlays click outside to close
   elements.modalOverlay.onclick = (e) => {
     if (e.target === elements.modalOverlay) {
       closeRecipeModal();
     }
   };
+
+  if (elements.recipeEditorModalOverlay) {
+    elements.recipeEditorModalOverlay.onclick = (e) => {
+      if (e.target === elements.recipeEditorModalOverlay) {
+        closeRecipeEditorModal();
+      }
+    };
+  }
 
   // Subscribe to inventory changes for reactive auto-update
   inventoryManager.subscribe((event, payload) => {

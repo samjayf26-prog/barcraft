@@ -27,11 +27,12 @@
       <div class="brand-wrapper">
         <div class="brand-icon">🍸</div>
         <div>
-          <div class="brand-title">BarCraft <span class="brand-version">v2.3</span></div>
+          <div class="brand-title">BarCraft <span class="brand-version">v2.4</span></div>
           <div class="brand-subtitle">Atelier Bar Companion</div>
         </div>
       </div>
       <div class="header-actions">
+        <button class="add-drink-btn" id="addNewDrinkBtn" title="Create a new cocktail or riff"><span>🍸</span> + New Drink</button>
         <a href="./minimal/" class="mode-switch-btn" title="Try Streamlined Minimalist View">✨ Minimal UI →</a>
         <button class="unit-toggle-btn" id="unitToggle" title="Toggle Units (oz / ml)">oz</button>
       </div>
@@ -97,6 +98,23 @@
           </button>
         </div>
 
+        <!-- Keyword Quick-Filter Chips (1-tap modifier & style search) -->
+        <div class="keyword-chips-row" id="keywordChipsRow">
+          <button class="keyword-chip active" data-keyword="all">🏷️ All</button>
+          <button class="keyword-chip" data-keyword="vermouth">Vermouth</button>
+          <button class="keyword-chip" data-keyword="campari">Campari</button>
+          <button class="keyword-chip" data-keyword="chartreuse">Chartreuse</button>
+          <button class="keyword-chip" data-keyword="amaro">Amaro</button>
+          <button class="keyword-chip" data-keyword="orange">Orange Liqueur</button>
+          <button class="keyword-chip" data-keyword="orgeat">Orgeat</button>
+          <button class="keyword-chip" data-keyword="coffee">Coffee</button>
+          <button class="keyword-chip" data-keyword="ginger">Ginger</button>
+          <button class="keyword-chip" data-keyword="smoky">Smoky</button>
+          <button class="keyword-chip" data-keyword="stirred">Stirred</button>
+          <button class="keyword-chip" data-keyword="egg white">Egg White</button>
+          <button class="keyword-chip" data-keyword="riffs">🎨 Riffs & Custom</button>
+        </div>
+
         <!-- Secondary Dropdowns -->
         <div class="secondary-filters" id="secondaryFilters">
           <select id="spiritFilter" class="filter-select">
@@ -111,6 +129,23 @@
             <option value="zero-proof">Zero-Proof (Mocktails)</option>
           </select>
 
+          <select id="modifierFilter" class="filter-select">
+            <option value="all">All Modifiers & Liqueurs</option>
+            <option value="vermouth">Sweet / Dry / Blanc Vermouth</option>
+            <option value="campari-aperitivo">Campari & Bitter Aperitifs</option>
+            <option value="chartreuse">Chartreuse (Green & Yellow)</option>
+            <option value="amaro">Amaro (Nonino, Montenegro, Cynar)</option>
+            <option value="orange-liqueur">Orange Liqueur (Cointreau / Curaçao)</option>
+            <option value="maraschino">Maraschino (Luxardo)</option>
+            <option value="herbal-botanical">Herbal & Absinthe & Elderflower</option>
+            <option value="coffee-chocolate">Coffee Liqueur & Cacao</option>
+            <option value="orgeat-almond">Orgeat & Amaretto</option>
+            <option value="syrups">Syrups & Agave & Honey</option>
+            <option value="bitters">Aromatic & Citrus Bitters</option>
+            <option value="egg-white">Egg White & Meringue Foams</option>
+            <option value="custom-riffs">🎨 Custom Riffs & Creations</option>
+          </select>
+
           <select id="categoryFilter" class="filter-select">
             <option value="all">All Categories</option>
             <option value="Locked Favorites">Locked Favorites</option>
@@ -119,6 +154,7 @@
             <option value="Equal-Parts & Modern Classics">Equal-Parts Classics</option>
             <option value="Acid-Driven Sours & Smashes">Acid-Driven Sours & Smashes</option>
             <option value="Zero-Proof Mocktails">Zero-Proof Division</option>
+            <option value="Custom & Riffs">Custom & Riffs</option>
           </select>
         </div>
       </section>
@@ -162,11 +198,16 @@
 
   </div> <!-- End .app-container -->
 
-  <!-- ======================================================================
-       RECIPE DETAIL MODAL & BARTENDER MODE
-       ====================================================================== -->
+  <!-- Recipe Detail Modal & Bartender Mode -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-sheet" id="modalSheet">
+      <!-- Dynamically filled by app.js -->
+    </div>
+  </div>
+
+  <!-- Recipe Editor Modal (Add New Drink, Edit Specs, or Riff) -->
+  <div class="modal-overlay" id="recipeEditorModalOverlay" style="display: none;">
+    <div class="modal-sheet editor-sheet" id="recipeEditorModalSheet">
       <!-- Dynamically filled by app.js -->
     </div>
   </div>

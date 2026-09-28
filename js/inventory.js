@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   INVENTORY: 'barcraft_inventory_v1',
   SHOPPING_LIST: 'barcraft_shopping_v1',
   CUSTOM_RECIPES: 'barcraft_custom_recipes_v1',
+  RECIPE_OVERRIDES: 'barcraft_recipe_overrides_v1',
   FAVORITES: 'barcraft_favorites_v1',
   WANT_TO_TRY: 'barcraft_want_to_try_v1',
   USER_SETTINGS: 'barcraft_settings_v1'
@@ -20,6 +21,7 @@ class InventoryManager {
     this.inventory = this.loadInventory();
     this.shoppingList = this.loadShoppingList();
     this.customRecipes = this.loadCustomRecipes();
+    this.recipeOverrides = this.loadRecipeOverrides();
     this.favorites = this.loadFavorites();
     this.wantToTry = this.loadWantToTry();
     this.listeners = [];
@@ -384,24 +386,117 @@ class InventoryManager {
   }
 
   addCustomRecipe(recipe) {
-    recipe.id = 'custom-' + Date.now();
+    if (!recipe.id) {
+      recipe.id = 'custom-' + Date.now();
+    }
     recipe.isCustom = true;
+    recipe.createdAt = recipe.createdAt || new Date().toISOString();
+    recipe.updatedAt = new Date().toISOString();
     this.customRecipes.push(recipe);
     this.saveCustomRecipes();
     this.notify('recipes_changed', { customRecipes: this.customRecipes });
     return recipe;
   }
 
+  updateCustomRecipe(recipeId, updatedData) {
+    const idx = this.customRecipes.findIndex(r => r.id === recipeId);
+    if (idx !== -1) {
+      this.customRecipes[idx] = {
+        ...this.customRecipes[idx],
+        ...updatedData,
+        id: recipeId,
+        isCustom: true,
+        updatedAt: new Date().toISOString()
+      };
+      this.saveCustomRecipes();
+      this.notify('recipes_changed', { customRecipes: this.customRecipes });
+      return this.customRecipes[idx];
+    }
+    return null;
+  }
+
+  deleteCustomRecipe(recipeId) {
+    const prevLen = this.customRecipes.length;
+    this.customRecipes = this.customRecipes.filter(r => r.id !== recipeId);
+    if (this.customRecipes.length !== prevLen) {
+      this.saveCustomRecipes();
+      if (this.favorites.has(recipeId)) {
+        this.favorites.delete(recipeId);
+        this.saveFavorites();
+      }
+      if (this.wantToTry.has(recipeId)) {
+        this.wantToTry.delete(recipeId);
+        this.saveWantToTry();
+      }
+      this.notify('recipes_changed', { customRecipes: this.customRecipes });
+      return true;
+    }
+    return false;
+  }
+
+  getCustomRecipeById(recipeId) {
+    return this.customRecipes.find(r => r.id === recipeId) || null;
+  }
+
+  // --- Recipe Overrides (for modifying built-in master recipes) ---
+  loadRecipeOverrides() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.RECIPE_OVERRIDES);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Could not load recipe overrides', e);
+    }
+    return {};
+  }
+
+  saveRecipeOverrides() {
+    try {
+      localStorage.setItem(STORAGE_KEYS.RECIPE_OVERRIDES, JSON.stringify(this.recipeOverrides));
+    } catch (e) {
+      console.error('Failed to save recipe overrides', e);
+    }
+  }
+
+  saveRecipeOverride(recipeId, recipeData) {
+    if (!this.recipeOverrides) this.recipeOverrides = this.loadRecipeOverrides();
+    this.recipeOverrides[recipeId] = {
+      ...recipeData,
+      id: recipeId,
+      isEdited: true,
+      updatedAt: new Date().toISOString()
+    };
+    this.saveRecipeOverrides();
+    this.notify('recipes_changed', { overrides: this.recipeOverrides });
+    return this.recipeOverrides[recipeId];
+  }
+
+  revertRecipeOverride(recipeId) {
+    if (!this.recipeOverrides) this.recipeOverrides = this.loadRecipeOverrides();
+    if (this.recipeOverrides[recipeId]) {
+      delete this.recipeOverrides[recipeId];
+      this.saveRecipeOverrides();
+      this.notify('recipes_changed', { overrides: this.recipeOverrides });
+      return true;
+    }
+    return false;
+  }
+
+  isRecipeOverridden(recipeId) {
+    if (!this.recipeOverrides) this.recipeOverrides = this.loadRecipeOverrides();
+    return Boolean(this.recipeOverrides[recipeId]);
+  }
+
   // --- Backup & Restore ---
   exportBackupJSON() {
     const backup = {
-      version: 2,
+      version: 3,
       timestamp: new Date().toISOString(),
       inventory: this.inventory,
       shoppingList: this.shoppingList,
       favorites: Array.from(this.favorites),
       wantToTry: Array.from(this.wantToTry),
-      customRecipes: this.customRecipes
+      customRecipes: this.customRecipes,
+      recipeOverrides: this.recipeOverrides
     };
     return JSON.stringify(backup, null, 2);
   }
@@ -429,6 +524,10 @@ class InventoryManager {
         this.customRecipes = backup.customRecipes;
         this.saveCustomRecipes();
       }
+      if (backup.recipeOverrides) {
+        this.recipeOverrides = backup.recipeOverrides;
+        this.saveRecipeOverrides();
+      }
       this.notify('backup_restored', {});
       return true;
     } catch (e) {
@@ -441,11 +540,13 @@ class InventoryManager {
     localStorage.removeItem(STORAGE_KEYS.INVENTORY);
     localStorage.removeItem(STORAGE_KEYS.SHOPPING_LIST);
     localStorage.removeItem(STORAGE_KEYS.CUSTOM_RECIPES);
+    localStorage.removeItem(STORAGE_KEYS.RECIPE_OVERRIDES);
     localStorage.removeItem(STORAGE_KEYS.FAVORITES);
     localStorage.removeItem(STORAGE_KEYS.WANT_TO_TRY);
     this.inventory = JSON.parse(JSON.stringify(INITIAL_INVENTORY));
     this.shoppingList = [];
     this.customRecipes = [];
+    this.recipeOverrides = {};
     this.favorites = new Set(MASTER_RECIPES.filter(r => r.isFavorite).map(r => r.id));
     this.wantToTry = new Set();
     this.saveInventory();

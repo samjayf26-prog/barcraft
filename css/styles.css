@@ -2919,3 +2919,443 @@ body {
   margin-top: 4px;
   border-left: 3px solid var(--accent-orange);
 }
+
+/* ==========================================================================
+   v2.4 Custom Recipes, Riffs, Modifiers, & Recipe Editor Styles
+   ========================================================================== */
+
+/* Add Drink Header Button */
+.add-drink-btn {
+  background: linear-gradient(135deg, var(--accent-orange), #FF8A50);
+  border: none;
+  color: #FFFFFF;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 8px var(--accent-orange-glow);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.add-drink-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.add-drink-btn:active {
+  transform: scale(0.96);
+}
+
+/* Keyword Quick-Filter Chips (Modifiers & Drink Styles) */
+.keyword-chips-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 8px 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.keyword-chips-row::-webkit-scrollbar {
+  display: none;
+}
+
+.keyword-chip {
+  flex-shrink: 0;
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.keyword-chip:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.keyword-chip.active {
+  background-color: var(--text-primary);
+  border-color: var(--text-primary);
+  color: #FFFFFF;
+}
+
+/* Origin Badges (Riffs, Custom Drinks, Overridden Specs) */
+.card-riff-badge,
+.card-custom-badge,
+.card-edited-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  vertical-align: middle;
+  line-height: 1.3;
+}
+
+.card-riff-badge {
+  background: rgba(142, 68, 173, 0.12);
+  color: #8E44AD;
+  border: 1px solid rgba(142, 68, 173, 0.28);
+}
+
+.card-custom-badge {
+  background: rgba(22, 160, 133, 0.12);
+  color: #16A085;
+  border: 1px solid rgba(22, 160, 133, 0.28);
+}
+
+.card-edited-badge {
+  background: rgba(41, 128, 185, 0.12);
+  color: #2980B9;
+  border: 1px solid rgba(41, 128, 185, 0.28);
+}
+
+/* Modal Recipe Actions Toolbar (Riff, Edit Specs, Delete, Revert) */
+.recipe-action-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.modal-action-btn {
+  background: var(--bg-cream);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.modal-action-btn:hover {
+  border-color: var(--text-primary);
+}
+
+.modal-action-btn:active {
+  transform: scale(0.96);
+}
+
+.modal-action-btn.riff-btn {
+  background: rgba(142, 68, 173, 0.08);
+  border-color: rgba(142, 68, 173, 0.3);
+  color: #8E44AD;
+}
+.modal-action-btn.riff-btn:hover {
+  background: rgba(142, 68, 173, 0.16);
+  border-color: #8E44AD;
+}
+
+.modal-action-btn.edit-btn {
+  background: rgba(41, 128, 185, 0.08);
+  border-color: rgba(41, 128, 185, 0.3);
+  color: #2980B9;
+}
+.modal-action-btn.edit-btn:hover {
+  background: rgba(41, 128, 185, 0.16);
+  border-color: #2980B9;
+}
+
+.modal-action-btn.delete-btn {
+  background: rgba(211, 47, 47, 0.08);
+  border-color: rgba(211, 47, 47, 0.3);
+  color: var(--status-red);
+}
+.modal-action-btn.delete-btn:hover {
+  background: rgba(211, 47, 47, 0.16);
+  border-color: var(--status-red);
+}
+
+.modal-action-btn.revert-btn {
+  background: var(--bg-cream);
+  border-color: var(--border-light);
+  color: var(--text-secondary);
+}
+
+.modal-riff-callout,
+.modal-edited-callout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  margin-top: 4px;
+}
+
+.modal-riff-callout {
+  background: rgba(142, 68, 173, 0.1);
+  color: #8E44AD;
+  border: 1px solid rgba(142, 68, 173, 0.25);
+}
+
+.modal-edited-callout {
+  background: rgba(41, 128, 185, 0.1);
+  color: #2980B9;
+  border: 1px solid rgba(41, 128, 185, 0.25);
+}
+
+/* ==========================================================================
+   Recipe Editor Modal & Form
+   ========================================================================== */
+.editor-sheet {
+  max-width: 680px;
+  max-height: 92vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.recipe-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 14px;
+  padding-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 520px) {
+  .form-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .form-row-3 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.flex-1 {
+  flex: 1;
+}
+
+.form-group.flex-2 {
+  flex: 2;
+}
+
+.form-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.form-label.mb-0 {
+  margin-bottom: 0;
+}
+
+.form-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 3px var(--accent-orange-light);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.45;
+}
+
+.form-section {
+  background-color: var(--bg-cream);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editor-ingredients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-ing-row {
+  display: grid;
+  grid-template-columns: 70px 105px 1fr 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 480px) {
+  .editor-ing-row {
+    grid-template-columns: 60px 88px 1fr 30px;
+    gap: 6px;
+  }
+}
+
+.editor-ing-amount,
+.editor-ing-unit,
+.editor-ing-name {
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.editor-ing-amount:focus,
+.editor-ing-unit:focus,
+.editor-ing-name:focus {
+  border-color: var(--accent-orange);
+}
+
+.editor-remove-ing-btn {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.editor-remove-ing-btn:hover {
+  background: var(--status-red-bg);
+  border-color: var(--status-red);
+  color: var(--status-red);
+}
+
+.add-ing-row-btn {
+  background: #FFFFFF;
+  border: 1px dashed var(--accent-orange);
+  color: var(--accent-orange);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.add-ing-row-btn:hover {
+  background: var(--accent-orange-light);
+}
+
+.editor-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.editor-btn-secondary,
+.editor-btn-primary {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.editor-btn-secondary {
+  background: var(--bg-cream-darker);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.editor-btn-secondary:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.editor-btn-primary {
+  background: var(--text-primary);
+  border: none;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.editor-btn-primary:hover {
+  background: var(--accent-orange);
+}
+
+.editor-btn-primary:active,
+.editor-btn-secondary:active {
+  transform: scale(0.98);
+}
+

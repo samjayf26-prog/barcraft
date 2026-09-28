@@ -8,7 +8,16 @@ import { inventoryManager } from './inventory.js';
 
 export function getAllRecipes() {
   const custom = inventoryManager.loadCustomRecipes();
-  return [...MASTER_RECIPES, ...custom];
+  const overrides = inventoryManager.loadRecipeOverrides();
+
+  const masterMerged = MASTER_RECIPES.map(recipe => {
+    if (overrides && overrides[recipe.id]) {
+      return { ...recipe, ...overrides[recipe.id], isEdited: true };
+    }
+    return recipe;
+  });
+
+  return [...masterMerged, ...custom];
 }
 
 /**
@@ -242,6 +251,8 @@ export function filterRecipes(analyzedList, {
   availabilityFilter = 'all', // 'all', 'can-make', 'substitutes', 'missing-1', 'favorites', 'want-to-try'
   categoryFilter = 'all',
   spiritFilter = 'all',
+  modifierFilter = 'all',
+  keywordFilter = 'all',
   tagFilter = 'all',
   searchQuery = ''
 }) {
@@ -280,6 +291,76 @@ export function filterRecipes(analyzedList, {
       if (!matchSpirit) return false;
     }
 
+    // Modifier / Liqueur Filter
+    if (modifierFilter !== 'all') {
+      if (modifierFilter === 'custom-riffs') {
+        const isRiffOrCustom = recipe.isCustom || recipe.isRiff || (recipe.tags && recipe.tags.some(t => t.toLowerCase().includes('riff') || t.toLowerCase().includes('custom')));
+        if (!isRiffOrCustom) return false;
+      } else {
+        const matchModifier = recipe.ingredients.some(ing => {
+          const id = ing.id.toLowerCase();
+          const name = ing.name.toLowerCase();
+          if (modifierFilter === 'vermouth') {
+            return id.includes('vermouth') || name.includes('vermouth') || id.includes('carpano') || id.includes('punt-e-mes') || id.includes('lillet') || name.includes('lillet');
+          }
+          if (modifierFilter === 'campari-aperitivo') {
+            return id.includes('campari') || name.includes('campari') || id.includes('aperol') || name.includes('aperol') || id.includes('suze') || id.includes('red-bitter');
+          }
+          if (modifierFilter === 'chartreuse') {
+            return id.includes('chartreuse') || name.includes('chartreuse');
+          }
+          if (modifierFilter === 'amaro') {
+            return id.includes('amaro') || name.includes('amaro') || id.includes('cynar') || id.includes('averna') || id.includes('fernet') || id.includes('nonino') || id.includes('montenegro');
+          }
+          if (modifierFilter === 'orange-liqueur') {
+            return id.includes('cointreau') || name.includes('cointreau') || id.includes('triple-sec') || id.includes('curacao') || id.includes('grand-marnier');
+          }
+          if (modifierFilter === 'maraschino') {
+            return id.includes('maraschino') || name.includes('maraschino') || id.includes('luxardo');
+          }
+          if (modifierFilter === 'herbal-botanical') {
+            return id.includes('benedictine') || id.includes('absinthe') || id.includes('st-germain') || id.includes('elderflower') || id.includes('drambuie') || id.includes('galliano');
+          }
+          if (modifierFilter === 'coffee-chocolate') {
+            return id.includes('coffee') || id.includes('kahlua') || id.includes('tia-maria') || id.includes('cacao') || id.includes('espresso');
+          }
+          if (modifierFilter === 'orgeat-almond') {
+            return id.includes('orgeat') || name.includes('orgeat') || id.includes('amaretto') || name.includes('amaretto');
+          }
+          if (modifierFilter === 'syrups') {
+            return id.includes('syrup') || name.includes('syrup') || id.includes('agave') || id.includes('grenadine') || id.includes('honey');
+          }
+          if (modifierFilter === 'bitters') {
+            return id.includes('bitters') || name.includes('bitters') || id.includes('angostura') || id.includes('peychaud');
+          }
+          if (modifierFilter === 'egg-white') {
+            return id.includes('egg-white') || name.includes('egg white');
+          }
+          return false;
+        });
+        if (!matchModifier) return false;
+      }
+    }
+
+    // Keyword Quick-Filter Chip
+    if (keywordFilter !== 'all') {
+      const kw = keywordFilter.toLowerCase();
+      if (kw === 'riffs' || kw === 'custom') {
+        const isRiffOrCustom = recipe.isCustom || recipe.isRiff || (recipe.tags && recipe.tags.some(t => t.toLowerCase().includes('riff') || t.toLowerCase().includes('custom')));
+        if (!isRiffOrCustom) return false;
+      } else {
+        const matchName = recipe.name.toLowerCase().includes(kw);
+        const matchIng = recipe.ingredients.some(i => i.name.toLowerCase().includes(kw) || i.id.toLowerCase().includes(kw));
+        const matchTag = recipe.tags && recipe.tags.some(t => t.toLowerCase().includes(kw));
+        const matchGlass = recipe.glass && recipe.glass.toLowerCase().includes(kw);
+        const matchIce = recipe.ice && recipe.ice.toLowerCase().includes(kw);
+        const matchMethod = recipe.method && recipe.method.toLowerCase().includes(kw);
+        if (!matchName && !matchIng && !matchTag && !matchGlass && !matchIce && !matchMethod) {
+          return false;
+        }
+      }
+    }
+
     // Tag Filter
     if (tagFilter !== 'all') {
       if (!recipe.tags || !recipe.tags.some(t => t.toLowerCase() === tagFilter.toLowerCase())) {
@@ -287,13 +368,28 @@ export function filterRecipes(analyzedList, {
       }
     }
 
-    // Text Search
+    // Text Search (Multi-term keyword search)
     if (query) {
-      const matchName = recipe.name.toLowerCase().includes(query);
-      const matchIng = recipe.ingredients.some(i => i.name.toLowerCase().includes(query));
-      const matchTag = recipe.tags && recipe.tags.some(t => t.toLowerCase().includes(query));
-      const matchCategory = recipe.category.toLowerCase().includes(query);
-      if (!matchName && !matchIng && !matchTag && !matchCategory) {
+      const terms = query.split(/\s+/).filter(Boolean);
+      const matchesAllTerms = terms.every(term => {
+        if (term === 'riff' || term === 'riffs') {
+          return recipe.isRiff || recipe.name.toLowerCase().includes('riff') || (recipe.tags && recipe.tags.some(t => t.toLowerCase().includes('riff')));
+        }
+        if (term === 'custom') {
+          return recipe.isCustom || (recipe.tags && recipe.tags.some(t => t.toLowerCase().includes('custom')));
+        }
+        const matchName = recipe.name.toLowerCase().includes(term);
+        const matchIng = recipe.ingredients.some(i => i.name.toLowerCase().includes(term) || i.id.toLowerCase().includes(term));
+        const matchTag = recipe.tags && recipe.tags.some(t => t.toLowerCase().includes(term));
+        const matchCategory = recipe.category.toLowerCase().includes(term);
+        const matchGlass = recipe.glass && recipe.glass.toLowerCase().includes(term);
+        const matchIce = recipe.ice && recipe.ice.toLowerCase().includes(term);
+        const matchMethod = recipe.method && recipe.method.toLowerCase().includes(term);
+        const matchTechnique = recipe.techniqueRule && recipe.techniqueRule.toLowerCase().includes(term);
+        return matchName || matchIng || matchTag || matchCategory || matchGlass || matchIce || matchMethod || matchTechnique;
+      });
+
+      if (!matchesAllTerms) {
         return false;
       }
     }
