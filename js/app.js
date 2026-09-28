@@ -2631,7 +2631,7 @@ function switchTab(tabName) {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      const swUrl = window.location.pathname.includes('/minimal') ? '../sw.js' : './sw.js';
+      const swUrl = (window.location.pathname.includes('/minimal') || window.location.pathname.includes('/atelier')) ? '../sw.js' : './sw.js';
       navigator.serviceWorker.register(swUrl)
         .then(reg => console.log('Service Worker registered successfully:', reg.scope))
         .catch(err => console.warn('Service Worker registration failed:', err));

@@ -2,7 +2,7 @@
 // BarCraft Service Worker for Offline PWA Support
 // ============================================================================
 
-const CACHE_NAME = 'barcraft-cache-v3.0.0';
+const CACHE_NAME = 'barcraft-cache-v3.0.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -69,6 +69,9 @@ self.addEventListener('fetch', event => {
         return caches.match(event.request).then(cached => {
           if (cached) return cached;
           if (event.request.mode === 'navigate') {
+            if (event.request.url.includes('/atelier')) {
+              return caches.match('./atelier/index.html');
+            }
             if (event.request.url.includes('/minimal')) {
               return caches.match('./minimal/index.html');
             }
