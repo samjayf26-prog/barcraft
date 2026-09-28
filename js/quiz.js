@@ -11,13 +11,15 @@ const STORAGE_KEYS = {
   QUIZ_PROGRESS: 'barcraft_quiz_progress_v2'
 };
 
-const RANKS = [
+export const RANKS = [
   { level: 1, title: 'Barback', minXp: 0, maxXp: 150, icon: '🧼', desc: 'Learning the tools, glassware, and backbar layout.' },
   { level: 2, title: 'Apprentice Mixologist', minXp: 150, maxXp: 500, icon: '🍋', desc: 'Mastering citrus balance, simple ratios, and proper ice handling.' },
   { level: 3, title: 'Journeyman Bartender', minXp: 500, maxXp: 1200, icon: '🧊', desc: 'Commanding classic formulas, egg white foam science, and stirring precision.' },
   { level: 4, title: 'Head Bartender', minXp: 1200, maxXp: 2500, icon: '🍸', desc: 'Effortlessly dissecting complex Tiki riffs, amari balance, and spirit terroir.' },
   { level: 5, title: 'Master Mixologist', minXp: 2500, maxXp: 99999, icon: '👑', desc: 'True legend of the craft. Encyclopedic cocktail memory and flawless execution.' }
 ];
+
+export const RANK_LADDER = RANKS;
 
 export class QuizEngine {
   constructor() {

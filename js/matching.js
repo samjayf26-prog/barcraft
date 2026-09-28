@@ -244,11 +244,48 @@ export function getRandomInStockDrink() {
 }
 
 
+export function checkRecipeMood(recipe, mood) {
+  if (!mood || mood === 'all') return true;
+  const tags = (recipe.tags || []).map(t => t.toLowerCase());
+  const category = (recipe.category || '').toLowerCase();
+  const ingIds = (recipe.ingredients || []).map(i => (i.id || '').toLowerCase());
+  const ingNames = (recipe.ingredients || []).map(i => (i.name || '').toLowerCase());
+  const allText = [category, ...tags, ...ingIds, ...ingNames, recipe.name.toLowerCase()].join(' ');
+
+  if (mood === 'nightcap') {
+    return category.includes('spirit-forward') || 
+           allText.includes('whiskey') || allText.includes('bourbon') || allText.includes('scotch') || allText.includes('cognac') ||
+           tags.includes('spirit-forward') || tags.includes('boozy') || tags.includes('stirred') || tags.includes('nightcap') || tags.includes('digestif');
+  }
+  if (mood === 'crisp') {
+    return category.includes('sour') || category.includes('smash') || category.includes('highball') ||
+           allText.includes('lime') || allText.includes('lemon') || allText.includes('fizz') || allText.includes('collins') || allText.includes('tonic') ||
+           tags.includes('citrusy') || tags.includes('refreshing') || tags.includes('crisp') || tags.includes('sour');
+  }
+  if (mood === 'aperitivo') {
+    return allText.includes('campari') || allText.includes('aperol') || allText.includes('vermouth') || allText.includes('amaro') || allText.includes('spritz') ||
+           category.includes('equal-parts') || tags.includes('bitter') || tags.includes('aperitif') || tags.includes('aperitivo');
+  }
+  if (mood === 'tropical') {
+    return allText.includes('tiki') || allText.includes('rum') || allText.includes('orgeat') || allText.includes('pineapple') || allText.includes('passionfruit') || allText.includes('coconut') ||
+           tags.includes('tropical') || tags.includes('tiki');
+  }
+  if (mood === 'smoky') {
+    return allText.includes('mezcal') || allText.includes('scotch') || allText.includes('islay') || allText.includes('peated') ||
+           tags.includes('smoky') || tags.includes('smoke');
+  }
+  if (mood === 'zero-proof') {
+    return category.includes('zero-proof') || tags.includes('mocktail') || tags.includes('zero-proof') || tags.includes('non-alcoholic');
+  }
+  return true;
+}
+
 /**
  * Filters the analyzed recipe list according to active UI filters.
  */
 export function filterRecipes(analyzedList, {
   availabilityFilter = 'all', // 'all', 'can-make', 'substitutes', 'missing-1', 'favorites', 'want-to-try'
+  moodFilter = 'all', // 'all', 'nightcap', 'crisp', 'aperitivo', 'tropical', 'smoky', 'zero-proof'
   categoryFilter = 'all',
   spiritFilter = 'all',
   modifierFilter = 'all',
@@ -260,6 +297,11 @@ export function filterRecipes(analyzedList, {
 
   return analyzedList.filter(item => {
     const { recipe, canMake, canMakeWithSub, missingCount, isFavorite, isWantToTry } = item;
+
+    // Mood / Vibe Filter
+    if (moodFilter && moodFilter !== 'all') {
+      if (!checkRecipeMood(recipe, moodFilter)) return false;
+    }
 
     // Availability Filter
     if (availabilityFilter === 'can-make' && !canMake) return false;
