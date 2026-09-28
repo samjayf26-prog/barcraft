@@ -180,9 +180,15 @@ function renderBarHub() {
 
 // "Tonight's Pour" Swipeable Deck View (Zero Decision Fatigue)
 function renderBarDeckView(recipesList) {
-  // In deck mode, prioritize 100% makeable drinks (or drinks makeable with sub)
-  const readyList = recipesList.filter(item => item.canMake || item.canMakeWithSub);
-  const pool = readyList.length > 0 ? readyList : recipesList;
+  // Respect the active readiness filter; when 'all' is selected, sort makeable drinks to the top
+  let pool = [...recipesList];
+  if (state.readinessFilter === 'all') {
+    pool.sort((a, b) => {
+      const scoreA = a.canMake ? 3 : (a.canMakeWithSub ? 2 : (a.missingCount === 1 ? 1 : 0));
+      const scoreB = b.canMake ? 3 : (b.canMakeWithSub ? 2 : (b.missingCount === 1 ? 1 : 0));
+      return scoreB - scoreA;
+    });
+  }
 
   if (pool.length === 0) {
     elements.barContentContainer.innerHTML = `
@@ -217,22 +223,73 @@ function renderBarDeckView(recipesList) {
   const currentItem = pool[state.deckIndex];
   const { recipe, canMake, canMakeWithSub, isFavorite, isWantToTry } = currentItem;
 
-  // Build Liquid Volume Silhouette layers
-  const totalOz = recipe.ingredients.reduce((acc, ing) => {
-    return acc + (typeof ing.amount === 'number' && (!ing.unit || ing.unit === 'oz') ? ing.amount : 0.5);
+  // Separate true liquid ingredients from produce/garnishes/bitters
+  const isLiquidUnit = (u) => !u || u === 'oz' || u === 'ml' || u === 'cl' || u === 'barspoon' || u === 'part' || u === 'parts';
+  let liquidIngredients = recipe.ingredients.filter(ing => isLiquidUnit(ing.unit));
+  const accentIngredients = recipe.ingredients.filter(ing => !isLiquidUnit(ing.unit));
+  if (liquidIngredients.length === 0) {
+    liquidIngredients = recipe.ingredients;
+  }
+
+  const totalVolume = liquidIngredients.reduce((acc, ing) => {
+    let val = typeof ing.amount === 'number' ? ing.amount : 0.5;
+    if (ing.unit === 'barspoon') val = 0.15;
+    return acc + val;
   }, 0) || 3.0;
 
-  const liquidLayersHtml = recipe.ingredients.map(ing => {
-    const amt = typeof ing.amount === 'number' && (!ing.unit || ing.unit === 'oz') ? ing.amount : 0.5;
-    const heightPct = Math.round((amt / totalOz) * 100);
+  const liquidLayersHtml = liquidIngredients.map(ing => {
+    let val = typeof ing.amount === 'number' ? ing.amount : 0.5;
+    if (ing.unit === 'barspoon') val = 0.15;
+    const heightPct = Math.max(16, Math.round((val / totalVolume) * 100));
     const grad = getLiquidColor(ing);
     return `
       <div class="vessel-liquid-layer" style="height: ${heightPct}%; background: ${grad};">
-        <span>${ing.name}</span>
-        <span>${formatAmount(ing.amount, state.activeUnit, ing.unit)}</span>
+        <span class="liquid-layer-name">${ing.name}</span>
+        <span class="liquid-layer-amt">${formatAmount(ing.amount, state.activeUnit, ing.unit)}</span>
       </div>
     `;
   }).join('');
+
+  // Accent Produce & Garnish Chips
+  let accentsHtml = '';
+  if (accentIngredients.length > 0) {
+    const chips = accentIngredients.map(ing => {
+      let icon = '🌿';
+      const text = `${ing.id || ''} ${ing.name || ''}`.toLowerCase();
+      if (text.includes('berry') || text.includes('berries') || text.includes('cherry') || text.includes('fruit')) icon = '🍓';
+      else if (text.includes('bitter')) icon = '💧';
+      else if (text.includes('lemon') || text.includes('lime') || text.includes('orange') || text.includes('grapefruit') || text.includes('twist') || text.includes('peel') || text.includes('wedge')) icon = '🍊';
+      else if (text.includes('egg') || text.includes('albumen')) icon = '🥚';
+      else if (text.includes('cucumber') || text.includes('olive')) icon = '🥒';
+      else if (text.includes('nutmeg') || text.includes('cinnamon') || text.includes('salt')) icon = '✨';
+
+      const displayAmt = formatAmount(ing.amount, state.activeUnit, ing.unit);
+      return `<span class="deck-accent-chip">${icon} ${ing.name}${displayAmt ? ` (${displayAmt})` : ''}</span>`;
+    }).join('');
+
+    accentsHtml = `<div class="deck-accents-row">${chips}</div>`;
+  }
+
+  // Substitution / Missing Callout
+  let subCalloutHtml = '';
+  if (canMakeWithSub && currentItem.primarySubSummary) {
+    subCalloutHtml = `
+      <div class="deck-sub-callout">
+        <span class="deck-sub-icon">🔄</span>
+        <div class="deck-sub-text">
+          <div class="deck-sub-title">Smart Substitute Ready</div>
+          <div class="deck-sub-desc">Swap <strong>${currentItem.primarySubSummary}</strong> to pour tonight!</div>
+        </div>
+      </div>
+    `;
+  } else if (!canMake && currentItem.missingIngredients && currentItem.missingIngredients.length === 1) {
+    subCalloutHtml = `
+      <div class="deck-missing-callout">
+        <span style="font-size: 16px;">🛒</span>
+        <div>Missing: <strong>${currentItem.missingIngredients[0].name}</strong> (In Backbar Shopping List)</div>
+      </div>
+    `;
+  }
 
   elements.barContentContainer.innerHTML = `
     <div class="deck-view-container">
@@ -259,6 +316,9 @@ function renderBarDeckView(recipesList) {
         <div class="vessel-mini-silhouette">
           ${liquidLayersHtml}
         </div>
+        ${accentsHtml}
+
+        ${subCalloutHtml}
 
         <!-- Specs Quick Summary -->
         <div class="deck-specs-summary">
@@ -278,43 +338,138 @@ function renderBarDeckView(recipesList) {
           ` : ''}
         </div>
 
-        <!-- Deck Actions -->
+        <!-- Deck Actions with Prev and Next -->
         <div class="deck-card-actions">
           <button class="deck-btn-fav ${isFavorite ? 'active' : ''}" id="deckFavBtn" title="Toggle Favorite">★</button>
           <button class="deck-btn-fav ${isWantToTry ? 'active' : ''}" id="deckWantBtn" title="Want to Try" style="color: #EC4899;">🔖</button>
+          <button class="deck-btn-nav" id="deckPrevBtn" title="Previous Drink Card">‹ Prev</button>
           <button class="deck-btn-mix" id="deckMixBtn">
             <span>Mix This Pour →</span>
           </button>
-          <button class="deck-btn-next" id="deckNextBtn" title="Next Drink Card">➔</button>
+          <button class="deck-btn-nav" id="deckNextBtn" title="Next Drink Card">Next ›</button>
         </div>
       </div>
     </div>
   `;
 
   // Attach Deck Listeners
-  document.getElementById('deckNextBtn').onclick = () => {
-    soundEffects.playClick();
-    state.deckIndex = (state.deckIndex + 1) % pool.length;
+  const card = document.getElementById('activeDeckCard');
+
+  const navigateDeck = (step) => {
+    state.deckIndex = (state.deckIndex + step + pool.length) % pool.length;
     renderBarHub();
   };
 
-  document.getElementById('deckMixBtn').onclick = () => {
+  const triggerCardExit = (step) => {
+    if (!card) {
+      navigateDeck(step);
+      return;
+    }
+    card.style.transition = 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease';
+    const exitX = step > 0 ? -120 : 120;
+    const exitRot = step > 0 ? -8 : 8;
+    card.style.transform = `translateX(${exitX}%) rotate(${exitRot}deg)`;
+    card.style.opacity = '0';
     soundEffects.playClick();
-    openBartenderHUD(recipe);
+    setTimeout(() => {
+      navigateDeck(step);
+    }, 180);
   };
 
-  document.getElementById('deckFavBtn').onclick = () => {
-    soundEffects.playClick();
-    inventoryManager.toggleFavorite(recipe.id);
-    renderBarHub();
-  };
+  // Next & Prev Buttons
+  const nextBtn = document.getElementById('deckNextBtn');
+  if (nextBtn) nextBtn.onclick = () => triggerCardExit(1);
 
-  document.getElementById('deckWantBtn').onclick = () => {
-    soundEffects.playClick();
-    const isNow = inventoryManager.toggleWantToTry(recipe.id);
-    showToast(isNow ? `Added "${recipe.name}" to Want to Try` : `Removed "${recipe.name}"`);
-    renderBarHub();
-  };
+  const prevBtn = document.getElementById('deckPrevBtn');
+  if (prevBtn) prevBtn.onclick = () => triggerCardExit(-1);
+
+  // Mix Pour Button
+  const mixBtn = document.getElementById('deckMixBtn');
+  if (mixBtn) {
+    mixBtn.onclick = () => {
+      soundEffects.playClick();
+      openBartenderHUD(recipe);
+    };
+  }
+
+  // Favorites & Want-to-Try Buttons
+  const favBtn = document.getElementById('deckFavBtn');
+  if (favBtn) {
+    favBtn.onclick = () => {
+      soundEffects.playClick();
+      inventoryManager.toggleFavorite(recipe.id);
+      renderBarHub();
+    };
+  }
+
+  const wantBtn = document.getElementById('deckWantBtn');
+  if (wantBtn) {
+    wantBtn.onclick = () => {
+      soundEffects.playClick();
+      const isNow = inventoryManager.toggleWantToTry(recipe.id);
+      showToast(isNow ? `Added "${recipe.name}" to Want to Try` : `Removed "${recipe.name}"`);
+      renderBarHub();
+    };
+  }
+
+  // Touch Swipe Event Handlers for Mobile Thumb Ergonomics
+  if (card) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentDeltaX = 0;
+    let isDragging = false;
+    let isHorizontalGesture = false;
+
+    card.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      currentDeltaX = 0;
+      isDragging = true;
+      isHorizontalGesture = false;
+      card.style.transition = 'none';
+    }, { passive: true });
+
+    card.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const deltaX = e.touches[0].clientX - touchStartX;
+      const deltaY = e.touches[0].clientY - touchStartY;
+
+      if (!isHorizontalGesture && Math.abs(deltaX) > 8) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          isHorizontalGesture = true;
+        } else {
+          isDragging = false;
+          return;
+        }
+      }
+
+      if (isHorizontalGesture) {
+        currentDeltaX = deltaX;
+        const rot = deltaX * 0.04;
+        const op = Math.max(0.4, 1 - Math.abs(deltaX) / 450);
+        card.style.transform = `translateX(${deltaX}px) rotate(${rot}deg)`;
+        card.style.opacity = `${op}`;
+      }
+    }, { passive: true });
+
+    card.addEventListener('touchend', (e) => {
+      if (!isDragging || !isHorizontalGesture) {
+        isDragging = false;
+        return;
+      }
+      isDragging = false;
+      if (currentDeltaX < -45) {
+        triggerCardExit(1);
+      } else if (currentDeltaX > 45) {
+        triggerCardExit(-1);
+      } else {
+        card.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+        card.style.transform = '';
+        card.style.opacity = '1';
+      }
+    }, { passive: true });
+  }
 }
 
 // Curated Catalog Grid View (Atmospheric Cards)
@@ -768,8 +923,17 @@ function renderActiveQuizQuestion() {
 export function openBartenderHUD(recipe) {
   state.activeModalRecipe = recipe;
   state.activeMultiplier = 1;
-  wakeLockManager.requestWakeLock();
+  state.activeSubstitutions = {};
 
+  // If any ingredient is missing and has an in-stock substitution, pre-select it
+  const inStockIds = inventoryManager.getInStockIngredientIds();
+  const allSubs = getSubstitutionsForRecipe(recipe, inStockIds);
+  const autoSubs = allSubs.filter(s => s.isOriginalMissing && s.substituteInStock);
+  autoSubs.forEach(s => {
+    state.activeSubstitutions[s.originalIngredientId] = s.substituteIngredientId;
+  });
+
+  wakeLockManager.requestWakeLock();
   renderBartenderHUDContent();
   elements.hudModalOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -791,22 +955,71 @@ function renderBartenderHUDContent() {
   if (!recipe) return;
 
   const inStockIds = inventoryManager.getInStockIngredientIds();
+  const allIngredients = inventoryManager.getAllIngredients();
+  const ingNameMap = new Map(allIngredients.map(i => [i.id, i.name]));
+
+  // Apply active substitutions to ingredients
   const scaledIngredients = recipe.ingredients.map(ing => {
-    return scaleIngredient(ing, state.activeMultiplier, state.activeUnit);
+    let effectiveIng = { ...ing };
+    const subTargetId = state.activeSubstitutions[ing.id];
+    if (subTargetId) {
+      const subName = ingNameMap.get(subTargetId) || subTargetId;
+      effectiveIng.name = `${subName} (Sub for ${ing.name})`;
+      effectiveIng.subbed = true;
+      effectiveIng.effectiveId = subTargetId;
+    } else {
+      effectiveIng.effectiveId = ing.id;
+    }
+    const scaled = scaleIngredient(effectiveIng, state.activeMultiplier, state.activeUnit);
+    scaled.effectiveId = effectiveIng.effectiveId;
+    scaled.isSubbed = !!effectiveIng.subbed;
+    return scaled;
   });
 
   const batchMetrics = calculateBatchMetrics(scaledIngredients, state.activeMultiplier);
 
+  // Available in-stock substitutions for this recipe
+  const allSubs = getSubstitutionsForRecipe(recipe, inStockIds);
+  const viableSubs = allSubs.filter(s => s.substituteInStock);
+
+  let substitutionsHtml = '';
+  if (viableSubs.length > 0) {
+    substitutionsHtml = `
+      <div class="hud-substitution-card">
+        <div class="hud-sub-header">
+          <span>🔄 Smart Substitutions</span>
+          <span class="hud-sub-badge">${viableSubs.length} Available</span>
+        </div>
+        <div class="hud-sub-options-list">
+          ${viableSubs.map(s => {
+            const isChecked = state.activeSubstitutions[s.originalIngredientId] === s.substituteIngredientId;
+            return `
+              <label class="hud-sub-toggle-item ${isChecked ? 'active' : ''}">
+                <input type="checkbox" data-sub-orig="${s.originalIngredientId}" data-sub-target="${s.substituteIngredientId}" ${isChecked ? 'checked' : ''}>
+                <div class="hud-sub-item-details">
+                  <div class="hud-sub-item-title">
+                    Use <strong>${s.substituteName}</strong> instead of ${s.originalIngredientName}
+                  </div>
+                  ${s.notes ? `<div class="hud-sub-item-note">${s.notes}</div>` : ''}
+                </div>
+              </label>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   // Ratio stack rows
   const ratioRowsHtml = scaledIngredients.map(ing => {
-    const inStock = inStockIds.has(ing.id);
+    const inStock = inStockIds.has(ing.effectiveId);
     return `
-      <div class="ratio-row-item">
+      <div class="ratio-row-item ${ing.isSubbed ? 'subbed' : ''}">
         <div class="ratio-amount-name">
           <span class="ratio-amt">${ing.displayText}</span>
           <span class="ratio-name">${ing.name}</span>
         </div>
-        <button class="stock-toggle-switch ${inStock ? 'in-stock' : 'out-stock'}" data-hud-stock="${ing.id}">
+        <button class="stock-toggle-switch ${inStock ? 'in-stock' : 'out-stock'}" data-hud-stock="${ing.effectiveId}">
           ${inStock ? '✓ Stocked' : '✕ Out'}
         </button>
       </div>
@@ -839,6 +1052,8 @@ function renderBartenderHUDContent() {
       <span class="spec-meta-pill">⚡ ${recipe.method}</span>
       ${batchMetrics ? `<span class="spec-meta-pill">⚖️ ~${batchMetrics.abv}% ABV • +${batchMetrics.dilutionPct}% Dilution</span>` : ''}
     </div>
+
+    ${substitutionsHtml}
 
     <!-- Scaler Multiplier Controls -->
     <div class="hud-scaler-box">
@@ -886,6 +1101,23 @@ function renderBartenderHUDContent() {
 
   // Attach HUD Listeners
   document.getElementById('hudCloseBtn').onclick = closeBartenderHUD;
+
+  // Substitutions checkboxes
+  elements.hudModalSheet.querySelectorAll('input[data-sub-orig]').forEach(checkbox => {
+    checkbox.onchange = () => {
+      soundEffects.playClick();
+      const origId = checkbox.getAttribute('data-sub-orig');
+      const targetId = checkbox.getAttribute('data-sub-target');
+      if (checkbox.checked) {
+        state.activeSubstitutions[origId] = targetId;
+        showToast('Applied substitute pour');
+      } else {
+        delete state.activeSubstitutions[origId];
+        showToast('Restored standard pour');
+      }
+      renderBartenderHUDContent();
+    };
+  });
 
   // Multiplier pills
   elements.hudModalSheet.querySelectorAll('.scaler-pill-btn').forEach(btn => {
@@ -1206,6 +1438,23 @@ function setupEventListeners() {
       elements.craftLabModalOverlay.classList.remove('active');
     }
   };
+
+  // Keyboard Left / Right arrow navigation for Tonight's Pour Deck
+  window.addEventListener('keydown', (e) => {
+    if (state.activeHub !== 'bar' || state.barViewMode !== 'deck') return;
+    if (state.activeModalRecipe || elements.craftLabModalOverlay.classList.contains('active')) return;
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const nextBtn = document.getElementById('deckNextBtn');
+      if (nextBtn) nextBtn.click();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prevBtn = document.getElementById('deckPrevBtn');
+      if (prevBtn) prevBtn.click();
+    }
+  });
 
   // Reactive subscription to inventory updates
   inventoryManager.subscribe(() => {
