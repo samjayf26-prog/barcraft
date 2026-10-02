@@ -2377,7 +2377,7 @@ select.lab-input {
    ========================================================================== */
 .viz-stage {
   display: grid;
-  grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
+  grid-template-columns: minmax(0, 52fr) minmax(0, 48fr);
   align-items: center;
   gap: 8px;
   margin: 4px -6px 18px;
@@ -2408,7 +2408,7 @@ select.lab-input {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 230px;
+  max-height: 270px;
   overflow: visible;
 }
 

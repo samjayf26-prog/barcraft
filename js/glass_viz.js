@@ -241,10 +241,26 @@ function buildGeometry(type) {
     ...outerRight.map(p => `L ${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
   ].join(' ');
 
+  // Outline of the liquid body between two heights, hugging the glass walls (for shading)
+  const bodyPath = (h0, h1) => {
+    if (h1 <= h0) return '';
+    const left = [];
+    const right = [];
+    for (let y = h0; y <= h1; y += 2) {
+      const r = radiusAt(y);
+      left.push(`${(cx - r).toFixed(1)} ${toScreenY(y).toFixed(1)}`);
+      right.push(`${(cx + r).toFixed(1)} ${toScreenY(y).toFixed(1)}`);
+    }
+    const rTop = radiusAt(h1);
+    left.push(`${(cx - rTop).toFixed(1)} ${toScreenY(h1).toFixed(1)}`);
+    right.push(`${(cx + rTop).toFixed(1)} ${toScreenY(h1).toFixed(1)}`);
+    return `M ${left.join(' L ')} L ${right.reverse().join(' L ')} Z`;
+  };
+
   // Frame each glass to its own height, leaving headroom for the pour stream and garnish
   const rimY = toScreenY(height);
   const viewTop = Math.max(0, Math.floor(rimY - 54));
-  return { type, spec, height, radiusAt, heightForFraction, floorY, cx, toScreenY, innerPath, outerPath, rimY, viewTop, viewH: VIEW_H - viewTop };
+  return { type, spec, height, radiusAt, heightForFraction, floorY, cx, toScreenY, innerPath, outerPath, bodyPath, rimY, viewTop, viewH: VIEW_H - viewTop };
 }
 
 // ----------------------------------------------------------------------------
@@ -332,31 +348,300 @@ function detectIce(iceText = '') {
   return 'none';
 }
 
+
+// ----------------------------------------------------------------------------
+// Garnish detection: read the "Garnish with ..." sentence; "X or Y" means X
+// ----------------------------------------------------------------------------
+const TEMPO = 1.8; // > 1 slows every phase of the pour
+
+function garnishSentence(recipe) {
+  const instr = (recipe.instructions || []).join(' ');
+  const sentence = instr.split(/(?<=[.!])\s+/).find(s => /garnish/i.test(s));
+  if (!sentence) return '';
+  return sentence.replace(/^.*?garnish(ed)?\s*/i, '').split(/\s+or\s+/i)[0].toLowerCase();
+}
+
 function detectGarnish(recipe) {
-  const text = `${(recipe.instructions || []).join(' ')} ${recipe.glass || ''}`.toLowerCase();
+  const all = `${(recipe.instructions || []).join(' ')} ${recipe.glass || ''}`.toLowerCase();
+  const text = garnishSentence(recipe);
   const g = {};
-  if (/salt[- ]rim|salt rim|rimmed with salt|salt-rimmed|sal de gusano|coarse salt/.test(text)) g.rim = /gusano/.test(text) ? '#E7B28A' : '#F5F2EA';
-  else if (/sugar rim|sugar-rim|rim.*sugar/.test(text)) g.rim = '#FFFDF6';
 
-  const wheel = text.match(/(lime|lemon|orange|grapefruit) (wheel|slice|half-wheel|half wheel)/);
-  const wedge = text.match(/(lime|lemon) wedge/);
-  if (wheel) g.wheel = wheel[1];
-  else if (wedge) g.wheel = wedge[1];
-  else if (/twist|peel/.test(text)) g.twist = /orange (peel|twist)|orange oils|orange zest/.test(text) ? 'orange' : (/grapefruit/.test(text) ? 'grapefruit' : 'lemon');
+  if (/salt[- ]rim|salt rim|rimmed with salt|salt-rimmed|sal de gusano|coarse salt/.test(all)) g.rim = /gusano/.test(all) ? '#E7B28A' : '#F7F4EC';
+  else if (/sugar rim|sugar-rim|rim.*sugar/.test(all)) g.rim = '#FFFDF6';
 
-  if (/cherr/.test(text)) g.cherry = true;
-  if (/olive/.test(text)) g.olive = true;
-  if (/mint sprig|sprig of mint|mint bouquet|garnish with (fresh )?mint|mint crown/.test(text)) g.mint = true;
-  if (/nutmeg|cinnamon/.test(text)) g.spice = true;
+  // Without a garnish sentence, only an expressed peel counts (ingredient names would mislead)
+  const source = text || (all.match(/express[^.]*?(peel|twist|oils)[^.]*/) || [''])[0];
+
+  const wheel = source.match(/(lime|lemon|orange|grapefruit) (wheel|slice|half[- ]wheel|crescent|wedge|half)/) ||
+    source.match(/(half) (lime|lemon|orange|grapefruit) wheel/);
+  if (wheel) {
+    const fruit = ['lime', 'lemon', 'orange', 'grapefruit'].find(f => wheel[0].includes(f));
+    g.wheel = { fruit, half: /half|crescent|wedge/.test(wheel[0]), dried: /dehydrated/.test(source) };
+  } else if (/twist|peel|zest|oils/.test(source)) {
+    const fruit = (source.match(/(orange|lemon|lime|grapefruit)/) || [])[1] || 'lemon';
+    g.twist = { fruit, long: /spiral|long|ring|saturn/.test(source) };
+  }
+
+  if (!text) return g;
+  if (/cherr/.test(text)) g.cherry = { dark: /luxardo|brandied/.test(text), count: /cherries/.test(text) ? 2 : 1 };
+  if (/olive/.test(text)) g.olive = { count: /two|olives/.test(text) ? 2 : 1 };
+  if (/onion/.test(text)) g.onion = { count: /two|onions/.test(text) ? 2 : 1 };
+  if (/mint/.test(text)) g.mint = { bouquet: /bouquet|generous|sprigs/.test(text) };
+  if (/pineapple/.test(text)) g.pineapple = true;
+  if (/blackberr|raspberr|berries/.test(text)) g.berries = /blackberr/.test(text) ? 'black' : 'rasp';
+  if (/candied ginger/.test(text)) g.ginger = true;
+  if (/nutmeg|cinnamon/.test(text)) g.dust = 'spice';
+  else if (/chocolate/.test(text)) g.dust = 'chocolate';
+  else if (/coconut/.test(text)) g.dust = 'coconut';
   if (/coffee beans/.test(text)) g.beans = true;
   return g;
 }
 
-const RIND = {
-  lime: ['#6FA62E', '#DDEFA8'],
-  lemon: ['#E9C62A', '#FBF1B5'],
-  orange: ['#EE8A1E', '#FFD69A'],
-  grapefruit: ['#F08A6E', '#FBC7B5']
+// rind, flesh, pith, deep flesh
+const CITRUS = {
+  lime: ['#4E8A1F', '#C9E27A', '#F3F7DD', '#9CC24A'],
+  lemon: ['#E3B814', '#F8E77E', '#FFFBE6', '#EFD246'],
+  orange: ['#E8761A', '#FFB347', '#FFF3DE', '#F28C1E'],
+  grapefruit: ['#E9774F', '#FF9C86', '#FFF1EA', '#F0705A']
+};
+
+const shade = (hex, amt) => {
+  const [r, g, b] = hexToRgb(hex);
+  const f = (c) => Math.round(clamp(amt >= 0 ? c + (255 - c) * amt : c * (1 + amt), 0, 255));
+  return `rgb(${f(r)}, ${f(g)}, ${f(b)})`;
+};
+
+// Each garnish returns { defs, body }; ids are namespaced per visualizer
+const GARNISH_ART = {
+  wheel(uid, { fruit, half, dried }) {
+    const [rind, flesh, pith, deep] = CITRUS[fruit];
+    const id = `${uid}-${fruit}`;
+    const n = 10;
+    let segs = '';
+    for (let k = 0; k < n; k++) {
+      const a0 = (k / n) * Math.PI * 2 + 0.05;
+      const a1 = ((k + 1) / n) * Math.PI * 2 - 0.05;
+      const p = (a, r) => `${(Math.cos(a) * r).toFixed(2)} ${(Math.sin(a) * r).toFixed(2)}`;
+      segs += `<path d="M ${p(a0, 2)} L ${p(a0, 10.4)} A 10.4 10.4 0 0 1 ${p(a1, 10.4)} L ${p(a1, 2)} Z" fill="url(#${id}-flesh)"/>`;
+      // juice vesicles
+      for (let v = 0; v < 3; v++) {
+        const a = a0 + (a1 - a0) * (0.3 + v * 0.2);
+        const r = 4.5 + v * 1.8;
+        segs += `<ellipse cx="${(Math.cos(a) * r).toFixed(2)}" cy="${(Math.sin(a) * r).toFixed(2)}" rx="1.5" ry="0.55" transform="rotate(${(a * 180 / Math.PI).toFixed(0)} ${(Math.cos(a) * r).toFixed(2)} ${(Math.sin(a) * r).toFixed(2)})" fill="rgba(255,255,255,0.35)"/>`;
+      }
+    }
+    let pores = '';
+    for (let k = 0; k < 18; k++) {
+      const a = (k / 18) * Math.PI * 2 + 0.17;
+      pores += `<circle cx="${(Math.cos(a) * 12.4).toFixed(2)}" cy="${(Math.sin(a) * 12.4).toFixed(2)}" r="0.35" fill="rgba(0,0,0,0.25)"/>`;
+    }
+    const defs = `
+      <radialGradient id="${id}-flesh" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0.15" stop-color="${shade(flesh, 0.35)}"/><stop offset="0.75" stop-color="${flesh}"/><stop offset="1" stop-color="${deep}"/>
+      </radialGradient>
+      <radialGradient id="${id}-rind" cx="0.4" cy="0.35" r="0.7">
+        <stop offset="0.7" stop-color="${shade(rind, 0.15)}"/><stop offset="1" stop-color="${shade(rind, -0.3)}"/>
+      </radialGradient>
+      <clipPath id="${id}-half"><rect x="-15" y="-15" width="30" height="15.5"/></clipPath>`;
+    const body = `
+      <g ${half ? `clip-path="url(#${id}-half)"` : ''} ${dried ? 'opacity="0.85"' : ''}>
+        <circle r="13" fill="url(#${id}-rind)"/>
+        ${pores}
+        <circle r="11.4" fill="${pith}"/>
+        ${segs}
+        <circle r="1.9" fill="${pith}"/>
+        <path d="M -9 -6 A 11 11 0 0 1 2 -11" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1" stroke-linecap="round"/>
+      </g>`;
+    return { defs, body };
+  },
+
+  twist(uid, { fruit, long }) {
+    const [rind, , pith] = CITRUS[fruit];
+    // Corkscrew ribbon: segments alternate between zest and pith as it turns
+    const P = long
+      ? [[-16, 14], [-8, -20], [18, -18], [28, 48]]
+      : [[-15, 10], [-7, -15], [13, -15], [24, 15]];
+    const bez = (t) => {
+      const u = 1 - t;
+      return [0, 1].map(k => u * u * u * P[0][k] + 3 * u * u * t * P[1][k] + 3 * u * t * t * P[2][k] + t * t * t * P[3][k]);
+    };
+    const N = long ? 70 : 46;
+    const turns = long ? 4.5 : 2.4;
+    let quads = '';
+    let prev = null;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const [x, y] = bez(t);
+      const [x2, y2] = bez(Math.min(1, t + 0.01));
+      const ang = Math.atan2(y2 - y, x2 - x) + Math.PI / 2;
+      const theta = t * turns * Math.PI * 2;
+      const c = Math.cos(theta);
+      const taper = t < 0.08 ? t / 0.08 : t > 0.92 ? (1 - t) / 0.08 : 1;
+      const w = (1.5 + 1.3 * Math.abs(c)) * (0.45 + 0.55 * taper);
+      const pt = [x + Math.cos(ang) * w, y + Math.sin(ang) * w, x - Math.cos(ang) * w, y - Math.sin(ang) * w];
+      if (prev) {
+        const front = c > 0;
+        const fill = front ? shade(rind, 0.18 * Math.sin(theta) + 0.05) : shade(rind, -0.28 + 0.08 * Math.sin(theta));
+        quads += `<path d="M ${prev[0].toFixed(2)} ${prev[1].toFixed(2)} L ${pt[0].toFixed(2)} ${pt[1].toFixed(2)} L ${pt[2].toFixed(2)} ${pt[3].toFixed(2)} L ${prev[2].toFixed(2)} ${prev[3].toFixed(2)} Z" fill="${fill}" stroke="${fill}" stroke-width="0.3"/>`;
+        // The white pith shows along the inner edge where the peel turns away
+        if (!front) quads += `<path d="M ${prev[2].toFixed(2)} ${prev[3].toFixed(2)} L ${pt[2].toFixed(2)} ${pt[3].toFixed(2)}" stroke="${pith}" stroke-width="0.9" stroke-linecap="round"/>`;
+        else if (i % 3 === 0) quads += `<circle cx="${((prev[0] + pt[2]) / 2).toFixed(2)}" cy="${((prev[1] + pt[3]) / 2).toFixed(2)}" r="0.3" fill="rgba(0,0,0,0.2)"/>`;
+        if (front && i % 2 === 0) quads += `<path d="M ${prev[0].toFixed(2)} ${prev[1].toFixed(2)} L ${pt[0].toFixed(2)} ${pt[1].toFixed(2)}" stroke="rgba(255,255,255,0.35)" stroke-width="0.5" stroke-linecap="round"/>`;
+      }
+      prev = pt;
+    }
+    return { defs: '', body: `<g>${quads}</g>` };
+  },
+
+  cherry(uid, { dark }) {
+    const id = `${uid}-cherry`;
+    const [hi, mid, lo] = dark ? ['#8A1A2A', '#4A0712', '#22020A'] : ['#E8384F', '#B0102A', '#5E0614'];
+    const defs = `
+      <radialGradient id="${id}" cx="0.35" cy="0.32" r="0.75">
+        <stop offset="0" stop-color="${hi}"/><stop offset="0.55" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/>
+      </radialGradient>
+      <linearGradient id="${id}-stem" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0" stop-color="#5A3A16"/><stop offset="1" stop-color="#6E7A2A"/>
+      </linearGradient>`;
+    const body = `
+      <path d="M 0.5 -5.5 C 1.5 -14, 7 -21, 14 -24" fill="none" stroke="url(#${id}-stem)" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M -6.2 0 C -6.2 -5, -2 -7, 0 -5.2 C 2 -7, 6.2 -5, 6.2 0 C 6.2 5, 3 7, 0 7 C -3 7, -6.2 5, -6.2 0 Z" fill="url(#${id})"/>
+      <ellipse cx="0" cy="-5" rx="1.4" ry="0.6" fill="rgba(0,0,0,0.35)"/>
+      <ellipse cx="-2.4" cy="-2.2" rx="1.9" ry="1.2" transform="rotate(-30 -2.4 -2.2)" fill="rgba(255,255,255,0.6)"/>
+      <circle cx="2.6" cy="3.6" r="0.7" fill="rgba(255,255,255,0.18)"/>`;
+    return { defs, body };
+  },
+
+  olive(uid, { count }) {
+    const id = `${uid}-olive`;
+    const defs = `
+      <radialGradient id="${id}" cx="0.38" cy="0.32" r="0.75">
+        <stop offset="0" stop-color="#B7CF63"/><stop offset="0.6" stop-color="#7C9A2E"/><stop offset="1" stop-color="#465E16"/>
+      </radialGradient>
+      <radialGradient id="${id}-pim" cx="0.4" cy="0.4" r="0.6">
+        <stop offset="0" stop-color="#F0564A"/><stop offset="1" stop-color="#A3241A"/>
+      </radialGradient>`;
+    let olives = '';
+    for (let k = 0; k < count; k++) {
+      const off = k * 11;
+      olives += `
+        <g transform="translate(${off * 0.7} ${off * 0.7}) rotate(45)">
+          <ellipse rx="7.4" ry="5.6" fill="url(#${id})"/>
+          <ellipse cx="6.2" rx="2.2" ry="2.6" fill="url(#${id}-pim)"/>
+          <ellipse cx="-2.5" cy="-2.6" rx="2.6" ry="1.1" fill="rgba(255,255,255,0.45)"/>
+        </g>`;
+    }
+    const body = `
+      <line x1="-24" y1="-24" x2="${10 + count * 8}" y2="${10 + count * 8}" stroke="#D8C08A" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="-24" cy="-24" r="2.2" fill="#E2B33C"/><circle cx="-24.7" cy="-24.7" r="0.8" fill="rgba(255,255,255,0.6)"/>
+      ${olives}`;
+    return { defs, body };
+  },
+
+  onion(uid, { count }) {
+    const id = `${uid}-onion`;
+    const defs = `<radialGradient id="${id}" cx="0.38" cy="0.32" r="0.75"><stop offset="0" stop-color="#FFFFFA"/><stop offset="0.7" stop-color="#E6E0CC"/><stop offset="1" stop-color="#B9B196"/></radialGradient>`;
+    let onions = '';
+    for (let k = 0; k < count; k++) {
+      const off = k * 9;
+      onions += `<g transform="translate(${off * 0.7} ${off * 0.7})"><circle r="4.8" fill="url(#${id})"/>
+        <path d="M -3 -2.5 Q 0 -4.6 3 -2.5" fill="none" stroke="rgba(150,140,110,0.5)" stroke-width="0.5"/>
+        <path d="M -3.6 0 Q 0 -2.2 3.6 0" fill="none" stroke="rgba(150,140,110,0.4)" stroke-width="0.5"/>
+        <circle cx="-1.6" cy="-1.8" r="1.1" fill="rgba(255,255,255,0.8)"/></g>`;
+    }
+    return { defs, body: `<line x1="-22" y1="-22" x2="${8 + count * 7}" y2="${8 + count * 7}" stroke="#C9A86A" stroke-width="1.4" stroke-linecap="round"/>${onions}` };
+  },
+
+  mint(uid, { bouquet }) {
+    const id = `${uid}-mint`;
+    const defs = `
+      <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#7BD389"/><stop offset="0.5" stop-color="#3FA055"/><stop offset="1" stop-color="#23703A"/>
+      </linearGradient>`;
+    // Serrated leaf from base (0,0) to tip (len,0)
+    const leaf = (len, wid) => {
+      const top = [];
+      const bot = [];
+      const teeth = 7;
+      for (let i = 0; i <= teeth * 2; i++) {
+        const t = i / (teeth * 2);
+        const w = Math.sin(Math.PI * Math.pow(t, 0.8)) * wid * (i % 2 ? 1 : 0.86);
+        top.push(`${(t * len).toFixed(2)} ${(-w).toFixed(2)}`);
+        bot.push(`${(t * len).toFixed(2)} ${w.toFixed(2)}`);
+      }
+      let veins = `<path d="M 0 0 L ${len * 0.95} 0" stroke="rgba(20,70,35,0.55)" stroke-width="0.5"/>`;
+      for (let v = 1; v <= 3; v++) {
+        const x = len * (0.18 + v * 0.18);
+        const w = Math.sin(Math.PI * Math.pow(x / len, 0.8)) * wid * 0.75;
+        veins += `<path d="M ${x - 2} 0 Q ${x} ${-w * 0.5} ${x + 2.5} ${-w}" fill="none" stroke="rgba(20,70,35,0.4)" stroke-width="0.35"/>`;
+        veins += `<path d="M ${x - 2} 0 Q ${x} ${w * 0.5} ${x + 2.5} ${w}" fill="none" stroke="rgba(20,70,35,0.4)" stroke-width="0.35"/>`;
+      }
+      return `<path d="M ${top.join(' L ')} L ${bot.reverse().join(' L ')} Z" fill="url(#${id})"/>${veins}`;
+    };
+    const sprig = (dx, dy, rot, scale) => `
+      <g transform="translate(${dx} ${dy}) rotate(${rot}) scale(${scale})">
+        <path d="M 0 0 C 0 -8, 1 -16, 0 -26" fill="none" stroke="#2F7A3E" stroke-width="1.3" stroke-linecap="round"/>
+        <g transform="translate(0 -24) rotate(-95)">${leaf(11, 4.2)}</g>
+        <g transform="translate(0 -20) rotate(-150)">${leaf(13, 5)}</g>
+        <g transform="translate(0 -20) rotate(-30)">${leaf(13, 5)}</g>
+        <g transform="translate(0 -12) rotate(-165)">${leaf(15, 5.6)}</g>
+        <g transform="translate(0 -12) rotate(-15)">${leaf(15, 5.6)}</g>
+      </g>`;
+    const body = bouquet
+      ? sprig(-8, 4, -14, 1) + sprig(6, 6, 12, 0.92) + sprig(-1, 2, 0, 1.08)
+      : sprig(0, 4, -6, 1);
+    return { defs, body };
+  },
+
+  pineapple(uid) {
+    const id = `${uid}-pine`;
+    const defs = `
+      <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFF1A6"/><stop offset="1" stop-color="#F2C230"/>
+      </linearGradient>
+      <linearGradient id="${id}-leaf" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#3F7A3A"/><stop offset="1" stop-color="#9DC48A"/>
+      </linearGradient>`;
+    let fibers = '';
+    for (let k = 0; k < 7; k++) fibers += `<line x1="0" y1="18" x2="${-16 + k * 5.3}" y2="2" stroke="rgba(200,150,20,0.35)" stroke-width="0.5"/>`;
+    let rind = '';
+    for (let k = 0; k < 7; k++) rind += `<path d="M ${-17 + k * 5} 0 l 2.5 -2.5 l 2.5 2.5" fill="none" stroke="#5E4A12" stroke-width="0.6"/>`;
+    const body = `
+      <path d="M -10 -2 C -14 -18, -12 -28, -16 -38" fill="none" stroke="url(#${id}-leaf)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M -6 -2 C -6 -20, -2 -30, -2 -44" fill="none" stroke="url(#${id}-leaf)" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M -2 -2 C 2 -16, 6 -24, 10 -34" fill="none" stroke="url(#${id}-leaf)" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M -18 0 L 18 0 L 0 20 Z" fill="url(#${id})"/>
+      ${fibers}
+      <rect x="-18" y="-3" width="36" height="3.4" rx="1" fill="#8A7A2A"/>
+      ${rind}
+      <path d="M -3 0 L 3 0 L 0 16 Z" fill="rgba(255,250,215,0.65)"/>`;
+    return { defs, body };
+  },
+
+  berries(uid, kind) {
+    const [hi, mid, lo] = kind === 'black' ? ['#6A3A7A', '#2E0F36', '#140616'] : ['#F06080', '#C2224A', '#7A0F2A'];
+    const berry = (dx, dy) => {
+      let d = '';
+      const pts = [[0, -4.5], [-3, -2.5], [3, -2.5], [-4, 0.5], [0, -1], [4, 0.5], [-2.6, 3.2], [2.6, 3.2], [0, 2], [0, 5]];
+      pts.forEach(([x, y]) => {
+        d += `<circle cx="${dx + x}" cy="${dy + y}" r="2.1" fill="${mid}" stroke="${lo}" stroke-width="0.3"/>
+              <circle cx="${dx + x - 0.6}" cy="${dy + y - 0.7}" r="0.6" fill="${hi}"/>`;
+      });
+      return d;
+    };
+    return { defs: '', body: `<line x1="-20" y1="-16" x2="14" y2="8" stroke="#D8C08A" stroke-width="1.3" stroke-linecap="round"/>${berry(-5, -5)}${berry(6, 3)}` };
+  },
+
+  ginger() {
+    let sugar = '';
+    for (let k = 0; k < 14; k++) sugar += `<rect x="${(-5 + (k * 37 % 10)).toFixed(1)}" y="${(-5 + (k * 53 % 10)).toFixed(1)}" width="0.9" height="0.9" fill="rgba(255,255,255,0.85)"/>`;
+    return { defs: '', body: `<line x1="-18" y1="-18" x2="8" y2="8" stroke="#D8C08A" stroke-width="1.3" stroke-linecap="round"/><rect x="-5.5" y="-5.5" width="11" height="11" rx="2.5" fill="#E8C66A" stroke="#C9A040" stroke-width="0.6"/>${sugar}` };
+  },
+
+  beans() {
+    const bean = (x, y, r) => `<g transform="translate(${x} ${y}) rotate(${r})"><ellipse rx="3.6" ry="2.5" fill="#4A2A16"/><ellipse rx="3.6" ry="2.5" fill="none" stroke="#2A160A" stroke-width="0.4"/><path d="M -2.8 0.3 Q 0 -1.2 2.8 0.3" fill="none" stroke="#1A0C04" stroke-width="0.6"/><ellipse cx="-1.2" cy="-1.2" rx="1.2" ry="0.5" fill="rgba(255,255,255,0.3)"/></g>`;
+    return { defs: '', body: bean(-7, 0, -10) + bean(0, -2.5, 15) + bean(7, 0, 5) };
+  }
 };
 
 // ----------------------------------------------------------------------------
@@ -375,11 +660,15 @@ export class GlassViz {
     this.rand = seededRandom(recipe.id || recipe.name || 'drink');
     this.frame = null;
     this.destroyed = false;
+    this.splash = [];
+    this.aeration = [];
+    this.ripples = [];
 
     this.geo = buildGeometry(resolveGlassType(recipe.glass));
     this.plan = buildPourPlan(recipe);
     this.iceType = detectIce(recipe.ice);
     this.garnish = detectGarnish(recipe);
+    this.chilled = !compact && (this.iceType !== 'none' || /chill|frost|freez/i.test(`${recipe.ice} ${recipe.glass}`) || this.geo.spec.metal === 'silver');
 
     this.computeLayers();
     this.buildTimeline();
@@ -389,8 +678,8 @@ export class GlassViz {
     if (this.animate) {
       this.start();
     } else {
-      this.drawAt(this.totalDuration + 1);
-      if (!compact && !this.reducedMotion && this.plan.isFizzy) this.startIdle();
+      this.drawAt(this.totalDuration + 6000);
+      if (!compact && !this.reducedMotion && this.bubbles.length) this.startIdle();
     }
   }
 
@@ -415,11 +704,10 @@ export class GlassViz {
       };
     });
 
-    // Final blended color for shaken / stirred drinks (floats stay separate)
+    // Final blended color: hue weighted by strength, opacity mixed by transmittance
     const mainLayers = this.layers.filter(l => !l.float);
     let wSum = 0;
     const mix = [0, 0, 0];
-    // Opacity mixes by transmittance: light through the blend is the product of each part's share
     let logT = 0;
     let vSum = 0;
     mainLayers.forEach(l => {
@@ -442,7 +730,6 @@ export class GlassViz {
       logT += Math.log(0.3) * w * 0.5;
       vSum += w * 0.5;
     });
-
     // Bitters tint the blend a little
     this.plan.dashes.forEach(d => {
       const w = 0.05 * d.count;
@@ -455,65 +742,62 @@ export class GlassViz {
     this.blendRgb = wSum ? mix.map(c => c / wSum) : [230, 230, 220];
     this.blendAlpha = clamp((vSum ? 1 - Math.exp(logT / vSum) : 0.3) + 0.08, 0.3, 0.96);
     this.shouldBlend = mainLayers.length > 1;
-    if (this.foamHeight === undefined) this.foamHeight = 0;
-    this.liquidTopY = this.layers.length ? this.layers[this.layers.length - 1].y1 : 0;
+    this.mainCount = mainLayers.length;
     this.mainTopY = mainLayers.length ? mainLayers[mainLayers.length - 1].y1 : 0;
-    this.foamHeight = this.plan.hasFoam ? Math.min(14, this.geo.height * 0.12) : 0;
+    this.foamHeight = this.plan.hasFoam ? Math.min(15, this.geo.height * 0.13) : 0;
     if (this.foamHeight) {
       this.layers.filter(l => l.float).forEach(l => {
         l.y0 += this.foamHeight;
         l.y1 = Math.min(this.geo.height - 1, l.y1 + this.foamHeight);
       });
-      this.liquidTopY = this.layers[this.layers.length - 1].y1;
     }
+    this.liquidTopY = this.layers.length ? this.layers[this.layers.length - 1].y1 : 0;
   }
 
   buildTimeline() {
+    const T = (ms) => ms * TEMPO;
     const events = [];
-    let t = this.iceType === 'none' ? 150 : 650; // ice drops in first
+    this.iceDur = T(560);
+    let t = this.iceType === 'none' ? T(140) : T(660);
     const mainLayers = this.layers.filter(l => !l.float);
     const floatLayers = this.layers.filter(l => l.float);
     const maxOz = Math.max(...this.layers.map(l => l.oz), 1);
 
     const pourEvent = (layer) => {
-      const dur = clamp(320 + 520 * (layer.oz / maxOz), 340, 900);
+      const dur = T(clamp(320 + 520 * (layer.oz / maxOz), 340, 900));
       events.push({ kind: 'pour', layer, start: t, end: t + dur });
-      t += dur + 90;
+      t += dur + T(110);
+    };
+    const dropEvents = (x0) => {
+      this.plan.dashes.forEach(d => {
+        for (let k = 0; k < d.count; k++) {
+          events.push({ kind: 'drop', dash: d, start: t, end: t + T(380), x: x0 + (this.rand() - 0.5) * 16 });
+          t += T(170);
+        }
+        t += T(120);
+      });
     };
 
     mainLayers.forEach((layer, i) => {
       pourEvent(layer);
       if (i === 0 && this.plan.dashes.length) {
-        this.plan.dashes.forEach(d => {
-          for (let k = 0; k < d.count; k++) {
-            events.push({ kind: 'drop', dash: d, start: t, end: t + 420, x: this.geo.cx + 10 + (this.rand() - 0.5) * 18 });
-            t += 150;
-          }
-          t += 120;
-        });
-        t += 200;
+        dropEvents(this.geo.cx + 10);
+        t += T(200);
       }
     });
-    if (!mainLayers.length && this.plan.dashes.length) {
-      this.plan.dashes.forEach(d => {
-        for (let k = 0; k < d.count; k++) {
-          events.push({ kind: 'drop', dash: d, start: t, end: t + 420, x: this.geo.cx + 10 });
-          t += 150;
-        }
-      });
-    }
+    if (!mainLayers.length && this.plan.dashes.length) dropEvents(this.geo.cx + 10);
 
     if (this.shouldBlend) {
-      events.push({ kind: 'blend', start: t + 100, end: t + 1100 });
-      t += 1100;
+      events.push({ kind: 'blend', start: t + T(120), end: t + T(1300) });
+      t += T(1300);
     }
     if (this.plan.hasFoam) {
-      events.push({ kind: 'foam', start: t, end: t + 700 });
-      t += 700;
+      events.push({ kind: 'foam', start: t, end: t + T(800) });
+      t += T(800);
     }
     floatLayers.forEach(pourEvent);
-    events.push({ kind: 'garnish', start: t + 80, end: t + 700 });
-    t += 700;
+    events.push({ kind: 'garnish', start: t + T(100), end: t + T(900) });
+    t += T(900);
 
     this.events = events;
     this.totalDuration = t;
@@ -523,106 +807,141 @@ export class GlassViz {
     const g = this.geo;
     const id = this.uid;
     const metal = g.spec.metal;
-    const glassStroke = metal === 'copper' ? 'rgba(232, 150, 92, 0.85)' : metal === 'silver' ? 'rgba(225, 230, 238, 0.85)' : `url(#${id}-rimGrad)`;
-    const glassFill = metal === 'copper' ? 'rgba(184, 98, 46, 0.32)' : metal === 'silver' ? 'rgba(210, 216, 226, 0.26)' : 'rgba(255, 255, 255, 0.035)';
+    const glassStroke = metal === 'copper' ? `url(#${id}-copper)` : metal === 'silver' ? 'rgba(225, 230, 238, 0.9)' : `url(#${id}-rimGrad)`;
+    const glassFill = metal === 'copper' ? 'rgba(184, 98, 46, 0.3)' : metal === 'silver' ? 'rgba(210, 216, 226, 0.24)' : 'rgba(255, 255, 255, 0.035)';
 
-    // Stemless bowls cast a wide soft shadow; tumblers a tight one under the base
     const shadowR = g.spec.base > 6 ? g.radiusAt(0) + 22 : Math.max(g.radiusAt(g.height * 0.6), 30) * 0.75;
     const baseBlock = g.spec.base > 6
-      ? `<rect x="${(g.cx - g.radiusAt(0) - WALL + 1).toFixed(1)}" y="${g.floorY.toFixed(1)}" width="${(2 * (g.radiusAt(0) + WALL) - 2).toFixed(1)}" height="${(g.spec.base - 1).toFixed(1)}" rx="4" fill="rgba(255,255,255,0.11)"/>
-         <line x1="${(g.cx - g.radiusAt(0) + 4).toFixed(1)}" y1="${(g.floorY + 2).toFixed(1)}" x2="${(g.cx + g.radiusAt(0) - 4).toFixed(1)}" y2="${(g.floorY + 2).toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-linecap="round"/>`
+      ? `<rect x="${(g.cx - g.radiusAt(0) - WALL + 1).toFixed(1)}" y="${g.floorY.toFixed(1)}" width="${(2 * (g.radiusAt(0) + WALL) - 2).toFixed(1)}" height="${(g.spec.base - 1).toFixed(1)}" rx="4" fill="url(#${id}-base)"/>
+         <line x1="${(g.cx - g.radiusAt(0) + 4).toFixed(1)}" y1="${(g.floorY + 1.5).toFixed(1)}" x2="${(g.cx + g.radiusAt(0) - 4).toFixed(1)}" y2="${(g.floorY + 1.5).toFixed(1)}" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" stroke-linecap="round"/>`
       : '';
 
-    // Reflection streaks along the left and right walls
-    const hlPts = [];
-    for (let y = g.height * 0.12; y <= g.height * 0.86; y += 2) hlPts.push(`${(g.cx - g.radiusAt(y) * 0.8).toFixed(1)},${g.toScreenY(y).toFixed(1)}`);
-    const hlPts2 = [];
-    for (let y = g.height * 0.3; y <= g.height * 0.7; y += 2) hlPts2.push(`${(g.cx + g.radiusAt(y) * 0.86).toFixed(1)},${g.toScreenY(y).toFixed(1)}`);
+    // Reflection streaks along the walls
+    const streak = (from, to, k) => {
+      const pts = [];
+      for (let y = g.height * from; y <= g.height * to; y += 1.5) pts.push(`${(g.cx + g.radiusAt(y) * k).toFixed(1)},${g.toScreenY(y).toFixed(1)}`);
+      return pts.join(' ');
+    };
 
     const handle = g.type === 'mug'
-      ? `<path d="M ${g.cx + 56} ${g.toScreenY(84)} C ${g.cx + 86} ${g.toScreenY(84)}, ${g.cx + 86} ${g.toScreenY(26)}, ${g.cx + 56} ${g.toScreenY(26)}" fill="none" stroke="rgba(232,150,92,0.85)" stroke-width="7" stroke-linecap="round"/>`
+      ? `<path d="M ${g.cx + 56} ${g.toScreenY(84)} C ${g.cx + 88} ${g.toScreenY(84)}, ${g.cx + 88} ${g.toScreenY(26)}, ${g.cx + 56} ${g.toScreenY(26)}" fill="none" stroke="url(#${id}-copper)" stroke-width="7" stroke-linecap="round"/>
+         <path d="M ${g.cx + 58} ${g.toScreenY(80)} C ${g.cx + 82} ${g.toScreenY(80)}, ${g.cx + 82} ${g.toScreenY(32)}, ${g.cx + 58} ${g.toScreenY(32)}" fill="none" stroke="rgba(255,220,180,0.35)" stroke-width="1.2" stroke-linecap="round"/>`
       : '';
 
     const frost = metal === 'silver' || /frost/i.test(this.recipe.ice || '')
-      ? `<path d="${g.outerPath}" fill="url(#${id}-frost)" opacity="0.55"/>`
+      ? `<path d="${g.outerPath}" fill="url(#${id}-frost)" opacity="0.6"/>`
       : '';
 
     this.container.innerHTML = `
       <svg class="glass-viz-svg" viewBox="0 ${g.viewTop} ${VIEW_W} ${g.viewH}" role="img" aria-label="${(this.recipe.name || 'Cocktail').replace(/"/g, '')} in a ${g.spec.label} glass">
         <defs>
           <clipPath id="${id}-clip"><path d="${g.innerPath}"/></clipPath>
+          <clipPath id="${id}-outer"><path d="${g.outerPath}"/></clipPath>
           <linearGradient id="${id}-rimGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="rgba(255,255,255,0.55)"/>
-            <stop offset="0.5" stop-color="rgba(255,255,255,0.18)"/>
-            <stop offset="1" stop-color="rgba(255,255,255,0.4)"/>
+            <stop offset="0" stop-color="rgba(255,255,255,0.6)"/>
+            <stop offset="0.5" stop-color="rgba(255,255,255,0.16)"/>
+            <stop offset="1" stop-color="rgba(255,255,255,0.42)"/>
+          </linearGradient>
+          <linearGradient id="${id}-copper" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#F3B07A"/><stop offset="0.45" stop-color="#C46A32"/><stop offset="1" stop-color="#8A4420"/>
+          </linearGradient>
+          <linearGradient id="${id}-base" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="rgba(255,255,255,0.16)"/><stop offset="1" stop-color="rgba(255,255,255,0.05)"/>
           </linearGradient>
           <radialGradient id="${id}-spot" cx="0.5" cy="0.45" r="0.55">
             <stop offset="0" stop-color="rgba(245,190,110,0.16)"/>
             <stop offset="1" stop-color="rgba(245,190,110,0)"/>
           </radialGradient>
           <radialGradient id="${id}-backlight" cx="0.5" cy="0.62" r="0.5">
-            <stop offset="0" stop-color="rgba(255,244,225,0.14)"/>
+            <stop offset="0" stop-color="rgba(255,244,225,0.15)"/>
             <stop offset="1" stop-color="rgba(255,244,225,0.03)"/>
           </radialGradient>
           <radialGradient id="${id}-shadow" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stop-color="rgba(0,0,0,0.55)"/>
             <stop offset="1" stop-color="rgba(0,0,0,0)"/>
           </radialGradient>
-          <pattern id="${id}-frost" width="6" height="6" patternUnits="userSpaceOnUse">
-            <circle cx="1.5" cy="1.5" r="0.9" fill="rgba(255,255,255,0.35)"/>
-            <circle cx="4.5" cy="4" r="0.6" fill="rgba(255,255,255,0.25)"/>
+          <linearGradient id="${id}-depth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="rgba(255,255,255,0.06)"/>
+            <stop offset="0.35" stop-color="rgba(0,0,0,0)"/>
+            <stop offset="1" stop-color="rgba(0,0,0,0.26)"/>
+          </linearGradient>
+          <linearGradient id="${id}-cyl" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="rgba(0,0,0,0.32)"/>
+            <stop offset="0.14" stop-color="rgba(0,0,0,0.06)"/>
+            <stop offset="0.28" stop-color="rgba(255,255,255,0.12)"/>
+            <stop offset="0.4" stop-color="rgba(255,255,255,0)"/>
+            <stop offset="0.82" stop-color="rgba(0,0,0,0.06)"/>
+            <stop offset="1" stop-color="rgba(0,0,0,0.34)"/>
+          </linearGradient>
+          <linearGradient id="${id}-ice" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="rgba(255,255,255,0.42)"/>
+            <stop offset="0.45" stop-color="rgba(205,228,255,0.1)"/>
+            <stop offset="0.8" stop-color="rgba(235,245,255,0.16)"/>
+            <stop offset="1" stop-color="rgba(255,255,255,0.3)"/>
+          </linearGradient>
+          <linearGradient id="${id}-foam" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FFFBF0"/><stop offset="0.6" stop-color="#F3E8CE"/><stop offset="1" stop-color="#E2D2AE"/>
+          </linearGradient>
+          <linearGradient id="${id}-stream" x1="0" y1="0" x2="1" y2="0">
+            <stop class="s0" offset="0"/><stop class="s1" offset="0.32"/><stop class="s2" offset="0.45"/><stop class="s3" offset="0.62"/><stop class="s4" offset="1"/>
+          </linearGradient>
+          <pattern id="${id}-frost" width="5" height="5" patternUnits="userSpaceOnUse">
+            <circle cx="1.2" cy="1.3" r="0.8" fill="rgba(255,255,255,0.35)"/>
+            <circle cx="3.8" cy="3.6" r="0.55" fill="rgba(255,255,255,0.25)"/>
           </pattern>
         </defs>
 
         ${this.compact ? '' : `<ellipse cx="${g.cx}" cy="${(g.viewTop + g.viewH * 0.52).toFixed(1)}" rx="${VIEW_W * 0.5}" ry="${(g.viewH * 0.52).toFixed(1)}" fill="url(#${id}-spot)"/>`}
-        <ellipse class="gv-glow" cx="${g.cx}" cy="${BASELINE + 3}" rx="${shadowR.toFixed(1)}" ry="5" fill="url(#${id}-shadow)"/>
+        <ellipse cx="${g.cx}" cy="${BASELINE + 3}" rx="${shadowR.toFixed(1)}" ry="5" fill="url(#${id}-shadow)"/>
         <ellipse class="gv-caustic" cx="${g.cx}" cy="${BASELINE + 3}" rx="${(shadowR * 0.7).toFixed(1)}" ry="3.5" fill="transparent"/>
 
         <path d="${g.outerPath}" fill="${glassFill}"/>
         ${baseBlock}
 
         <g clip-path="url(#${id}-clip)">
-          <rect x="0" y="0" width="${VIEW_W}" height="${VIEW_H}" fill="url(#${id}-backlight)"/>
+          <rect x="0" y="${g.viewTop}" width="${VIEW_W}" height="${g.viewH}" fill="url(#${id}-backlight)"/>
           <g class="gv-layers"></g>
           <path class="gv-blend" d=""/>
+          <path class="gv-shade-depth" d="" fill="url(#${id}-depth)"/>
+          <path class="gv-shade-cyl" d="" fill="url(#${id}-cyl)"/>
           <g class="gv-solids"></g>
-          <path class="gv-foam" d="" fill="#F3EAD4"/>
+          <g class="gv-aerate"></g>
+          <path class="gv-foam" d="" fill="url(#${id}-foam)"/>
           <g class="gv-foam-dots"></g>
           <g class="gv-bubbles"></g>
+          <path class="gv-sheen" d="" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
           <g class="gv-ice"></g>
-          <path class="gv-surface" d="" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+          <path class="gv-meniscus" d="" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="0.9" stroke-linecap="round"/>
+          <g class="gv-ripples"></g>
         </g>
 
         ${frost}
-        <path d="${g.outerPath}" fill="none" stroke="${glassStroke}" stroke-width="1.6" stroke-linejoin="round"/>
-        <polyline points="${hlPts.join(' ')}" fill="none" stroke="rgba(255,255,255,${metal ? 0.22 : 0.16})" stroke-width="3.2" stroke-linecap="round"/>
-        <polyline points="${hlPts2.join(' ')}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="2" stroke-linecap="round"/>
+        <g class="gv-condensation" clip-path="url(#${id}-outer)" opacity="0"></g>
+        <path d="${g.outerPath}" fill="none" stroke="${glassStroke}" stroke-width="1.5" stroke-linejoin="round"/>
+        <polyline points="${streak(0.1, 0.88, -0.82)}" fill="none" stroke="rgba(255,255,255,${metal ? 0.22 : 0.17})" stroke-width="3.4" stroke-linecap="round"/>
+        <polyline points="${streak(0.16, 0.6, -0.68)}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1.2" stroke-linecap="round"/>
+        <polyline points="${streak(0.3, 0.72, 0.88)}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" stroke-linecap="round"/>
         ${handle}
         <g class="gv-ice-top"></g>
         <g class="gv-rim"></g>
         <g class="gv-drops"></g>
-        <rect class="gv-stream" x="0" y="0" width="0" height="0" rx="2"/>
+        <path class="gv-stream" d="" fill="url(#${id}-stream)"/>
+        <g class="gv-splash"></g>
         <g class="gv-garnish"></g>
       </svg>
     `;
 
     const svg = this.container.querySelector('svg');
     this.svg = svg;
+    const q = (sel) => svg.querySelector(sel);
     this.el = {
-      layers: svg.querySelector('.gv-layers'),
-      blend: svg.querySelector('.gv-blend'),
-      solids: svg.querySelector('.gv-solids'),
-      foam: svg.querySelector('.gv-foam'),
-      foamDots: svg.querySelector('.gv-foam-dots'),
-      bubbles: svg.querySelector('.gv-bubbles'),
-      ice: svg.querySelector('.gv-ice'),
-      iceTop: svg.querySelector('.gv-ice-top'),
-      surface: svg.querySelector('.gv-surface'),
-      rim: svg.querySelector('.gv-rim'),
-      drops: svg.querySelector('.gv-drops'),
-      stream: svg.querySelector('.gv-stream'),
-      garnish: svg.querySelector('.gv-garnish'),
-      caustic: svg.querySelector('.gv-caustic')
+      layers: q('.gv-layers'), blend: q('.gv-blend'), shadeDepth: q('.gv-shade-depth'), shadeCyl: q('.gv-shade-cyl'),
+      solids: q('.gv-solids'), aerate: q('.gv-aerate'), foam: q('.gv-foam'), foamDots: q('.gv-foam-dots'),
+      bubbles: q('.gv-bubbles'), sheen: q('.gv-sheen'), ice: q('.gv-ice'), meniscus: q('.gv-meniscus'), ripples: q('.gv-ripples'),
+      condensation: q('.gv-condensation'), iceTop: q('.gv-ice-top'), rim: q('.gv-rim'), drops: q('.gv-drops'),
+      stream: q('.gv-stream'), splash: q('.gv-splash'), garnish: q('.gv-garnish'), caustic: q('.gv-caustic'),
+      streamStops: ['s0', 's1', 's2', 's3', 's4'].map(c => q(`.${c}`)),
+      defs: q('defs')
     };
 
     this.layerEls = this.layers.map(() => {
@@ -636,28 +955,39 @@ export class GlassViz {
     this.buildRim();
     this.buildGarnish();
     this.buildBubbles();
+    this.buildCondensation();
   }
 
   // --- Static scene pieces -------------------------------------------------
   buildIce() {
     const g = this.geo;
+    const id = this.uid;
     const rand = seededRandom(`${this.recipe.id}-ice`);
     const cubes = [];
-    const cube = (x, y, s, rot, extraClass = '') => {
+    const cube = (x, y, s, rot, big = false) => {
       const grp = document.createElementNS(SVG_NS, 'g');
       grp.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)})`);
-      grp.setAttribute('class', `gv-cube ${extraClass}`);
+      const h = s / 2;
+      const inset = s * 0.13;
+      let inner = '';
+      if (big) {
+        inner += `<ellipse cx="${(s * 0.06).toFixed(1)}" cy="${(s * 0.08).toFixed(1)}" rx="${(s * 0.22).toFixed(1)}" ry="${(s * 0.18).toFixed(1)}" fill="rgba(255,255,255,0.07)"/>`;
+        for (let k = 0; k < 5; k++) inner += `<circle cx="${((rand() - 0.5) * s * 0.4).toFixed(1)}" cy="${((rand() - 0.5) * s * 0.4).toFixed(1)}" r="${(0.4 + rand() * 0.6).toFixed(2)}" fill="rgba(255,255,255,0.35)"/>`;
+      }
       grp.innerHTML = `
-        <rect x="${-s / 2}" y="${-s / 2}" width="${s}" height="${s}" rx="${Math.max(2, s * 0.14)}" fill="rgba(225,240,255,0.16)" stroke="rgba(255,255,255,0.5)" stroke-width="0.9"/>
-        <path d="M ${-s / 2 + 3} ${-s / 2 + s * 0.3} L ${-s / 2 + 3} ${-s / 2 + 3} L ${-s / 2 + s * 0.35} ${-s / 2 + 3}" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+        <rect x="${-h}" y="${-h}" width="${s}" height="${s}" rx="${Math.max(2.2, s * 0.15)}" fill="url(#${id}-ice)" stroke="rgba(255,255,255,0.55)" stroke-width="0.8"/>
+        <rect x="${-h + inset}" y="${-h + inset}" width="${s - inset * 2}" height="${s - inset * 2}" rx="${Math.max(1.4, s * 0.1)}" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="0.7"/>
+        ${inner}
+        <path d="M ${-h + 2.6} ${(-h + s * 0.34).toFixed(1)} L ${-h + 2.6} ${-h + 2.6} L ${(-h + s * 0.38).toFixed(1)} ${-h + 2.6}" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M ${(h - 2.4).toFixed(1)} ${(h - s * 0.3).toFixed(1)} L ${(h - 2.4).toFixed(1)} ${(h - 2.4).toFixed(1)} L ${(h - s * 0.26).toFixed(1)} ${(h - 2.4).toFixed(1)}" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" stroke-linecap="round"/>
       `;
-      cubes.push({ el: grp, x, y, s });
+      cubes.push({ el: grp });
       return grp;
     };
 
     if (this.iceType === 'large') {
       const s = Math.min(2 * g.radiusAt(0) * 0.78, 2 * g.radiusAt(20) * 0.78, 64, g.height * 0.62);
-      this.el.ice.appendChild(cube(g.cx, g.floorY - s / 2 - 1, s, -4 + rand() * 8));
+      this.el.ice.appendChild(cube(g.cx, g.floorY - s / 2 - 1, s, -4 + rand() * 8, true));
     } else if (this.iceType === 'cubes') {
       const s = clamp(g.radiusAt(g.height * 0.5) * 0.62, 18, 28);
       const topLimit = g.height - s * 0.3;
@@ -677,35 +1007,31 @@ export class GlassViz {
     } else if (this.iceType === 'crushed') {
       const pieces = [];
       const area = 2 * g.radiusAt(g.height * 0.5) * g.height;
-      const n = clamp(Math.round(area / 70), 18, 90);
+      const n = clamp(Math.round(area / 55), 22, 120);
       for (let i = 0; i < n; i++) {
         const y = rand() * (g.height + 4);
         const r = g.radiusAt(Math.min(y, g.height));
-        const x = g.cx + (rand() * 2 - 1) * (r - 3);
-        pieces.push([x, g.toScreenY(y), 4 + rand() * 5]);
+        pieces.push([g.cx + (rand() * 2 - 1) * (r - 3), g.toScreenY(y), 3.5 + rand() * 5]);
       }
-      // A mound of crushed ice above the rim
       const rimR = g.radiusAt(g.height);
-      for (let i = 0; i < 14; i++) {
-        const x = g.cx + (rand() * 2 - 1) * rimR * 0.9;
-        const bulge = (1 - Math.pow((x - g.cx) / rimR, 2)) * 12;
-        pieces.push([x, g.rimY - rand() * bulge, 4 + rand() * 4, true]);
+      for (let i = 0; i < 18; i++) {
+        const x = g.cx + (rand() * 2 - 1) * rimR * 0.92;
+        const bulge = (1 - Math.pow((x - g.cx) / rimR, 2)) * 13;
+        pieces.push([x, g.rimY - rand() * bulge, 3.5 + rand() * 4, true]);
       }
       pieces.forEach(([x, y, s, above]) => {
         const pts = [];
-        const sides = 5 + Math.floor(rand() * 2);
+        const sides = 5 + Math.floor(rand() * 3);
         for (let k = 0; k < sides; k++) {
           const ang = (k / sides) * Math.PI * 2 + rand() * 0.5;
           const rr = s * (0.6 + rand() * 0.4);
-          pts.push(`${(x + Math.cos(ang) * rr).toFixed(1)},${(y + Math.sin(ang) * rr).toFixed(1)}`);
+          pts.push([x + Math.cos(ang) * rr, y + Math.sin(ang) * rr]);
         }
-        const poly = document.createElementNS(SVG_NS, 'polygon');
-        poly.setAttribute('points', pts.join(' '));
-        poly.setAttribute('fill', 'rgba(230,242,255,0.2)');
-        poly.setAttribute('stroke', 'rgba(255,255,255,0.45)');
-        poly.setAttribute('stroke-width', '0.7');
-        (above ? this.el.iceTop : this.el.ice).appendChild(poly);
-        cubes.push({ el: poly, x, y, s });
+        const grp = document.createElementNS(SVG_NS, 'g');
+        grp.innerHTML = `<polygon points="${pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ')}" fill="url(#${id}-ice)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
+          <line x1="${pts[0][0].toFixed(1)}" y1="${pts[0][1].toFixed(1)}" x2="${pts[1][0].toFixed(1)}" y2="${pts[1][1].toFixed(1)}" stroke="rgba(255,255,255,0.75)" stroke-width="0.8" stroke-linecap="round"/>`;
+        (above ? this.el.iceTop : this.el.ice).appendChild(grp);
+        cubes.push({ el: grp });
       });
     }
     this.iceCubes = cubes;
@@ -723,22 +1049,16 @@ export class GlassViz {
         const y = rand() * Math.max(6, this.mainTopY * 0.55) + 2;
         const r = g.radiusAt(y) - 6;
         const x = g.cx + (rand() * 2 - 1) * r;
-        const el = document.createElementNS(SVG_NS, 'path');
+        const el = document.createElementNS(SVG_NS, 'g');
         const sy = g.toScreenY(y);
-        const rot = rand() * 360;
         if (/mint|basil/.test(id)) {
-          el.setAttribute('d', `M -6 0 Q 0 -4.5 6 0 Q 0 4.5 -6 0 Z M -6 0 L 6 0`);
-          el.setAttribute('fill', s.color[0]);
-          el.setAttribute('stroke', 'rgba(20,60,30,0.6)');
-          el.setAttribute('stroke-width', '0.6');
+          el.innerHTML = `<path d="M -6 0 Q -1 -4.8 6 0 Q -1 4.8 -6 0 Z" fill="${s.color[0]}" stroke="rgba(20,60,30,0.6)" stroke-width="0.5"/><path d="M -5 0 L 5 0" stroke="rgba(20,60,30,0.6)" stroke-width="0.4"/>`;
         } else if (/ginger|peach/.test(id)) {
-          el.setAttribute('d', 'M -4 -3 L 4 -3 L 5 3 L -5 3 Z');
-          el.setAttribute('fill', s.color[0]);
+          el.innerHTML = `<path d="M -4 -3 L 4 -3 L 5 3 L -5 3 Z" fill="${s.color[0]}" stroke="rgba(0,0,0,0.15)" stroke-width="0.4"/>`;
         } else {
-          el.setAttribute('d', 'M -3.5 0 A 3.5 3.5 0 1 0 3.5 0 A 3.5 3.5 0 1 0 -3.5 0');
-          el.setAttribute('fill', s.color[0]);
+          el.innerHTML = `<circle r="3.4" fill="${s.color[0]}"/><circle cx="-1" cy="-1" r="1" fill="rgba(255,255,255,0.35)"/>`;
         }
-        el.setAttribute('transform', `translate(${x.toFixed(1)} ${sy.toFixed(1)}) rotate(${rot.toFixed(0)})`);
+        el.setAttribute('transform', `translate(${x.toFixed(1)} ${sy.toFixed(1)}) rotate(${(rand() * 360).toFixed(0)})`);
         el.setAttribute('opacity', '0');
         this.el.solids.appendChild(el);
         pieces.push(el);
@@ -754,10 +1074,11 @@ export class GlassViz {
     const r = g.radiusAt(g.height) + WALL / 2;
     let html = '';
     [-1, 1].forEach(side => {
-      for (let i = 0; i < 22; i++) {
-        const dy = rand() * 9;
-        const x = g.cx + side * (r + (rand() - 0.5) * 3.4);
-        html += `<circle cx="${x.toFixed(1)}" cy="${(g.rimY + dy).toFixed(1)}" r="${(0.7 + rand() * 0.8).toFixed(2)}" fill="${this.garnish.rim}"/>`;
+      for (let i = 0; i < 38; i++) {
+        const dy = Math.pow(rand(), 1.6) * 10;
+        const x = g.cx + side * (r + (rand() - 0.5) * 3.6);
+        const s = 0.7 + rand() * 1.2;
+        html += `<rect x="${(x - s / 2).toFixed(2)}" y="${(g.rimY + dy - s / 2).toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}" transform="rotate(${(rand() * 90).toFixed(0)} ${x.toFixed(1)} ${(g.rimY + dy).toFixed(1)})" fill="${this.garnish.rim}" opacity="${(0.7 + rand() * 0.3).toFixed(2)}"/>`;
       }
     });
     this.el.rim.innerHTML = html;
@@ -768,76 +1089,62 @@ export class GlassViz {
     const gar = this.garnish;
     const rimR = g.radiusAt(g.height) + WALL;
     const items = [];
+    let defs = '';
 
-    const add = (html, x, y, rot = 0, inGlass = false) => {
+    const add = (art, x, y, rot = 0, inGlass = false, scale = 1) => {
+      defs += art.defs;
       const grp = document.createElementNS(SVG_NS, 'g');
-      grp.innerHTML = html;
-      grp.dataset.x = x;
-      grp.dataset.y = y;
-      grp.dataset.rot = rot;
+      grp.innerHTML = art.body;
       grp.setAttribute('opacity', '0');
       this.el.garnish.appendChild(grp);
-      items.push({ el: grp, x, y, rot, inGlass });
+      items.push({ el: grp, x, y, rot, inGlass, scale });
     };
 
-    if (gar.wheel) {
-      const [rind, flesh] = RIND[gar.wheel];
-      let seg = '';
-      for (let k = 0; k < 8; k++) {
-        const a = (k / 8) * Math.PI * 2;
-        seg += `<line x1="0" y1="0" x2="${(Math.cos(a) * 9).toFixed(1)}" y2="${(Math.sin(a) * 9).toFixed(1)}" stroke="rgba(255,255,255,0.65)" stroke-width="0.8"/>`;
-      }
-      add(`<circle r="12" fill="${rind}"/><circle r="10" fill="${flesh}"/>${seg}<circle r="1.6" fill="rgba(255,255,255,0.8)"/>`,
-        g.cx + rimR - 4, g.rimY + 2, -18);
-    } else if (gar.twist) {
-      const [rind, flesh] = RIND[gar.twist];
-      add(`<path d="M 0 0 C 10 -8, 20 6, 30 -2 C 36 -6, 40 -2, 42 4" fill="none" stroke="${rind}" stroke-width="5" stroke-linecap="round"/>
-           <path d="M 1 -0.5 C 10 -8.5, 20 5.5, 30 -2.5" fill="none" stroke="${flesh}" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/>`,
-        g.cx + rimR - 22, g.rimY - 4, 8);
-    }
+    const surfaceTop = g.toScreenY(Math.max(this.liquidTopY, this.mainTopY + this.foamHeight));
+    if (gar.wheel) add(GARNISH_ART.wheel(this.uid, gar.wheel), g.cx + rimR - 4, g.rimY + 2, -16);
+    else if (gar.twist) add(GARNISH_ART.twist(this.uid, gar.twist), g.cx + rimR - 20, g.rimY - 3, 6);
+    if (gar.pineapple) add(GARNISH_ART.pineapple(this.uid), g.cx - rimR + 8, g.rimY + 2, -14, false, 0.9);
     if (gar.cherry) {
-      const restY = this.iceType === 'none' ? g.floorY - 7 : g.rimY + 6;
-      add(`<path d="M 0 -6 C 2 -16, 8 -22, 14 -24" fill="none" stroke="#5B3A1A" stroke-width="1.4" stroke-linecap="round"/>
-           <circle r="7" fill="#7E0B1D"/><circle cx="-2.5" cy="-2.5" r="2" fill="rgba(255,255,255,0.45)"/>`,
-        g.cx - 6, restY, 0, true);
+      const restY = this.iceType === 'none' ? g.floorY - 7.5 : g.rimY + 4;
+      add(GARNISH_ART.cherry(this.uid, gar.cherry), g.cx - 6, restY, 0, this.iceType === 'none');
     }
-    if (gar.olive) {
-      add(`<line x1="-26" y1="-26" x2="12" y2="12" stroke="#C9B48A" stroke-width="1.6" stroke-linecap="round"/>
-           <ellipse rx="7" ry="5.5" fill="#6E8B2E" transform="rotate(45)"/><circle cx="2.5" cy="-2.5" r="2" fill="#C0392B"/>`,
-        g.cx - 4, g.rimY + Math.min(30, g.height * 0.4), 0, true);
-    }
-    if (gar.mint) {
-      add(`<path d="M 0 0 L 0 -16" stroke="#2F7A3E" stroke-width="1.6"/>
-           <path d="M 0 -14 Q -12 -22 -16 -12 Q -6 -8 0 -14 Z" fill="#46A35A"/>
-           <path d="M 0 -18 Q 10 -30 16 -20 Q 6 -14 0 -18 Z" fill="#3E9B4F"/>
-           <path d="M 0 -8 Q 12 -14 14 -4 Q 5 -2 0 -8 Z" fill="#52B067"/>`,
-        g.cx - rimR * 0.45, g.rimY + 6, -10);
-    }
-    if (gar.beans) {
-      add(`<ellipse cx="-6" rx="3.2" ry="2.2" fill="#3B2314"/><ellipse cx="0" cy="-1" rx="3.2" ry="2.2" fill="#3B2314"/><ellipse cx="6" rx="3.2" ry="2.2" fill="#3B2314"/>`,
-        g.cx, g.toScreenY(this.liquidTopY + this.foamHeight) - 1, 0, true);
-    }
+    if (gar.olive) add(GARNISH_ART.olive(this.uid, gar.olive), g.cx - 4, g.rimY + Math.min(28, g.height * 0.38), 0, true);
+    if (gar.onion) add(GARNISH_ART.onion(this.uid, gar.onion), g.cx - 2, g.rimY + Math.min(26, g.height * 0.36), 0, true);
+    if (gar.berries) add(GARNISH_ART.berries(this.uid, gar.berries), g.cx + 4, g.rimY - 2, 0);
+    if (gar.ginger) add(GARNISH_ART.ginger(this.uid), g.cx + rimR - 10, g.rimY - 4, 0);
+    if (gar.mint) add(GARNISH_ART.mint(this.uid, gar.mint), g.cx - rimR * 0.42, g.rimY + 8, -8, false, 1.05);
+    if (gar.beans) add(GARNISH_ART.beans(this.uid), g.cx, surfaceTop - 1, 0, true);
+
+    if (defs) this.el.defs.insertAdjacentHTML('beforeend', defs);
     this.garnishItems = items;
 
-    if (gar.spice) {
-      const rand = seededRandom(`${this.recipe.id}-spice`);
-      const top = this.liquidTopY + this.foamHeight;
-      const r = g.radiusAt(top) * 0.7;
+    if (gar.dust) {
+      const rand = seededRandom(`${this.recipe.id}-dust`);
+      const top = Math.max(this.liquidTopY, this.mainTopY + this.foamHeight);
+      const r = g.radiusAt(top) * 0.72;
+      const colors = { spice: ['#7A4A26', '#9A6232', '#5A3218'], chocolate: ['#2A160A', '#3E2212', '#1A0C04'], coconut: ['#FFFFFF', '#F2EEE4', '#E6DFCF'] }[gar.dust];
       let dots = '';
-      for (let i = 0; i < 16; i++) {
-        dots += `<circle cx="${(g.cx + (rand() * 2 - 1) * r).toFixed(1)}" cy="${(g.toScreenY(top) + 1 + rand() * 2).toFixed(1)}" r="${(0.6 + rand() * 0.6).toFixed(2)}" fill="#7A4A26"/>`;
+      for (let i = 0; i < 34; i++) {
+        const c = colors[i % 3];
+        const x = g.cx + (rand() * 2 - 1) * r;
+        const y = g.toScreenY(top) + 0.6 + rand() * 2.2;
+        dots += gar.dust === 'spice'
+          ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.35 + rand() * 0.55).toFixed(2)}" fill="${c}"/>`
+          : `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(1 + rand() * 1.6).toFixed(2)}" height="0.6" transform="rotate(${(rand() * 180).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})" fill="${c}"/>`;
       }
-      this.spiceHtml = dots;
+      this.dustHtml = dots;
     }
   }
 
   buildBubbles() {
     this.bubbles = [];
     if (!this.plan.isFizzy && !this.plan.isSparklingWine) return;
-    const n = this.compact ? 6 : (this.plan.isSparklingWine ? 26 : 18);
+    const n = this.compact ? 6 : (this.plan.isSparklingWine ? 34 : 24);
     for (let i = 0; i < n; i++) {
       const c = document.createElementNS(SVG_NS, 'circle');
-      c.setAttribute('fill', 'rgba(255,255,255,0.55)');
+      c.setAttribute('fill', 'rgba(255,255,255,0.16)');
+      c.setAttribute('stroke', 'rgba(255,255,255,0.7)');
+      c.setAttribute('stroke-width', '0.35');
       c.setAttribute('opacity', '0');
       this.el.bubbles.appendChild(c);
       this.bubbles.push({ el: c, ...this.spawnBubble(true) });
@@ -845,18 +1152,43 @@ export class GlassViz {
   }
 
   spawnBubble(initial = false) {
-    const g = this.geo;
     const fine = this.plan.isSparklingWine;
-    // Champagne bubbles stream from a few nucleation points; soda bubbles are scattered
+    // Champagne bubbles stream from nucleation points; soda bubbles are scattered
     const lane = fine ? [-0.35, 0, 0.3][Math.floor(Math.random() * 3)] : (Math.random() * 2 - 1) * 0.8;
-    const top = this.mainTopY;
     return {
       lane,
-      y: initial ? Math.random() * top : Math.random() * 3,
-      r: fine ? 0.6 + Math.random() * 0.6 : 0.8 + Math.random() * 1.4,
-      speed: fine ? 26 + Math.random() * 14 : 14 + Math.random() * 18,
+      y: initial ? Math.random() * this.mainTopY : Math.random() * 3,
+      r: fine ? 0.55 + Math.random() * 0.55 : 0.7 + Math.random() * 1.4,
+      speed: (fine ? 22 + Math.random() * 12 : 11 + Math.random() * 14) / Math.sqrt(TEMPO),
       wobble: Math.random() * Math.PI * 2
     };
+  }
+
+  // Beads of condensation that form on the outside of chilled glasses
+  buildCondensation() {
+    if (!this.chilled) return;
+    const g = this.geo;
+    const rand = seededRandom(`${this.recipe.id}-dew`);
+    const n = clamp(Math.round(g.height * 0.32), 14, 48);
+    let html = '';
+    for (let i = 0; i < n; i++) {
+      const y = 3 + Math.pow(rand(), 1.3) * (Math.min(this.liquidTopY, g.height) - 5);
+      const r = g.radiusAt(y) + WALL;
+      // Beads gather toward the edges of the glass where it curves away
+      const side = rand() < 0.5 ? -1 : 1;
+      const x = g.cx + side * r * (1 - Math.pow(rand(), 1.8) * 0.9);
+      const s = 0.35 + Math.pow(rand(), 2.2) * 0.9;
+      const sy = g.toScreenY(y);
+      html += `<ellipse cx="${x.toFixed(1)}" cy="${sy.toFixed(1)}" rx="${s.toFixed(2)}" ry="${(s * 1.3).toFixed(2)}" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.28)" stroke-width="0.2"/>`;
+      if (s > 0.7) html += `<circle cx="${(x - s * 0.3).toFixed(2)}" cy="${(sy - s * 0.45).toFixed(2)}" r="${(s * 0.26).toFixed(2)}" fill="rgba(255,255,255,0.6)"/>`;
+    }
+    // A couple of drips running down
+    for (let k = 0; k < 2; k++) {
+      const x = g.cx + (k ? 0.55 : -0.3) * g.radiusAt(g.height * 0.4);
+      const y0 = g.toScreenY(g.height * (0.55 - k * 0.15));
+      html += `<path d="M ${x.toFixed(1)} ${y0.toFixed(1)} l 0 9" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-linecap="round"/><ellipse cx="${x.toFixed(1)}" cy="${(y0 + 10).toFixed(1)}" rx="1.1" ry="1.5" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.45)" stroke-width="0.25"/>`;
+    }
+    this.el.condensation.innerHTML = html;
   }
 
   // --- Legend --------------------------------------------------------------
@@ -869,8 +1201,7 @@ export class GlassViz {
       const solid = this.plan.solids.find(s => s.idx === idx);
       const color = (layer || dash || solid)?.color || colorFor(ing);
       const swatchClass = dash ? 'drop' : solid ? (solid.kind === 'foam' ? 'foam' : 'solid') : 'liquid';
-      const [r, gr, b] = hexToRgb(color[0]);
-      const fill = swatchClass === 'liquid' ? rgba([r, gr, b], Math.max(color[1], 0.35)) : color[0];
+      const fill = swatchClass === 'liquid' ? rgba(hexToRgb(color[0]), Math.max(color[1], 0.35)) : color[0];
       return `
         <li class="gv-legend-row" data-legend-idx="${idx}">
           <span class="gv-swatch ${swatchClass}" style="--sw:${fill}"></span>
@@ -894,11 +1225,11 @@ export class GlassViz {
   // --- Animation loop ------------------------------------------------------
   start() {
     this.startTime = null;
+    this.lastTs = null;
     const tick = (ts) => {
       if (this.destroyed) return;
       if (this.startTime === null) this.startTime = ts;
-      const t = ts - this.startTime;
-      this.drawAt(t, ts);
+      this.drawAt(ts - this.startTime, ts);
       if (!this.animate) return; // finished; drawAt may have handed off to the idle loop
       this.frame = requestAnimationFrame(tick);
     };
@@ -908,7 +1239,7 @@ export class GlassViz {
   startIdle() {
     const tick = (ts) => {
       if (this.destroyed) return;
-      this.drawAt(this.totalDuration + 1, ts);
+      this.drawAt(this.totalDuration + 6000, ts);
       this.frame = requestAnimationFrame(tick);
     };
     this.frame = requestAnimationFrame(tick);
@@ -918,7 +1249,9 @@ export class GlassViz {
     if (this.reducedMotion) return;
     if (this.frame) cancelAnimationFrame(this.frame);
     this.animate = true;
-    this.lastTs = null;
+    this.splash = [];
+    this.aeration = [];
+    this.ripples = [];
     if (this.legendRows) this.legendRows.forEach(r => { r.classList.add('pending'); r.classList.remove('active'); });
     this.start();
   }
@@ -928,32 +1261,48 @@ export class GlassViz {
     if (this.frame) cancelAnimationFrame(this.frame);
   }
 
+  // Liquid surface: two travelling sines for an organic ripple
   waveY(baseY, x, amp, phase) {
-    return baseY + Math.sin(x * 0.09 + phase) * amp + Math.sin(x * 0.21 - phase * 1.3) * amp * 0.35;
+    return baseY + Math.sin(x * 0.085 + phase) * amp + Math.sin(x * 0.23 - phase * 1.3) * amp * 0.32;
+  }
+
+  // Interfaces between layers swirl while the drink is shaken or stirred together
+  interfaceY(baseY, x, amp, phase, k) {
+    if (amp <= 0.01) return baseY;
+    return baseY + Math.sin(x * 0.055 + phase * 0.7 + k * 1.9) * amp + Math.sin(x * 0.14 - phase * 1.1 + k) * amp * 0.45;
+  }
+
+  edge(fn, step = 4) {
+    const pts = [];
+    for (let x = 0; x <= VIEW_W; x += step) pts.push(`${x} ${fn(x).toFixed(2)}`);
+    return pts;
   }
 
   drawAt(t, ts = 0) {
     const g = this.geo;
     const done = t >= this.totalDuration;
-    const phase = ts / 380;
-    const dt = this.lastTs ? Math.min(0.05, (ts - this.lastTs) / 1000) : 0.016;
+    const phase = ts / (380 * Math.sqrt(TEMPO));
+    const dt = this.lastTs ? Math.min(0.05, (ts - this.lastTs) / 1000) : 0;
     this.lastTs = ts;
+    const live = this.animate || (!this.compact && !this.reducedMotion);
 
-    // Ice settles in before anything is poured
+    // Ice settles in first, with a little bounce
     if (this.iceCubes && this.iceCubes.length) {
-      const k = this.animate ? easeOutBack(clamp(t / 550, 0, 1)) : 1;
-      const lift = (1 - k) * -60;
-      this.el.ice.setAttribute('transform', `translate(0 ${lift.toFixed(1)})`);
-      this.el.iceTop.setAttribute('transform', `translate(0 ${lift.toFixed(1)})`);
-      this.el.ice.setAttribute('opacity', clamp(t / 200, 0, 1).toFixed(2));
-      this.el.iceTop.setAttribute('opacity', clamp(t / 200, 0, 1).toFixed(2));
+      const k = this.animate ? easeOutBack(clamp(t / this.iceDur, 0, 1)) : 1;
+      const lift = (1 - k) * -70;
+      const op = this.animate ? clamp(t / (this.iceDur * 0.4), 0, 1) : 1;
+      [this.el.ice, this.el.iceTop].forEach(el => {
+        el.setAttribute('transform', `translate(0 ${lift.toFixed(1)})`);
+        el.setAttribute('opacity', op.toFixed(2));
+      });
     }
 
-    // Work out each layer's current fill height and the active pour
+    // Progress of each event
     let activePour = null;
-    let surfaceAmp = 0.45;
+    let surfaceAmp = 0.4;
     let foamProgress = 0;
     let blendProgress = 0;
+    let blendRaw = 0;
     let garnishProgress = 0;
     const fills = this.layers.map(() => 0);
 
@@ -963,20 +1312,22 @@ export class GlassViz {
         const i = this.layers.indexOf(ev.layer);
         fills[i] = easeInOut(p);
         if (p > 0 && p < 1) {
-          activePour = { layer: ev.layer, p };
-          surfaceAmp = Math.max(surfaceAmp, 2.2);
+          activePour = { layer: ev.layer, p, idx: i };
+          surfaceAmp = Math.max(surfaceAmp, 1.4 + 1.2 * Math.sin(p * Math.PI));
+          this.setLegendState(ev.layer.idx, 'active');
+        } else if (p >= 1) {
+          this.setLegendState(ev.layer.idx, 'done');
         }
-        if (p > 0 && p < 1) this.setLegendState(ev.layer.idx, 'active');
-        else if (p >= 1) this.setLegendState(ev.layer.idx, 'done');
       } else if (ev.kind === 'blend') {
+        blendRaw = p;
         blendProgress = easeInOut(p);
-        if (p > 0 && p < 1) surfaceAmp = Math.max(surfaceAmp, 1.6 * Math.sin(p * Math.PI));
+        if (p > 0 && p < 1) surfaceAmp = Math.max(surfaceAmp, 1.8 * Math.sin(p * Math.PI));
       } else if (ev.kind === 'foam') {
         foamProgress = easeOutCubic(p);
       } else if (ev.kind === 'garnish') {
         garnishProgress = p;
-      } else if (ev.kind === 'drop') {
-        if (p > 0) this.setLegendState(ev.dash.idx, p >= 1 ? 'done' : 'active');
+      } else if (ev.kind === 'drop' && p > 0) {
+        this.setLegendState(ev.dash.idx, p >= 1 ? 'done' : 'active');
       }
     });
     if (done) {
@@ -986,48 +1337,40 @@ export class GlassViz {
       garnishProgress = 1;
       if (this.legendRows) this.legendRows.forEach(r => r.classList.remove('pending', 'active'));
     }
-    // Solids and foam entries in the legend light up with the pour
     if (this.legendRows && t > 200) {
-      this.plan.solids.forEach(s => {
-        if (s.kind === 'foam') this.setLegendState(s.idx, foamProgress > 0 ? 'done' : 'pending');
-        else this.setLegendState(s.idx, 'done');
-      });
+      this.plan.solids.forEach(s => this.setLegendState(s.idx, s.kind === 'foam' ? (foamProgress > 0 ? 'done' : 'pending') : 'done'));
     }
 
-    // Draw liquid layers bottom-up; the current top surface ripples
-    let topY = 0;
+    // Current height of each layer's top
+    const tops = this.layers.map((l, i) => lerp(l.y0, l.y1, fills[i]));
     let topIdx = -1;
-    this.layers.forEach((layer, i) => {
-      const h0 = layer.y0;
-      const h1 = lerp(h0, layer.y1, fills[i]);
-      if (fills[i] > 0) {
-        topY = h1;
-        topIdx = i;
-      }
-    });
-
+    this.layers.forEach((_, i) => { if (fills[i] > 0) topIdx = i; });
+    const topY = topIdx >= 0 ? tops[topIdx] : 0;
+    const swirlAmp = blendRaw > 0 && blendRaw < 1 ? 6 * Math.sin(blendRaw * Math.PI) : 0;
     const merged = blendProgress >= 1 && this.shouldBlend;
-    const mainCount = this.layers.filter(l => !l.float).length;
+    const foamOn = foamProgress > 0;
+
+    // Boundary function for the top of layer i
+    const topEdge = (i) => {
+      const yS = g.toScreenY(tops[i]);
+      const isSurface = i === topIdx && !(foamOn && !this.layers[i].float);
+      if (isSurface) return (x) => this.waveY(yS, x, surfaceAmp, phase);
+      const nextPouring = activePour && activePour.idx === i + 1 ? 0.9 * Math.sin(activePour.p * Math.PI) : 0;
+      const amp = (this.layers[i].float ? 0 : swirlAmp) + nextPouring;
+      return (x) => this.interfaceY(yS, x, amp, phase, i);
+    };
+    const floorEdge = () => g.toScreenY(this.layers.length ? this.layers[0].y0 : 0) + 0.6;
+
+    // Liquid layers (or the merged blend)
     this.layers.forEach((layer, i) => {
       const el = this.layerEls[i];
       if (fills[i] <= 0 || (merged && !layer.float)) {
         el.setAttribute('d', '');
         return;
       }
-      const h0 = layer.y0;
-      const h1 = lerp(h0, layer.y1, fills[i]);
-      const yTop = g.toScreenY(h1);
-      const yBot = g.toScreenY(h0) + 0.6;
-      const isTop = i === topIdx && !(foamProgress > 0 && !layer.float);
-      let d = `M 0 ${yBot.toFixed(1)} L 0 ${yTop.toFixed(1)}`;
-      if (isTop) {
-        for (let x = 0; x <= VIEW_W; x += 8) d += ` L ${x} ${this.waveY(yTop, x, surfaceAmp, phase).toFixed(2)}`;
-      } else {
-        d += ` L ${VIEW_W} ${yTop.toFixed(1)}`;
-      }
-      d += ` L ${VIEW_W} ${yBot.toFixed(1)} Z`;
-      el.setAttribute('d', d);
-
+      const top = this.edge(topEdge(i));
+      const bot = this.edge(i > 0 ? topEdge(i - 1) : floorEdge).reverse();
+      el.setAttribute('d', `M ${top.join(' L ')} L ${bot.join(' L ')} Z`);
       let rgb = layer.rgb;
       let a = layer.alpha;
       if (blendProgress > 0 && !layer.float) {
@@ -1037,106 +1380,177 @@ export class GlassViz {
       el.setAttribute('fill', rgba(rgb, a));
     });
 
-    // Once blended, the main body is one continuous liquid
-    if (merged && mainCount) {
-      const first = this.layers[0];
-      const lastMain = this.layers[mainCount - 1];
-      const yTop = g.toScreenY(lastMain.y1);
-      const yBot = g.toScreenY(first.y0) + 0.6;
-      const waveTop = !this.layers.some((l, k) => l.float && fills[k] > 0) && foamProgress === 0;
-      let d = `M 0 ${yBot.toFixed(1)} L 0 ${yTop.toFixed(1)}`;
-      if (waveTop) {
-        for (let x = 0; x <= VIEW_W; x += 8) d += ` L ${x} ${this.waveY(yTop, x, surfaceAmp, phase).toFixed(2)}`;
-      } else {
-        d += ` L ${VIEW_W} ${yTop.toFixed(1)}`;
-      }
-      d += ` L ${VIEW_W} ${yBot.toFixed(1)} Z`;
-      this.el.blend.setAttribute('d', d);
+    if (merged && this.mainCount) {
+      const lastMain = this.mainCount - 1;
+      const top = this.edge(topEdge(lastMain));
+      const yBot = floorEdge();
+      this.el.blend.setAttribute('d', `M ${top.join(' L ')} L ${VIEW_W} ${yBot.toFixed(1)} L 0 ${yBot.toFixed(1)} Z`);
       this.el.blend.setAttribute('fill', rgba(this.blendRgb, this.blendAlpha));
     } else {
       this.el.blend.setAttribute('d', '');
     }
 
-    // Surface highlight line on the very top of the liquid
-    if (topIdx >= 0 && foamProgress === 0) {
-      const yTop = g.toScreenY(topY);
-      let d = '';
-      for (let x = 0; x <= VIEW_W; x += 8) d += `${x === 0 ? 'M' : 'L'} ${x} ${this.waveY(yTop, x, surfaceAmp, phase).toFixed(2)} `;
-      this.el.surface.setAttribute('d', d);
+    // Depth and cylindrical shading over the liquid body
+    const bodyTop = topIdx >= 0 ? (foamOn ? Math.min(topY, this.mainTopY) : topY) : 0;
+    const body = topIdx >= 0 ? g.bodyPath(this.layers[0].y0, Math.max(this.layers[0].y0, bodyTop)) : '';
+    this.el.shadeDepth.setAttribute('d', body);
+    this.el.shadeCyl.setAttribute('d', body);
+
+    // Meniscus and sheen on the visible surface
+    const surfaceVisible = topIdx >= 0 && (!foamOn || this.layers[topIdx].float) && topY > 0.5;
+    if (surfaceVisible) {
+      const yS = g.toScreenY(topY);
+      const r = g.radiusAt(topY);
+      const xL = g.cx - r + 0.6;
+      const xR = g.cx + r - 0.6;
+      let d = `M ${xL.toFixed(1)} ${(yS - 2.4).toFixed(1)} Q ${(xL + 2.2).toFixed(1)} ${(yS - 0.2).toFixed(1)} ${(xL + 5).toFixed(1)} ${this.waveY(yS, xL + 5, surfaceAmp, phase).toFixed(2)}`;
+      for (let x = Math.ceil((xL + 8) / 4) * 4; x < xR - 5; x += 4) d += ` L ${x} ${this.waveY(yS, x, surfaceAmp, phase).toFixed(2)}`;
+      d += ` L ${(xR - 5).toFixed(1)} ${this.waveY(yS, xR - 5, surfaceAmp, phase).toFixed(2)} Q ${(xR - 2.2).toFixed(1)} ${(yS - 0.2).toFixed(1)} ${xR.toFixed(1)} ${(yS - 2.4).toFixed(1)}`;
+      this.el.meniscus.setAttribute('d', d);
+      this.el.sheen.setAttribute('d', `M ${this.edge((x) => this.waveY(yS, x, surfaceAmp, phase) + 2.6, 6).join(' L ')}`);
     } else {
-      this.el.surface.setAttribute('d', '');
+      this.el.meniscus.setAttribute('d', '');
+      this.el.sheen.setAttribute('d', '');
     }
 
-    // Colored light under the glass
+    // Light through the drink tints the bar top
     if (topIdx >= 0) {
       const glowRgb = blendProgress > 0 ? this.blendRgb : this.layers[topIdx].rgb;
-      this.el.caustic.setAttribute('fill', rgba(glowRgb, 0.22));
+      this.el.caustic.setAttribute('fill', rgba(glowRgb, 0.24));
     }
 
-    // Pour stream from above the rim into the surface
-    const stream = this.el.stream;
-    if (activePour) {
+    // Pour stream: tapered, wobbling, with a bright core
+    const surfaceScreenY = g.toScreenY(topY);
+    const streamX = g.cx + 8;
+    if (activePour && !this.compact) {
       const { layer, p } = activePour;
-      const surfaceScreenY = g.toScreenY(topY);
-      const headIn = clamp(p / 0.12, 0, 1);
-      const tailOut = clamp((p - 0.82) / 0.18, 0, 1);
-      const startY = lerp(g.viewTop - 4, surfaceScreenY, tailOut);
-      const endY = lerp(g.viewTop - 4, surfaceScreenY, headIn);
-      const w = lerp(5.5, 2, tailOut) + Math.sin(ts / 60) * 0.4;
-      const x = g.cx + 8 + Math.sin(ts / 140) * 0.8;
-      stream.setAttribute('x', (x - w / 2).toFixed(1));
-      stream.setAttribute('y', startY.toFixed(1));
-      stream.setAttribute('width', w.toFixed(1));
-      stream.setAttribute('height', Math.max(0, endY - startY).toFixed(1));
-      stream.setAttribute('fill', rgba(layer.rgb, Math.max(0.55, layer.alpha)));
+      if (this.streamLayer !== layer) {
+        this.streamLayer = layer;
+        const a = Math.max(0.6, layer.alpha);
+        const stops = [rgba(layer.rgb.map(c => c * 0.8), a), rgba(layer.rgb, a), rgba(layer.rgb.map(c => c + (255 - c) * 0.55), Math.min(1, a + 0.15)), rgba(layer.rgb, a), rgba(layer.rgb.map(c => c * 0.7), a)];
+        this.el.streamStops.forEach((s, k) => s.setAttribute('stop-color', stops[k]));
+      }
+      const headIn = clamp(p / 0.1, 0, 1);
+      const tailOut = clamp((p - 0.84) / 0.16, 0, 1);
+      const y0 = lerp(g.viewTop - 4, surfaceScreenY, easeInOut(tailOut));
+      const y1 = lerp(g.viewTop - 4, surfaceScreenY, easeOutCubic(headIn));
+      if (y1 - y0 > 0.5) {
+        const left = [];
+        const right = [];
+        const ys = [];
+        for (let y = y0; y < y1; y += 4) ys.push(y);
+        ys.push(y1);
+        for (const y of ys) {
+          const f = (y - g.viewTop) / Math.max(1, surfaceScreenY - g.viewTop);
+          const w = lerp(5.2, 3.1, f) * (1 - tailOut * 0.55);
+          const xc = streamX + Math.sin(y * 0.12 + ts / 80) * 0.5 * f;
+          left.push(`${(xc - w / 2).toFixed(2)} ${y.toFixed(1)}`);
+          right.push(`${(xc + w / 2).toFixed(2)} ${y.toFixed(1)}`);
+        }
+        this.el.stream.setAttribute('d', `M ${left.join(' L ')} L ${right.reverse().join(' L ')} Z`);
+      } else {
+        this.el.stream.setAttribute('d', '');
+      }
+
+      // Splash droplets and aeration bubbles at the point of impact
+      if (headIn >= 1 && tailOut < 1 && dt > 0) {
+        const rate = 34 * (1 - tailOut);
+        if (Math.random() < rate * dt) {
+          this.splash.push({ x: streamX + (Math.random() - 0.5) * 3, y: surfaceScreenY - 1, vx: (Math.random() - 0.5) * 34, vy: -(18 + Math.random() * 30), r: 0.6 + Math.random() * 0.9, rgb: layer.rgb, a: Math.max(0.65, layer.alpha) });
+        }
+        if (Math.random() < rate * 1.4 * dt) {
+          this.aeration.push({ x: streamX + (Math.random() - 0.5) * 6, y: surfaceScreenY + 3 + Math.random() * 12, vx: (Math.random() - 0.5) * 8, vy: -(6 + Math.random() * 10), r: 0.45 + Math.random() * 0.9, life: 0.7 + Math.random() * 0.8 });
+        }
+      }
     } else {
-      stream.setAttribute('height', '0');
+      this.el.stream.setAttribute('d', '');
+      this.streamLayer = null;
     }
 
-    // Bitters drops
+    // Shaking/stirring stirs up fine bubbles through the body
+    if (blendRaw > 0 && blendRaw < 1 && dt > 0 && Math.random() < 30 * dt * Math.sin(blendRaw * Math.PI)) {
+      const y = lerp(this.layers[0].y0 + 2, Math.max(4, topY - 2), Math.random());
+      const r = g.radiusAt(y) * 0.85;
+      this.aeration.push({ x: g.cx + (Math.random() * 2 - 1) * r, y: g.toScreenY(y), vx: (Math.random() - 0.5) * 10, vy: -(5 + Math.random() * 8), r: 0.4 + Math.random() * 0.7, life: 0.8 + Math.random() * 0.8 });
+    }
+
+    // Advance particles
+    if (dt > 0) {
+      this.splash.forEach(s => { s.vy += 150 * dt; s.x += s.vx * dt; s.y += s.vy * dt; });
+      this.splash = this.splash.filter(s => s.y < surfaceScreenY + 1 || s.vy < 0);
+      this.aeration.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; });
+      this.aeration = this.aeration.filter(b => b.life > 0 && b.y > surfaceScreenY + 1);
+      this.ripples.forEach(r => { r.age += dt; });
+      this.ripples = this.ripples.filter(r => r.age < 0.9);
+    }
+    this.el.splash.innerHTML = this.splash.map(s => `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${s.r.toFixed(2)}" fill="${rgba(s.rgb, s.a)}"/>`).join('');
+    this.el.aerate.innerHTML = this.aeration.map(b => `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${b.r.toFixed(2)}" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,${(0.6 * Math.min(1, b.life * 2)).toFixed(2)})" stroke-width="0.3"/>`).join('');
+
+    // Bitters drops with a ripple where they land
     let dropsHtml = '';
     this.events.forEach(ev => {
       if (ev.kind !== 'drop') return;
       const p = (t - ev.start) / (ev.end - ev.start);
+      if (p >= 1 && !ev.rippled && live && t - ev.end < 500) {
+        ev.rippled = true;
+        this.ripples.push({ x: ev.x, age: 0 });
+      }
+      if (p < 1 && ev.rippled) ev.rippled = false;
       if (p <= 0 || p >= 1) return;
-      const surfaceY = g.toScreenY(topY);
-      const y = lerp(g.viewTop - 6, surfaceY, p * p);
+      const y = lerp(g.viewTop - 6, surfaceScreenY, p * p);
       const [r, gg, b] = hexToRgb(ev.dash.color[0]);
-      dropsHtml += `<path d="M ${ev.x} ${(y - 5).toFixed(1)} Q ${ev.x + 3} ${(y - 0.5).toFixed(1)} ${ev.x} ${(y + 2).toFixed(1)} Q ${ev.x - 3} ${(y - 0.5).toFixed(1)} ${ev.x} ${(y - 5).toFixed(1)} Z" fill="rgb(${r},${gg},${b})"/>`;
-      if (p > 0.92) surfaceAmp = Math.max(surfaceAmp, 1.4);
+      const stretch = 1 + p * 0.6;
+      dropsHtml += `<g transform="translate(${ev.x} ${y.toFixed(1)}) scale(1 ${stretch.toFixed(2)})">
+        <path d="M 0 -5 Q 3.2 -0.4 0 2.2 Q -3.2 -0.4 0 -5 Z" fill="rgb(${r},${gg},${b})"/>
+        <ellipse cx="-0.8" cy="-0.6" rx="0.6" ry="1" fill="rgba(255,255,255,0.5)"/></g>`;
+      if (p > 0.9) surfaceAmp = Math.max(surfaceAmp, 1.3);
     });
     this.el.drops.innerHTML = dropsHtml;
+    this.el.ripples.innerHTML = this.ripples.map(rp => {
+      const k = rp.age / 0.9;
+      return `<ellipse cx="${rp.x}" cy="${(surfaceScreenY + 0.5).toFixed(1)}" rx="${(2 + k * 14).toFixed(1)}" ry="${(0.6 + k * 1.6).toFixed(2)}" fill="none" stroke="rgba(255,255,255,${(0.5 * (1 - k)).toFixed(2)})" stroke-width="0.6"/>`;
+    }).join('');
 
-    // Muddled bits appear once the first liquid covers them
+    // Muddled bits appear once liquid covers them
     if (this.solidEls) {
-      const vis = topY > 4 ? 0.9 : 0;
+      const vis = topY > 4 ? 0.92 : 0;
       this.solidEls.forEach(el => el.setAttribute('opacity', vis));
     }
 
-    // Foam cap grows on top of the main liquid
-    if (foamProgress > 0) {
+    // Foam cap: rises as a scalloped head with micro-bubbles
+    if (foamOn) {
       const base = this.mainTopY;
       const top = base + this.foamHeight * foamProgress;
       const yb = g.toScreenY(base) + 1;
       const yt = g.toScreenY(top);
+      const rand = seededRandom(`${this.recipe.id}-scallop`);
       let d = `M 0 ${yb.toFixed(1)} L 0 ${yt.toFixed(1)}`;
-      for (let x = 0; x <= VIEW_W; x += 6) d += ` L ${x} ${(yt + Math.sin(x * 0.35) * 0.7 + Math.cos(x * 0.13) * 0.6).toFixed(2)}`;
+      for (let x = 0; x < VIEW_W; x += 6) {
+        const bump = 0.8 + rand() * 1.4;
+        d += ` Q ${x + 3} ${(yt - bump).toFixed(2)} ${x + 6} ${(yt + (rand() - 0.5) * 0.6).toFixed(2)}`;
+      }
       d += ` L ${VIEW_W} ${yb.toFixed(1)} Z`;
       this.el.foam.setAttribute('d', d);
       if (!this.foamDotsBuilt && foamProgress >= 1) {
-        const rand = seededRandom(`${this.recipe.id}-foam`);
+        const fr = seededRandom(`${this.recipe.id}-foam`);
         const r = g.radiusAt(top);
         let dots = '';
-        for (let i = 0; i < 26; i++) {
-          const fy = yt + 2 + rand() * (yb - yt - 3);
-          dots += `<circle cx="${(g.cx + (rand() * 2 - 1) * r).toFixed(1)}" cy="${fy.toFixed(1)}" r="${(0.5 + rand() * 0.9).toFixed(2)}" fill="rgba(200,180,140,0.45)"/>`;
+        for (let i = 0; i < 70; i++) {
+          const fy = yt + 1.5 + fr() * (yb - yt - 2);
+          const fx = g.cx + (fr() * 2 - 1) * r;
+          const fr2 = 0.3 + Math.pow(fr(), 2) * 1.3;
+          dots += `<circle cx="${fx.toFixed(1)}" cy="${fy.toFixed(1)}" r="${fr2.toFixed(2)}" fill="rgba(255,255,255,0.3)" stroke="rgba(170,145,100,0.45)" stroke-width="0.25"/>`;
         }
+        dots += `<path d="M ${(g.cx - r).toFixed(1)} ${(yb - 1).toFixed(1)} L ${(g.cx + r).toFixed(1)} ${(yb - 1).toFixed(1)}" stroke="rgba(150,120,80,0.25)" stroke-width="1.5"/>`;
         // Bitters dotted across the foam (Pisco Sour style)
         const decor = this.plan.dashes.find(dd => (dd.ing.unit || '').startsWith('drop'));
         if (decor) {
-          for (let k = -1; k <= 1; k++) dots += `<ellipse cx="${(g.cx + k * r * 0.4).toFixed(1)}" cy="${(yt + 1.4).toFixed(1)}" rx="2.6" ry="1.1" fill="${decor.color[0]}"/>`;
+          for (let k = -1; k <= 1; k++) {
+            const cx = g.cx + k * r * 0.4;
+            dots += `<ellipse cx="${cx.toFixed(1)}" cy="${(yt + 1.2).toFixed(1)}" rx="2.8" ry="1.1" fill="${decor.color[0]}"/><path d="M ${(cx - 2.2).toFixed(1)} ${(yt + 1.2).toFixed(1)} q 2.2 -0.4 4.4 0" stroke="rgba(255,255,255,0.25)" stroke-width="0.3" fill="none"/>`;
+          }
         }
-        if (this.spiceHtml) dots += this.spiceHtml;
+        if (this.dustHtml) dots += this.dustHtml;
         this.el.foamDots.innerHTML = dots;
         this.foamDotsBuilt = true;
       }
@@ -1146,53 +1560,65 @@ export class GlassViz {
         this.el.foamDots.innerHTML = '';
         this.foamDotsBuilt = false;
       }
-      if (this.spiceHtml && garnishProgress > 0 && !this.spiceShown) {
-        this.el.foamDots.innerHTML = this.spiceHtml;
-        this.spiceShown = true;
-      } else if (garnishProgress === 0 && this.spiceShown) {
+      if (this.dustHtml && garnishProgress > 0 && !this.dustShown) {
+        this.el.foamDots.innerHTML = this.dustHtml;
+        this.dustShown = true;
+      } else if (garnishProgress === 0 && this.dustShown) {
         this.el.foamDots.innerHTML = '';
-        this.spiceShown = false;
+        this.dustShown = false;
       }
     }
 
     // Bubbles rise once the fizzy part is in the glass
     if (this.bubbles.length) {
-      const fizzReady = this.plan.isFizzy ? (done || this.layers.some((l, i) => fills[i] > 0.5 && FIZZ_RE.test(`${l.ing.id} ${l.ing.name}`.toLowerCase()))) : done;
+      const fizzReady = this.plan.isFizzy
+        ? (done || this.layers.some((l, i) => fills[i] > 0.5 && FIZZ_RE.test(`${l.ing.id} ${l.ing.name}`.toLowerCase())))
+        : done;
       const top = Math.min(topY, this.mainTopY);
       this.bubbles.forEach(b => {
         if (!fizzReady || top < 6) {
           b.el.setAttribute('opacity', '0');
           return;
         }
-        if (this.animate || !this.compact) {
+        if (live && dt > 0) {
           b.y += b.speed * dt;
-          b.wobble += dt * 4;
+          b.wobble += dt * 3;
         }
         if (b.y > top - 1.5) Object.assign(b, this.spawnBubble());
-        const r = g.radiusAt(b.y) - 3;
-        const x = g.cx + b.lane * r + Math.sin(b.wobble) * 0.8;
+        const rr = g.radiusAt(b.y) - 3;
+        const x = g.cx + b.lane * rr + Math.sin(b.wobble) * 0.8;
         b.el.setAttribute('cx', x.toFixed(1));
         b.el.setAttribute('cy', g.toScreenY(b.y).toFixed(1));
-        b.el.setAttribute('r', (b.r * (1 + b.y / Math.max(top, 1) * 0.4)).toFixed(2));
-        b.el.setAttribute('opacity', '0.75');
+        b.el.setAttribute('r', (b.r * (1 + (b.y / Math.max(top, 1)) * 0.45)).toFixed(2));
+        b.el.setAttribute('opacity', '0.85');
       });
     }
 
-    // Garnish drops onto the rim (or into the glass) last
+    // Condensation beads form on chilled glasses after the pour
+    if (this.chilled) {
+      const dew = this.animate ? clamp((t - this.totalDuration * 0.55) / (2600 * TEMPO), 0, 1) : 1;
+      this.el.condensation.setAttribute('opacity', (dew * 0.8).toFixed(2));
+    }
+
+    // Garnish lands last, settling with a little sway
     this.garnishItems.forEach((item, k) => {
-      const p = clamp((garnishProgress - k * 0.15) / 0.85, 0, 1);
+      const p = clamp((garnishProgress - k * 0.18) / 0.82, 0, 1);
       const e = easeOutBack(p);
-      const y = lerp(item.y - (item.inGlass ? 70 : 40), item.y, e);
-      item.el.setAttribute('transform', `translate(${item.x.toFixed(1)} ${y.toFixed(1)}) rotate(${(item.rot * e).toFixed(1)})`);
+      const y = lerp(item.y - (item.inGlass ? 80 : 46), item.y, e);
+      const sway = Math.sin(p * Math.PI * 3) * (1 - p) * 7;
+      item.el.setAttribute('transform', `translate(${item.x.toFixed(1)} ${y.toFixed(1)}) rotate(${(item.rot * e + sway).toFixed(1)}) scale(${item.scale})`);
       item.el.setAttribute('opacity', p > 0 ? Math.min(1, p * 3).toFixed(2) : '0');
     });
 
-    // Stop the frame loop when nothing is moving any more
-    // Keep the loop alive for a moment so the surface settles, then idle
-    if (done && this.animate && t > this.totalDuration + 1600) {
+    // Let the surface settle and the condensation form, then idle
+    if (done && this.animate && t > this.totalDuration + 2600 * TEMPO) {
       if (this.frame) cancelAnimationFrame(this.frame);
       this.frame = null;
       this.animate = false;
+      this.splash = [];
+      this.aeration = [];
+      this.el.splash.innerHTML = '';
+      this.el.aerate.innerHTML = '';
       if (this.bubbles.length) this.startIdle();
     }
   }
