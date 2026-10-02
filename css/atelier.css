@@ -458,71 +458,6 @@ body {
 }
 
 /* Sensory Liquid Fill Silhouette in Deck */
-.vessel-mini-silhouette {
-  width: 100%;
-  height: 120px;
-  background: rgba(14, 14, 18, 0.85);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  margin-bottom: 10px;
-  display: flex;
-  flex-direction: column-reverse;
-  overflow: hidden;
-  position: relative;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
-}
-
-.vessel-liquid-layer {
-  width: 100%;
-  transition: height 0.3s ease;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: #FFFFFF;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-  min-height: 22px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.liquid-layer-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-right: 8px;
-}
-
-.liquid-layer-amt {
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-weight: 800;
-}
-
-/* Accents strip for non-liquid produce, garnishes, and bitters */
-.deck-accents-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.deck-accent-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-pill);
-  padding: 4px 9px;
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Substitution & Missing Callouts on Deck */
 .deck-sub-callout {
   background: rgba(245, 166, 35, 0.12);
   border: 1px solid rgba(245, 166, 35, 0.35);
@@ -2435,4 +2370,146 @@ select.lab-input {
   border-radius: 14px;
   text-align: center;
   line-height: 1.4;
+}
+
+/* ==========================================================================
+   Glass Visualizer (visual recipe poured into its real glassware)
+   ========================================================================== */
+.viz-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
+  align-items: center;
+  gap: 8px;
+  margin: 4px -6px 18px;
+  padding: 10px 6px 6px;
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(245, 166, 35, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0));
+}
+
+.viz-glass {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: var(--radius-sm);
+}
+
+.viz-glass:focus-visible {
+  outline: 2px solid var(--border-glass-active);
+  outline-offset: 2px;
+}
+
+.glass-viz-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 230px;
+  overflow: visible;
+}
+
+.gv-legend {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.gv-legend-row {
+  display: grid;
+  grid-template-columns: 12px auto 1fr;
+  align-items: baseline;
+  column-gap: 8px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-primary);
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+}
+
+.gv-legend-row.pending {
+  opacity: 0.32;
+}
+
+.gv-legend-row.active {
+  color: var(--accent-amber);
+  transform: translateX(3px);
+}
+
+.gv-legend-amt {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text-gold);
+  white-space: nowrap;
+}
+
+.gv-legend-row.active .gv-legend-amt {
+  color: var(--accent-amber);
+}
+
+.gv-legend-name {
+  color: inherit;
+  min-width: 0;
+}
+
+.gv-swatch {
+  align-self: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.gv-swatch.liquid {
+  border-radius: 3px 3px 6px 6px;
+}
+
+.gv-swatch.drop {
+  width: 9px;
+  height: 12px;
+  margin-left: 1.5px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+}
+
+.gv-swatch.solid {
+  border-radius: 50% 0 50% 0;
+}
+
+.gv-swatch.foam {
+  background: #F3EAD4;
+  box-shadow: inset 0 0 0 1px rgba(200, 180, 140, 0.6);
+}
+
+@media (max-width: 360px) {
+  .viz-stage {
+    grid-template-columns: 1fr;
+  }
+  .viz-glass {
+    max-width: 200px;
+    margin: 0 auto;
+  }
+}
+
+/* Catalog grid thumbnails */
+.card-glass-thumb {
+  width: 46px;
+  height: 52px;
+  flex-shrink: 0;
+  margin: -2px 2px -2px -6px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.card-glass-thumb .glass-viz-svg {
+  max-height: 100%;
+  width: auto;
+}
+
+.card-top-row {
+  align-items: center;
 }

@@ -16,6 +16,7 @@ import { scaleIngredient, calculateBatchMetrics, formatAmount } from './scaler.j
 import { CocktailTimer, soundEffects, wakeLockManager } from './timers.js';
 import { quizEngine, RANK_LADDER } from './quiz.js';
 import { MECHANICAL_RULES } from './db.js';
+import { GlassViz, renderStaticGlass } from './glass_viz.js';
 
 // Application State
 const state = {
@@ -104,34 +105,24 @@ export function showToast(message, duration = 3500) {
   }, duration);
 }
 
-// ============================================================================
-// Liquid Color Mapping Helper for Visual Silhouettes
-// ============================================================================
-function getLiquidColor(ing) {
-  const text = `${ing.id || ''} ${ing.name || ''}`.toLowerCase();
-  if (text.includes('campari') || text.includes('aperol') || text.includes('grenadine') || text.includes('cranberry')) {
-    return 'linear-gradient(90deg, #D90429, #EF233C)';
+// Legend amounts: liquids honor the oz/ml toggle; egg whites read as fractions of a white
+function formatLegendAmount(ing) {
+  if (ing.unit === 'albumen') {
+    const whole = { 0.5: '½', 0.25: '¼', 0.75: '¾' }[ing.amount] || String(ing.amount ?? 1);
+    return `${whole} white`;
   }
-  if (text.includes('whiskey') || text.includes('bourbon') || text.includes('rye') || text.includes('scotch') || text.includes('cognac') || text.includes('brandy') || text.includes('amaro')) {
-    return 'linear-gradient(90deg, #D48817, #E8A838)';
+  return formatAmount(ing.amount, state.activeUnit, ing.unit) || (ing.note ? 'top' : '');
+}
+
+// Live glass visualizer on the deck card (only one animates at a time)
+let activeDeckViz = null;
+let lastPouredRecipeId = null;
+
+function destroyDeckViz() {
+  if (activeDeckViz) {
+    activeDeckViz.destroy();
+    activeDeckViz = null;
   }
-  if (text.includes('vermouth') && text.includes('sweet')) {
-    return 'linear-gradient(90deg, #8A1C24, #AC2832)';
-  }
-  if (text.includes('lime') || text.includes('lemon') || text.includes('grapefruit') || text.includes('citrus')) {
-    return 'linear-gradient(90deg, #F3C623, #F6D649)';
-  }
-  if (text.includes('chartreuse') || text.includes('mint') || text.includes('absinthe')) {
-    return 'linear-gradient(90deg, #10B981, #34D399)';
-  }
-  if (text.includes('orgeat') || text.includes('cream') || text.includes('egg') || text.includes('coconut')) {
-    return 'linear-gradient(90deg, #F1EFE7, #FFFFFF)';
-  }
-  if (text.includes('coffee') || text.includes('cacao') || text.includes('kahlua') || text.includes('stout')) {
-    return 'linear-gradient(90deg, #3E2723, #5D4037)';
-  }
-  // Clear spirits (Gin, Vodka, Blanco Tequila, White Rum, Triple Sec, Simple Syrup)
-  return 'linear-gradient(90deg, rgba(200, 225, 245, 0.45), rgba(240, 248, 255, 0.65))';
 }
 
 // ============================================================================
@@ -231,53 +222,6 @@ function renderBarDeckView(recipesList) {
   const currentItem = pool[state.deckIndex];
   const { recipe, canMake, canMakeWithSub, isFavorite, isWantToTry } = currentItem;
 
-  // Separate true liquid ingredients from produce/garnishes/bitters
-  const isLiquidUnit = (u) => !u || u === 'oz' || u === 'ml' || u === 'cl' || u === 'barspoon' || u === 'part' || u === 'parts';
-  let liquidIngredients = recipe.ingredients.filter(ing => isLiquidUnit(ing.unit));
-  const accentIngredients = recipe.ingredients.filter(ing => !isLiquidUnit(ing.unit));
-  if (liquidIngredients.length === 0) {
-    liquidIngredients = recipe.ingredients;
-  }
-
-  const totalVolume = liquidIngredients.reduce((acc, ing) => {
-    let val = typeof ing.amount === 'number' ? ing.amount : 0.5;
-    if (ing.unit === 'barspoon') val = 0.15;
-    return acc + val;
-  }, 0) || 3.0;
-
-  const liquidLayersHtml = liquidIngredients.map(ing => {
-    let val = typeof ing.amount === 'number' ? ing.amount : 0.5;
-    if (ing.unit === 'barspoon') val = 0.15;
-    const heightPct = Math.max(16, Math.round((val / totalVolume) * 100));
-    const grad = getLiquidColor(ing);
-    return `
-      <div class="vessel-liquid-layer" style="height: ${heightPct}%; background: ${grad};">
-        <span class="liquid-layer-name">${ing.name}</span>
-        <span class="liquid-layer-amt">${formatAmount(ing.amount, state.activeUnit, ing.unit)}</span>
-      </div>
-    `;
-  }).join('');
-
-  // Accent Produce & Garnish Chips
-  let accentsHtml = '';
-  if (accentIngredients.length > 0) {
-    const chips = accentIngredients.map(ing => {
-      let icon = '🌿';
-      const text = `${ing.id || ''} ${ing.name || ''}`.toLowerCase();
-      if (text.includes('berry') || text.includes('berries') || text.includes('cherry') || text.includes('fruit')) icon = '🍓';
-      else if (text.includes('bitter')) icon = '💧';
-      else if (text.includes('lemon') || text.includes('lime') || text.includes('orange') || text.includes('grapefruit') || text.includes('twist') || text.includes('peel') || text.includes('wedge')) icon = '🍊';
-      else if (text.includes('egg') || text.includes('albumen')) icon = '🥚';
-      else if (text.includes('cucumber') || text.includes('olive')) icon = '🥒';
-      else if (text.includes('nutmeg') || text.includes('cinnamon') || text.includes('salt')) icon = '✨';
-
-      const displayAmt = formatAmount(ing.amount, state.activeUnit, ing.unit);
-      return `<span class="deck-accent-chip">${icon} ${ing.name}${displayAmt ? ` (${displayAmt})` : ''}</span>`;
-    }).join('');
-
-    accentsHtml = `<div class="deck-accents-row">${chips}</div>`;
-  }
-
   // Substitution / Missing Callout
   let subCalloutHtml = '';
   if (canMakeWithSub && currentItem.primarySubSummary) {
@@ -320,11 +264,11 @@ function renderBarDeckView(recipesList) {
           ${recipe.isCustom ? `<span style="color:var(--accent-emerald);">★ Custom</span>` : ''}
         </div>
 
-        <!-- Sensory Liquid Ratio Fill Silhouette -->
-        <div class="vessel-mini-silhouette">
-          ${liquidLayersHtml}
+        <!-- Visual recipe: poured into its real glassware -->
+        <div class="viz-stage">
+          <button class="viz-glass" id="deckGlass" type="button" title="Tap to pour again" aria-label="Replay the pour"></button>
+          <div class="viz-legend" id="deckLegend"></div>
         </div>
-        ${accentsHtml}
 
         ${subCalloutHtml}
 
@@ -358,6 +302,20 @@ function renderBarDeckView(recipesList) {
       </div>
     </div>
   `;
+
+  // Pour the drink into its glass. Re-renders of the same card (e.g. favoriting) skip the replay.
+  destroyDeckViz();
+  const glassEl = document.getElementById('deckGlass');
+  // Hidden re-renders (e.g. stock changes made in The Backbar) skip the visualizer entirely
+  if (state.activeHub === 'bar') {
+    activeDeckViz = new GlassViz(glassEl, recipe, {
+      animate: recipe.id !== lastPouredRecipeId,
+      legendEl: document.getElementById('deckLegend'),
+      formatAmount: formatLegendAmount
+    });
+    lastPouredRecipeId = recipe.id;
+    glassEl.onclick = () => activeDeckViz && activeDeckViz.replay();
+  }
 
   // Attach Deck Listeners
   const card = document.getElementById('activeDeckCard');
@@ -521,6 +479,7 @@ function renderBarGridView(recipesList) {
       <div class="catalog-card" data-recipe-id="${recipe.id}">
         <div>
           <div class="card-top-row">
+            <div class="card-glass-thumb" data-thumb-id="${recipe.id}" aria-hidden="true"></div>
             <div class="card-title-group">
               <div class="card-cocktail-name">${recipe.name}</div>
               <div class="card-glass-category">${recipe.category} • ${recipe.glass}</div>
@@ -544,7 +503,32 @@ function renderBarGridView(recipesList) {
     `;
   }).join('');
 
+  destroyDeckViz();
+  lastPouredRecipeId = null;
   elements.barContentContainer.innerHTML = `<div class="catalog-grid">${cardsHtml}</div>`;
+
+  // Static glass thumbnails, drawn as cards scroll into view
+  const thumbs = elements.barContentContainer.querySelectorAll('[data-thumb-id]');
+  const recipeById = new Map(recipesList.map(r => [r.recipe.id, r.recipe]));
+  const drawThumb = (el) => {
+    if (el.dataset.drawn) return;
+    el.dataset.drawn = '1';
+    const r = recipeById.get(el.getAttribute('data-thumb-id'));
+    if (r) renderStaticGlass(el, r);
+  };
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          drawThumb(entry.target);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '200px' });
+    thumbs.forEach(el => io.observe(el));
+  } else {
+    thumbs.forEach(drawThumb);
+  }
 
   // Attach card click handlers
   elements.barContentContainer.querySelectorAll('.catalog-card').forEach(card => {
@@ -1957,6 +1941,10 @@ function switchHub(hubName) {
   elements.cabinetHub.style.display = hubName === 'cabinet' ? 'block' : 'none';
   elements.academyHub.style.display = hubName === 'academy' ? 'block' : 'none';
 
+  if (hubName !== 'bar') {
+    destroyDeckViz();
+    lastPouredRecipeId = null;
+  }
   if (elements.craftLabFab) elements.craftLabFab.style.display = hubName === 'bar' ? '' : 'none';
 
   // Toggle Nav Button Styles
