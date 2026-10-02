@@ -32,11 +32,17 @@ const state = {
   activeCabinetSegment: 'stock', // 'stock' | 'shopping' | 'unlock'
   activeShoppingSubtab: 'staples', // 'staples' | 'wishlist'
   partyModeActive: false,
+  partyView: 'menu', // 'menu' | 'orders'
+  partyGuestName: '',
   activeTimer: null
 };
 
 // Cached DOM Elements
 const elements = {};
+
+// Escapes user-entered text for safe use in HTML attributes and content
+const escapeAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
 
 function initDom() {
   elements.app = document.getElementById('atelierApp');
@@ -85,6 +91,8 @@ function initDom() {
 // ============================================================================
 export function showToast(message, duration = 3500) {
   if (!elements.toastContainer) return;
+  // Show one toast at a time so rapid actions don't stack bubbles over the header
+  elements.toastContainer.replaceChildren();
   const toast = document.createElement('div');
   toast.className = 'atelier-toast';
   toast.textContent = message;
@@ -135,7 +143,7 @@ function renderBarHub() {
 
   // Update in-stock counter in header
   if (elements.inStockPillCount) {
-    elements.inStockPillCount.textContent = `${inStockIds.size} Bottles In Stock`;
+    elements.inStockPillCount.textContent = `${inStockIds.size} in stock`;
   }
 
   // Filter recipes based on active mood, search query, and readiness
@@ -323,30 +331,29 @@ function renderBarDeckView(recipesList) {
         <!-- Specs Quick Summary -->
         <div class="deck-specs-summary">
           <div class="deck-spec-row">
-            <span>Glassware</span>
-            <span class="spec-val">${recipe.glass} (${recipe.ice})</span>
+            <span>Glass</span>
+            <span class="spec-val">${recipe.glass}</span>
+          </div>
+          <div class="deck-spec-row">
+            <span>Ice</span>
+            <span class="spec-val">${recipe.ice}</span>
           </div>
           <div class="deck-spec-row">
             <span>Technique</span>
             <span class="spec-val">${recipe.method}</span>
           </div>
-          ${recipe.techniqueRule ? `
-            <div class="deck-spec-row">
-              <span>Bar Rule</span>
-              <span class="spec-val" style="color: var(--accent-amber); font-style: italic;">${recipe.techniqueRule}</span>
-            </div>
-          ` : ''}
         </div>
+        ${recipe.techniqueRule ? `<div class="deck-bar-rule">${recipe.techniqueRule}</div>` : ''}
 
         <!-- Deck Actions with Prev and Next -->
         <div class="deck-card-actions">
-          <button class="deck-btn-fav ${isFavorite ? 'active' : ''}" id="deckFavBtn" title="Toggle Favorite">★</button>
-          <button class="deck-btn-fav ${isWantToTry ? 'active' : ''}" id="deckWantBtn" title="Want to Try" style="color: #EC4899;">🔖</button>
-          <button class="deck-btn-nav" id="deckPrevBtn" title="Previous Drink Card">‹ Prev</button>
+          <button class="deck-btn-nav" id="deckPrevBtn" title="Previous drink (← key or swipe right)" aria-label="Previous drink">‹</button>
+          <button class="deck-btn-fav ${isFavorite ? 'active' : ''}" id="deckFavBtn" title="Toggle Favorite" aria-label="Favorite">★</button>
           <button class="deck-btn-mix" id="deckMixBtn">
             <span>Mix This Pour →</span>
           </button>
-          <button class="deck-btn-nav" id="deckNextBtn" title="Next Drink Card">Next ›</button>
+          <button class="deck-btn-fav want ${isWantToTry ? 'active' : ''}" id="deckWantBtn" title="Want to Try" aria-label="Want to try">🔖</button>
+          <button class="deck-btn-nav" id="deckNextBtn" title="Next drink (→ key or swipe left)" aria-label="Next drink">›</button>
         </div>
       </div>
     </div>
@@ -580,8 +587,8 @@ function renderBarGridView(recipesList) {
 function renderCabinetHub() {
   const inStockIds = inventoryManager.getInStockIngredientIds();
   const allIngredients = inventoryManager.getAllIngredients();
-  const shoppingList = inventoryManager.getShoppingList();
-  const unlockList = calculateUnlockRecommendations();
+  const shoppingList = inventoryManager.getShoppingList().filter(i => !i.checked);
+  const unlockList = calculateUnlockRecommendations().filter(u => u.unlocksNow.length > 0);
 
   // Segment Tab Bar
   const segmentHeaderHtml = `
@@ -593,7 +600,7 @@ function renderCabinetHub() {
         🛒 Shopping (${shoppingList.length})
       </button>
       <button class="cabinet-tab-btn ${state.activeCabinetSegment === 'unlock' ? 'active' : ''}" data-cab="unlock">
-        💡 Unlock (+${unlockList.length})
+        💡 Unlock (${unlockList.length})
       </button>
     </div>
   `;
@@ -660,8 +667,8 @@ function renderCabinetHub() {
 
       <div style="margin-bottom: 16px;">
         ${activeItems.length === 0 ? `
-          <div style="text-align: center; padding: 36px 0; color: var(--text-muted);">
-            No items in ${state.activeShoppingSubtab}. Marking a bottle out of stock automatically adds it here!
+          <div class="atelier-empty-state">
+            Nothing on your ${state.activeShoppingSubtab === 'staples' ? 'staples' : 'wishlist'} list. Mark a bottle out of stock and it lands here automatically.
           </div>
         ` : activeItems.map(item => `
           <div class="shopping-item-row">
@@ -669,9 +676,10 @@ function renderCabinetHub() {
               <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${item.name}</div>
               <div style="font-size: 11.5px; color: var(--accent-amber);">${item.suggestedPrice || 'Suggested benchmark: $25–$35'}</div>
             </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="hud-btn" data-shop-bump="${item.id}" title="Move to other list">⇄</button>
-              <button class="hud-btn" data-shop-check="${item.id}" style="color: var(--accent-emerald);">✓ Bought</button>
+            <div class="shopping-row-actions">
+              <button class="hud-btn" data-shop-bump="${item.id}" title="Move to ${state.activeShoppingSubtab === 'staples' ? 'wishlist' : 'staples'}">⇄</button>
+              <button class="hud-btn" data-shop-remove="${item.id}" title="Remove from list">✕</button>
+              <button class="hud-btn shop-bought-btn" data-shop-check="${item.id}">✓ Bought</button>
             </div>
           </div>
         `).join('')}
@@ -681,19 +689,25 @@ function renderCabinetHub() {
   } else if (state.activeCabinetSegment === 'unlock') {
     // Unlock Optimizer
     contentHtml = `
+      ${unlockList.length === 0 ? `
+        <div class="atelier-empty-state">
+          No single bottle unlocks a new drink right now. Every recipe you're one bottle away from is already covered.
+        </div>
+      ` : `
       <div style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary);">
-        Sorted by highest drink yield. Adding these bottles unlocks the most new recipes right now:
+        Sorted by drink yield. Each of these bottles makes new recipes pourable immediately:
       </div>
+      `}
       <div style="display: flex; flex-direction: column; gap: 10px;">
         ${unlockList.slice(0, 15).map(u => `
           <div class="bottle-item-card in-stock" style="border-left: 3px solid var(--accent-amber);">
             <div class="bottle-info">
               <span class="bottle-name">${u.name}</span>
               <span class="bottle-meta" style="color: var(--accent-amber); font-weight: 700;">
-                Unlocks ${u.unlocksNow.length} new cocktails immediately!
+                Unlocks ${u.unlocksNow.length} new cocktail${u.unlocksNow.length === 1 ? '' : 's'}
               </span>
               <span style="font-size: 11px; color: var(--text-muted);">
-                ${u.unlocksNow.map(r => r.name).slice(0, 3).join(', ')}...
+                ${u.unlocksNow.map(r => r.name).slice(0, 3).join(', ')}${u.unlocksNow.length > 3 ? ` +${u.unlocksNow.length - 3} more` : ''}
               </span>
             </div>
             <button class="hud-btn" data-unlock-add="${u.id}">+ Shopping</button>
@@ -740,8 +754,8 @@ function renderCabinetHub() {
     btn.onclick = () => {
       soundEffects.playChime();
       const id = btn.getAttribute('data-shop-check');
-      inventoryManager.purchaseItem(id);
-      showToast(`Celebration! Restocked into your Bar Inventory 🎉`);
+      inventoryManager.toggleShoppingItem(id);
+      showToast(`Bought and restocked 🎉`);
       renderCabinetHub();
       renderBarHub();
     };
@@ -753,8 +767,17 @@ function renderCabinetHub() {
       soundEffects.playClick();
       const id = btn.getAttribute('data-shop-bump');
       const targetType = state.activeShoppingSubtab === 'staples' ? 'wishlist' : 'staples';
-      inventoryManager.bumpShoppingItemType(id, targetType);
+      inventoryManager.moveShoppingItemCategory(id, targetType);
       showToast(`Moved to ${targetType}`);
+      renderCabinetHub();
+    };
+  });
+
+  // Bind Shopping Item Remove
+  elements.cabinetContainer.querySelectorAll('[data-shop-remove]').forEach(btn => {
+    btn.onclick = () => {
+      soundEffects.playClick();
+      inventoryManager.removeShoppingItem(btn.getAttribute('data-shop-remove'));
       renderCabinetHub();
     };
   });
@@ -779,110 +802,199 @@ function renderCabinetHub() {
 // HUB 3: THE ACADEMY (Gamified Drills & Technique Codex)
 // ============================================================================
 function renderAcademyHub() {
-  const progress = quizEngine.getProgress();
-  const currentRank = quizEngine.getCurrentRank();
-  const nextRank = RANK_LADDER.find(r => r.rank === currentRank.rank + 1);
-  const xpNeeded = nextRank ? nextRank.xpRequired : progress.xp;
-  const progressPct = nextRank ? Math.min(100, Math.round((progress.xp / nextRank.xpRequired) * 100)) : 100;
-
-  if (quizEngine.state === 'question') {
-    renderActiveQuizQuestion();
+  if (quizEngine.state === 'question' || quizEngine.state === 'feedback') {
+    renderAcademyQuestion();
+    return;
+  }
+  if (quizEngine.state === 'scorecard') {
+    renderAcademyScorecard();
     return;
   }
 
+  const progress = quizEngine.progress;
+  const currentRank = quizEngine.getCurrentRank();
+  const nextRank = quizEngine.getNextRank();
+  const progressPct = quizEngine.getRankProgressPercent();
+  const accuracy = progress.totalAnswered > 0
+    ? Math.round((progress.totalCorrect / progress.totalAnswered) * 100)
+    : 0;
+
   elements.academyContainer.innerHTML = `
-    <!-- Hero Rank Progress Card -->
     <div class="academy-hero-card">
       <div class="rank-badge-row">
         <span class="rank-title">${currentRank.icon} ${currentRank.title}</span>
-        <span class="streak-pill-academy">🔥 ${progress.streak} Streak</span>
+        <span class="streak-pill-academy">Rank ${currentRank.level} / ${RANK_LADDER.length}</span>
       </div>
+      <div class="academy-rank-desc">${currentRank.desc}</div>
       <div class="xp-track-bar">
         <div class="xp-fill-bar" style="width: ${progressPct}%;"></div>
       </div>
-      <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary);">
-        <span>Rank ${currentRank.rank} / ${RANK_LADDER.length}</span>
-        <span>${progress.xp} / ${xpNeeded} XP</span>
+      <div class="academy-xp-labels">
+        <span>${Math.round(progress.xp)} XP</span>
+        <span>${nextRank ? `${nextRank.minXp} XP → ${nextRank.title}` : 'Top rank reached'}</span>
       </div>
     </div>
 
-    <!-- Drill Launcher Grid -->
+    <div class="academy-stats-row">
+      <div class="academy-stat"><span class="academy-stat-val">${progress.roundsPlayed}</span><span class="academy-stat-lbl">Rounds</span></div>
+      <div class="academy-stat"><span class="academy-stat-val">${accuracy}%</span><span class="academy-stat-lbl">Accuracy</span></div>
+      <div class="academy-stat"><span class="academy-stat-val">${progress.bestStreak}</span><span class="academy-stat-lbl">Best Streak</span></div>
+    </div>
+
     <div class="drill-launcher-grid">
-      <div class="drill-launcher-card" id="startQuickWorkoutBtn">
+      <button class="drill-launcher-card" data-drill="workout">
         <span class="drill-icon">⚡</span>
         <span class="drill-title">Daily Workout</span>
-        <span class="drill-sub">5 rapid-fire interactive drills</span>
-      </div>
-      <div class="drill-launcher-card" id="startMasterclassBtn">
+        <span class="drill-sub">5 mixed drills</span>
+      </button>
+      <button class="drill-launcher-card" data-drill="masterclass">
         <span class="drill-icon">🏆</span>
         <span class="drill-title">Masterclass</span>
-        <span class="drill-sub">10-question certification drill</span>
-      </div>
+        <span class="drill-sub">10-question certification</span>
+      </button>
+      <button class="drill-launcher-card drill-launcher-wide" data-drill="build">
+        <span class="drill-icon">🍸</span>
+        <span class="drill-title">Build the Drink</span>
+        <span class="drill-sub">5 rounds assembling specs from the shelf</span>
+      </button>
     </div>
 
-    <!-- Bartender's Codex (Technique Insights) -->
-    <div style="margin-top: 10px;">
-      <div style="font-family: var(--font-serif); font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);">
-        📖 The Bartender's Codex
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        ${MECHANICAL_RULES.map(rule => `
-          <div class="bottle-item-card in-stock" style="border-left: 3px solid var(--accent-amber); flex-direction: column; align-items: flex-start; gap: 6px;">
-            <div style="display: flex; justify-content: space-between; width: 100%;">
-              <span style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">${rule.title}</span>
-              <span class="hud-pill" style="font-size: 10px;">${rule.badge}</span>
-            </div>
-            <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.45;">
-              ${rule.rule}
-            </div>
-          </div>
-        `).join('')}
-      </div>
+    <div class="academy-section-title">📖 The Bartender's Codex</div>
+    <div class="codex-list">
+      ${MECHANICAL_RULES.map(rule => `
+        <details class="codex-item">
+          <summary>
+            <span class="codex-item-title">${rule.title}</span>
+            <span class="hud-pill codex-badge">${rule.badge}</span>
+          </summary>
+          <div class="codex-item-body">${rule.rule}</div>
+        </details>
+      `).join('')}
     </div>
   `;
 
-  document.getElementById('startQuickWorkoutBtn').onclick = () => {
-    soundEffects.playClick();
-    quizEngine.startNewRound(5);
-    renderAcademyHub();
-  };
-
-  document.getElementById('startMasterclassBtn').onclick = () => {
-    soundEffects.playClick();
-    quizEngine.startNewRound(10);
-    renderAcademyHub();
-  };
+  elements.academyContainer.querySelectorAll('[data-drill]').forEach(btn => {
+    btn.onclick = () => {
+      soundEffects.playClick();
+      const drill = btn.getAttribute('data-drill');
+      if (drill === 'masterclass') {
+        quizEngine.startNewRound(10);
+      } else if (drill === 'build') {
+        quizEngine.startNewRound(5);
+        quizEngine.currentRound = quizEngine.currentRound.map(() => quizEngine.generateBuildCocktailQuestion());
+        quizEngine.activeQuestion = quizEngine.currentRound[0];
+      } else {
+        quizEngine.startNewRound(5);
+      }
+      renderAcademyHub();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
 }
 
-function renderActiveQuizQuestion() {
-  const current = quizEngine.getCurrentQuestion();
-  if (!current) return;
+function renderAcademyQuestion() {
+  const q = quizEngine.activeQuestion;
+  if (!q) {
+    quizEngine.state = 'hub';
+    renderAcademyHub();
+    return;
+  }
 
   const qNum = quizEngine.currentQuestionIndex + 1;
   const qTotal = quizEngine.currentRound.length;
+  const answered = quizEngine.isAnswered;
+  const progressPct = Math.round(((qNum - (answered ? 0 : 1)) / qTotal) * 100);
+
+  // Spec preview for "What's Missing?"
+  let specHtml = '';
+  if (q.type === 'WHATS_MISSING' && q.maskedIngredients) {
+    specHtml = `
+      <div class="quiz-spec-preview">
+        ${q.maskedIngredients.map(i => `
+          <div class="quiz-spec-line ${i.isMasked ? 'masked' : ''}">
+            <span>${i.amount ? formatAmount(i.amount, state.activeUnit, i.unit) : ''}</span>
+            <span>${i.isMasked ? (answered ? i.name : '? ? ?') : i.name}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  let answerHtml = '';
+  if (q.type === 'BUILD_COCKTAIL') {
+    const selected = quizEngine.selectedBuilderIngredients;
+    answerHtml = `
+      <div class="quiz-shelf-label">Your shaker: ${selected.size} / ${q.requiredCount}</div>
+      <div class="quiz-shelf">
+        ${q.shelf.map(item => {
+          let cls = selected.has(item.id) ? 'picked' : '';
+          if (answered) {
+            if (item.isRequired) cls = 'correct';
+            else if (selected.has(item.id)) cls = 'incorrect';
+          }
+          return `<button class="quiz-shelf-btn ${cls}" data-shelf-id="${item.id}" ${answered ? 'disabled' : ''}>${item.icon || ''} ${item.text}</button>`;
+        }).join('')}
+      </div>
+      ${!answered ? `
+        <button class="deck-btn-mix quiz-submit-btn" id="quizShakeBtn" ${selected.size === q.requiredCount ? '' : 'disabled'}>
+          <span>Shake It 🍸</span>
+        </button>
+      ` : ''}
+    `;
+  } else {
+    answerHtml = `
+      <div class="quiz-options">
+        ${(q.options || []).map((opt, idx) => {
+          let cls = '';
+          if (answered) {
+            if (opt.isCorrect) cls = 'correct';
+            else if (quizEngine.selectedAnswer === opt) cls = 'incorrect';
+          }
+          return `
+            <button class="quiz-option ${cls}" data-quiz-opt="${idx}" ${answered ? 'disabled' : ''}>
+              ${opt.icon ? `<span class="quiz-option-icon">${opt.icon}</span>` : ''}
+              <span>${opt.text || opt.name}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  let feedbackHtml = '';
+  if (answered) {
+    const isCorrect = q.type === 'BUILD_COCKTAIL'
+      ? (quizEngine.selectedBuilderIngredients.size === q.targetIds.size &&
+         Array.from(quizEngine.selectedBuilderIngredients).every(id => q.targetIds.has(id)))
+      : !!quizEngine.selectedAnswer?.isCorrect;
+    feedbackHtml = `
+      <div class="quiz-feedback ${isCorrect ? 'correct' : 'incorrect'}">
+        <div class="quiz-feedback-head">${isCorrect ? '✓ Spot on' : '✕ Not quite'}${isCorrect ? `<span>+25 XP</span>` : ''}</div>
+        <div class="quiz-feedback-body">${q.explanation || ''}</div>
+      </div>
+      <button class="deck-btn-mix quiz-submit-btn" id="quizNextBtn">
+        <span>${qNum === qTotal ? 'See Results →' : 'Next Question →'}</span>
+      </button>
+    `;
+  }
 
   elements.academyContainer.innerHTML = `
-    <div class="academy-hero-card" style="margin-bottom: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <span class="hud-pill">Question ${qNum} of ${qTotal}</span>
-        <button class="hud-btn" id="exitQuizBtn" style="padding: 3px 9px;">✕ Exit</button>
-      </div>
-      <div style="font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
-        ${current.cocktailName || 'Cocktail Specs'}
-      </div>
-      <div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.4;">
-        ${current.prompt}
-      </div>
+    <div class="quiz-hud-row">
+      <button class="hud-btn" id="exitQuizBtn">✕ Exit</button>
+      <span class="quiz-hud-count">Question ${qNum} of ${qTotal}</span>
+      <span class="streak-pill-academy">🔥 ${quizEngine.roundStreak}</span>
+    </div>
+    <div class="xp-track-bar quiz-progress"><div class="xp-fill-bar" style="width: ${progressPct}%;"></div></div>
+
+    <div class="academy-hero-card quiz-question-card">
+      <span class="hud-pill">${q.badge || q.typeName || 'Drill'}</span>
+      <div class="quiz-question-title">${q.cocktailName || ''}</div>
+      <div class="quiz-question-prompt">${q.prompt}</div>
+      ${specHtml}
     </div>
 
-    <!-- Options Grid (Zero typing, 1-tap touch answers) -->
-    <div style="display: flex; flex-direction: column; gap: 8px;" id="quizOptionsList">
-      ${(current.options || []).map((opt, idx) => `
-        <button class="bottle-item-card in-stock" data-quiz-opt="${idx}" style="cursor: pointer; padding: 14px; text-align: left;">
-          <span style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${opt.text || opt}</span>
-        </button>
-      `).join('')}
-    </div>
+    ${answerHtml}
+    ${feedbackHtml}
   `;
 
   document.getElementById('exitQuizBtn').onclick = () => {
@@ -894,27 +1006,80 @@ function renderActiveQuizQuestion() {
   elements.academyContainer.querySelectorAll('[data-quiz-opt]').forEach(btn => {
     btn.onclick = () => {
       const idx = parseInt(btn.getAttribute('data-quiz-opt'), 10);
-      const isCorrect = quizEngine.submitAnswer(idx);
-      if (isCorrect) {
-        soundEffects.playChime();
-        btn.style.background = 'var(--status-ready-bg)';
-        btn.style.borderColor = 'var(--status-ready)';
-        showToast('✓ Spot On!');
-      } else {
-        soundEffects.playShaker();
-        btn.style.background = 'rgba(239, 68, 68, 0.2)';
-        btn.style.borderColor = '#EF4444';
-        showToast('✕ Refresher needed!');
-      }
-      setTimeout(() => {
-        if (quizEngine.state === 'question') {
-          renderActiveQuizQuestion();
-        } else {
-          renderAcademyHub();
-        }
-      }, 900);
+      quizEngine.submitAnswer(q.options[idx]);
+      renderAcademyQuestion();
     };
   });
+
+  elements.academyContainer.querySelectorAll('[data-shelf-id]').forEach(btn => {
+    btn.onclick = () => {
+      quizEngine.toggleBuilderIngredient(btn.getAttribute('data-shelf-id'));
+      renderAcademyQuestion();
+    };
+  });
+
+  const shakeBtn = document.getElementById('quizShakeBtn');
+  if (shakeBtn) {
+    shakeBtn.onclick = () => {
+      quizEngine.submitAnswer(null);
+      renderAcademyQuestion();
+    };
+  }
+
+  const nextBtn = document.getElementById('quizNextBtn');
+  if (nextBtn) {
+    nextBtn.onclick = () => {
+      quizEngine.nextQuestion();
+      renderAcademyHub();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    nextBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function renderAcademyScorecard() {
+  const total = quizEngine.currentRound.length;
+  const score = quizEngine.roundScore;
+  const flawless = score === total;
+  const rank = quizEngine.getCurrentRank();
+
+  elements.academyContainer.innerHTML = `
+    <div class="academy-hero-card quiz-scorecard">
+      <div class="quiz-score-icon">${flawless ? '🏆' : score >= total / 2 ? '🍸' : '🧊'}</div>
+      <div class="quiz-question-title">${flawless ? 'Flawless Round' : 'Round Complete'}</div>
+      <div class="quiz-score-big">${score} / ${total}</div>
+      <div class="academy-xp-labels" style="justify-content: center; gap: 16px;">
+        <span>+${Math.round(quizEngine.roundXpEarned)} XP earned</span>
+        <span>${rank.icon} ${rank.title}</span>
+      </div>
+    </div>
+    ${quizEngine.roundMistakes.length > 0 ? `
+      <div class="academy-section-title">Review</div>
+      <div class="codex-list">
+        ${quizEngine.roundMistakes.map(m => `
+          <div class="codex-item open-static">
+            <div class="codex-item-title">${m.question.cocktailName || m.question.typeName}</div>
+            <div class="codex-item-body">${m.question.explanation || ''}</div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+    <div class="quiz-score-actions">
+      <button class="deck-btn-nav" id="quizBackBtn">Back to Academy</button>
+      <button class="deck-btn-mix" id="quizAgainBtn"><span>Play Again</span></button>
+    </div>
+  `;
+
+  document.getElementById('quizBackBtn').onclick = () => {
+    soundEffects.playClick();
+    quizEngine.state = 'hub';
+    renderAcademyHub();
+  };
+  document.getElementById('quizAgainBtn').onclick = () => {
+    soundEffects.playClick();
+    quizEngine.startNewRound(total);
+    renderAcademyHub();
+  };
 }
 
 // ============================================================================
@@ -946,13 +1111,19 @@ export function closeBartenderHUD() {
   }
   wakeLockManager.releaseWakeLock();
   elements.hudModalOverlay.classList.remove('active');
-  document.body.style.overflow = '';
+  if (!state.partyModeActive) document.body.style.overflow = '';
   state.activeModalRecipe = null;
 }
 
 function renderBartenderHUDContent() {
   const recipe = state.activeModalRecipe;
   if (!recipe) return;
+
+  // A re-render replaces the timer display, so stop any timer bound to the old one
+  if (state.activeTimer) {
+    state.activeTimer.stop();
+    state.activeTimer = null;
+  }
 
   const inStockIds = inventoryManager.getInStockIngredientIds();
   const allIngredients = inventoryManager.getAllIngredients();
@@ -976,7 +1147,13 @@ function renderBartenderHUDContent() {
     return scaled;
   });
 
-  const batchMetrics = calculateBatchMetrics(scaledIngredients, state.activeMultiplier);
+  // ABV & dilution are computed per serving, using whichever bottles are actually being poured
+  const effectiveRecipe = {
+    ...recipe,
+    ingredients: scaledIngredients.map(ing => ({ ...ing, id: ing.effectiveId }))
+  };
+  const batchMetrics = calculateBatchMetrics(effectiveRecipe, 1);
+  const prebatchMetrics = state.activeMultiplier >= 4 ? calculateBatchMetrics(effectiveRecipe, state.activeMultiplier) : null;
 
   // Available in-stock substitutions for this recipe
   const allSubs = getSubstitutionsForRecipe(recipe, inStockIds);
@@ -1050,7 +1227,7 @@ function renderBartenderHUDContent() {
       <span class="spec-meta-pill">🍸 ${recipe.glass}</span>
       <span class="spec-meta-pill">🧊 ${recipe.ice}</span>
       <span class="spec-meta-pill">⚡ ${recipe.method}</span>
-      ${batchMetrics ? `<span class="spec-meta-pill">⚖️ ~${batchMetrics.abv}% ABV • +${batchMetrics.dilutionPct}% Dilution</span>` : ''}
+      ${batchMetrics.calculatedAbv > 0 ? `<span class="spec-meta-pill">⚖️ ~${batchMetrics.calculatedAbv}% ABV after dilution</span>` : ''}
     </div>
 
     ${substitutionsHtml}
@@ -1065,6 +1242,14 @@ function renderBartenderHUDContent() {
         <button class="scaler-pill-btn ${state.activeMultiplier === 8 ? 'active' : ''}" data-scale="8">8x Pitcher</button>
       </div>
     </div>
+
+    ${prebatchMetrics ? `
+      <div class="hud-prebatch-note">
+        <strong>Pre-batching ${state.activeMultiplier} servings?</strong> Add ${state.activeUnit === 'ml' ? `${prebatchMetrics.waterToAddMl} ml` : `${prebatchMetrics.waterToAddOz} oz`} of cold water
+        (${prebatchMetrics.dilutionRatioPercent}% dilution) and chill instead of ${prebatchMetrics.isStirred ? 'stirring' : 'shaking'} each serving.
+        ${prebatchMetrics.freezerSafe ? 'Strong enough to keep in the freezer.' : 'Keep it in the fridge.'}
+      </div>
+    ` : ''}
 
     <!-- Jigger Ratio Stack -->
     <div class="ratio-stack-vessel">
@@ -1093,10 +1278,13 @@ function renderBartenderHUDContent() {
       ${stepsHtml}
     </div>
 
-    <!-- Quick Riff Button -->
-    <button class="deck-btn-mix" id="hudRiffBtn" style="width: 100%; margin-top: 10px; background: var(--bg-surface-elevated); color: var(--text-primary); border: 1px solid var(--border-glass-active);">
-      <span>🎨 Open in Craft Lab (Riff This Drink)</span>
-    </button>
+    <div class="hud-footer-actions">
+      <button class="deck-btn-nav" id="hudRiffBtn">🎨 Riff in Craft Lab</button>
+      ${recipe.isCustom ? `
+        <button class="deck-btn-nav" id="hudEditBtn">✏️ Edit</button>
+        <button class="deck-btn-nav hud-delete-btn" id="hudDeleteBtn">Delete</button>
+      ` : ''}
+    </div>
   `;
 
   // Attach HUD Listeners
@@ -1149,6 +1337,26 @@ function renderBartenderHUDContent() {
     };
   }
 
+  const editBtn = document.getElementById('hudEditBtn');
+  if (editBtn) {
+    editBtn.onclick = () => {
+      soundEffects.playClick();
+      closeBartenderHUD();
+      openCraftLabModal(recipe, { editing: true });
+    };
+  }
+
+  const deleteBtn = document.getElementById('hudDeleteBtn');
+  if (deleteBtn) {
+    deleteBtn.onclick = () => {
+      if (!confirm(`Delete "${recipe.name}" from your cocktail book?`)) return;
+      inventoryManager.deleteCustomRecipe(recipe.id);
+      closeBartenderHUD();
+      showToast(`Deleted "${recipe.name}"`);
+      renderBarHub();
+    };
+  }
+
   // Setup Timer
   const timerStartBtn = document.getElementById('hudTimerStartBtn');
   const timerDisplay = document.getElementById('hudTimerDisplay');
@@ -1161,9 +1369,8 @@ function renderBartenderHUDContent() {
       timerDisplay.textContent = `${rem}s`;
     },
     onComplete: () => {
-      soundEffects.playChime();
-      timerDisplay.textContent = 'Ready! Strain.';
-      timerStartBtn.textContent = 'Done ✓';
+      timerDisplay.textContent = 'Strain!';
+      timerStartBtn.textContent = 'Restart ↺';
     }
   });
   state.activeTimer = timer;
@@ -1171,6 +1378,10 @@ function renderBartenderHUDContent() {
   timerStartBtn.onclick = () => {
     soundEffects.playClick();
     if (!timer.isRunning) {
+      if (timer.remainingSeconds <= 0) {
+        timer.remainingSeconds = timer.totalSeconds;
+        timerDisplay.textContent = `${timer.totalSeconds}s`;
+      }
       timer.start();
       timerStartBtn.textContent = 'Pause ❚❚';
     } else {
@@ -1181,160 +1392,427 @@ function renderBartenderHUDContent() {
 }
 
 // ============================================================================
-// GUEST PARTY MODE (Digital Host Menu)
+// GUEST PARTY MODE (Digital Host Menu + Order Queue)
 // ============================================================================
-function openPartyMode() {
+const PARTY_ORDERS_KEY = 'barcraft_party_orders';
+
+function loadPartyOrders() {
+  try {
+    const raw = localStorage.getItem(PARTY_ORDERS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function savePartyOrders(orders) {
+  try {
+    localStorage.setItem(PARTY_ORDERS_KEY, JSON.stringify(orders));
+  } catch (e) {
+    console.warn('Could not save party orders', e);
+  }
+  updateHostBadge();
+}
+
+function updateHostBadge() {
+  if (!elements.hostModeBtn) return;
+  const open = loadPartyOrders().length;
+  elements.hostModeBtn.innerHTML = open > 0
+    ? `🎉 Host <span class="host-order-badge">${open}</span>`
+    : '🎉 Host';
+}
+
+function openPartyMode(view = 'menu') {
   state.partyModeActive = true;
-  const analyzed = analyzeRecipesAvailability();
-  // Filter for ONLY 100% in-stock drinks for guests
-  const readyDrinks = analyzed.filter(a => a.canMake);
+  state.partyView = view;
+  renderPartyMode();
+  elements.partyModeOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
 
-  elements.partyModeContainer.innerHTML = `
-    <button class="party-exit-btn" id="exitPartyBtn">✕ Exit Host Mode</button>
-    <div class="party-menu-header">
-      <div class="party-menu-title">Tonight at the Bar</div>
-      <div class="party-menu-sub">Tap any drink to request a pour</div>
-    </div>
+function closePartyMode() {
+  elements.partyModeOverlay.classList.remove('active');
+  state.partyModeActive = false;
+  document.body.style.overflow = '';
+}
 
-    <div style="display: flex; flex-direction: column; gap: 14px; max-width: 480px; margin: 0 auto; width: 100%;">
-      ${readyDrinks.length === 0 ? `
-        <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">
-          No drinks currently 100% in stock. Restock bottles in The Backbar to populate your guest menu!
-        </div>
-      ` : readyDrinks.slice(0, 10).map(d => `
-        <div class="catalog-card" style="padding: 18px;" data-order-drink="${d.recipe.name}">
-          <div>
-            <div style="font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
-              ${d.recipe.name}
-            </div>
-            <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.45;">
-              ${d.recipe.ingredients.map(i => i.name).join(' • ')}
-            </div>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-            <span style="font-size: 11.5px; color: var(--accent-amber);">${d.recipe.glass}</span>
-            <button class="hud-btn" style="background: var(--accent-amber); color: #0B0B0E;">I'll Have This →</button>
-          </div>
-        </div>
-      `).join('')}
+function renderPartyMode() {
+  const orders = loadPartyOrders();
+  const view = state.partyView || 'menu';
+
+  const topBar = `
+    <div class="party-top-bar">
+      <button class="party-exit-btn" id="exitPartyBtn">✕ Exit</button>
+      <div class="party-view-toggle">
+        <button class="${view === 'menu' ? 'active' : ''}" data-party-view="menu">Guest Menu</button>
+        <button class="${view === 'orders' ? 'active' : ''}" data-party-view="orders">Orders${orders.length ? ` (${orders.length})` : ''}</button>
+      </div>
     </div>
   `;
 
-  elements.partyModeOverlay.classList.add('active');
+  let body = '';
+  if (view === 'orders') {
+    body = `
+      <div class="party-menu-header">
+        <div class="party-menu-title">Order Queue</div>
+        <div class="party-menu-sub">${orders.length ? 'Oldest first. Mix, then mark served.' : 'No open orders.'}</div>
+      </div>
+      <div class="party-list">
+        ${orders.map((o, idx) => `
+          <div class="party-order-row">
+            <div class="party-order-num">${idx + 1}</div>
+            <div class="party-order-info">
+              <div class="party-order-drink">${o.name}</div>
+              <div class="party-order-meta">${o.guest ? `${escapeAttr(o.guest)} · ` : ''}${new Date(o.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+            </div>
+            <button class="hud-btn" data-order-mix="${o.id}">Mix</button>
+            <button class="hud-btn party-served-btn" data-order-served="${o.id}">✓ Served</button>
+          </div>
+        `).join('')}
+      </div>
+      ${orders.length > 1 ? `<button class="party-clear-btn" id="clearOrdersBtn">Clear all orders</button>` : ''}
+    `;
+  } else {
+    const ready = analyzeRecipesAvailability().filter(a => a.canMake);
+    const byCategory = new Map();
+    ready.forEach(d => {
+      const cat = d.recipe.category || 'House Pours';
+      if (!byCategory.has(cat)) byCategory.set(cat, []);
+      byCategory.get(cat).push(d.recipe);
+    });
+
+    body = `
+      <div class="party-menu-header">
+        <div class="party-menu-title">Tonight at the Bar</div>
+        <div class="party-menu-sub">Everything here can be poured right now</div>
+      </div>
+      <label class="party-guest-field">
+        <span>Your name</span>
+        <input type="text" id="partyGuestName" class="lab-input" placeholder="Optional, so the bartender knows who it's for" value="${escapeAttr(state.partyGuestName || '')}" autocomplete="off">
+      </label>
+      ${ready.length === 0 ? `
+        <div class="atelier-empty-state">No drinks are fully in stock. Restock bottles in The Backbar to build tonight's menu.</div>
+      ` : Array.from(byCategory.entries()).map(([cat, recipes]) => `
+        <div class="party-category">${cat}</div>
+        <div class="party-list">
+          ${recipes.map(r => `
+            <div class="party-drink-card">
+              <div class="party-drink-name">${r.name}</div>
+              <div class="party-drink-ings">${r.ingredients.map(i => i.name).join(' · ')}</div>
+              <div class="party-drink-foot">
+                <span>${r.glass}</span>
+                <button class="party-order-btn" data-order-recipe="${r.id}">I'll Have This</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    `;
+  }
+
+  elements.partyModeContainer.innerHTML = topBar + `<div class="party-body">${body}</div>`;
 
   document.getElementById('exitPartyBtn').onclick = () => {
     soundEffects.playClick();
-    elements.partyModeOverlay.classList.remove('active');
-    state.partyModeActive = false;
+    closePartyMode();
   };
 
-  elements.partyModeContainer.querySelectorAll('[data-order-drink]').forEach(card => {
-    card.onclick = () => {
-      const name = card.getAttribute('data-order-drink');
-      soundEffects.playChime();
-      showToast(`🎉 Order Placed: 1x ${name}! The bartender is crafting it.`);
+  elements.partyModeContainer.querySelectorAll('[data-party-view]').forEach(btn => {
+    btn.onclick = () => {
+      soundEffects.playClick();
+      state.partyView = btn.getAttribute('data-party-view');
+      renderPartyMode();
+      elements.partyModeOverlay.scrollTop = 0;
     };
   });
+
+  const guestInput = document.getElementById('partyGuestName');
+  if (guestInput) {
+    guestInput.oninput = () => { state.partyGuestName = guestInput.value; };
+  }
+
+  elements.partyModeContainer.querySelectorAll('[data-order-recipe]').forEach(btn => {
+    btn.onclick = () => {
+      const recipe = getAllRecipes().find(r => r.id === btn.getAttribute('data-order-recipe'));
+      if (!recipe) return;
+      const guest = (state.partyGuestName || '').trim();
+      const next = loadPartyOrders();
+      next.push({ id: `ord-${Date.now()}`, recipeId: recipe.id, name: recipe.name, guest, at: Date.now() });
+      savePartyOrders(next);
+      soundEffects.playChime();
+      showToast(`🎉 ${guest ? `${guest}'s` : 'Your'} ${recipe.name} is in the queue`);
+      btn.textContent = 'Ordered ✓';
+      btn.disabled = true;
+      setTimeout(() => renderPartyMode(), 1200);
+    };
+  });
+
+  elements.partyModeContainer.querySelectorAll('[data-order-served]').forEach(btn => {
+    btn.onclick = () => {
+      soundEffects.playClick();
+      savePartyOrders(loadPartyOrders().filter(o => o.id !== btn.getAttribute('data-order-served')));
+      renderPartyMode();
+    };
+  });
+
+  elements.partyModeContainer.querySelectorAll('[data-order-mix]').forEach(btn => {
+    btn.onclick = () => {
+      const order = loadPartyOrders().find(o => o.id === btn.getAttribute('data-order-mix'));
+      const recipe = order && getAllRecipes().find(r => r.id === order.recipeId);
+      if (!recipe) {
+        showToast('That drink is no longer in your book');
+        return;
+      }
+      soundEffects.playClick();
+      openBartenderHUD(recipe);
+    };
+  });
+
+  const clearBtn = document.getElementById('clearOrdersBtn');
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      if (!confirm('Clear every open order?')) return;
+      savePartyOrders([]);
+      renderPartyMode();
+    };
+  }
 }
 
 // ============================================================================
 // THE CRAFT LAB (Riff Workbench & Custom Drink Studio)
 // ============================================================================
-function openCraftLabModal(sourceRecipe = null) {
-  const isRiff = Boolean(sourceRecipe);
-  const title = isRiff ? `🎨 Riff Studio: ${sourceRecipe.name}` : '🧪 Craft Lab: New Creation';
+const LAB_CATEGORIES = [
+  'Spirit-Forward & Stirred',
+  'Acid-Driven Sours & Smashes',
+  'Velvety Sours & Meringue',
+  'Equal-Parts & Modern Classics',
+  'Zero-Proof Mocktails',
+  'Custom & Riffs'
+];
+const LAB_UNITS = ['oz', 'dashes', 'barspoon', 'drops', 'leaves', 'slices', 'berries', 'pinch', 'albumen'];
+const LAB_GLASSES = ['Coupe', 'Nick & Nora', 'Rocks Glass', 'Double Rocks Glass', 'Tall Highball Glass', 'Collins Glass', 'Martini Glass', 'Copper Mug', 'Wine Glass'];
+const LAB_ICE = ['None (Chilled Glass)', 'Single Large Cube', 'Fresh Ice Packed', 'Crushed Ice', 'Dense Ice Packed to Lip'];
+const LAB_METHODS = ['Stir 30s & Strain', 'Hard Shake & Double Strain', 'Shake & Soda Top', 'Dry Shake + Wet Shake', 'Build in Glass', 'Muddle & Shake'];
 
-  let initialName = isRiff ? `${sourceRecipe.name} (Riff)` : '';
-  let initialCategory = isRiff ? sourceRecipe.category : 'Spirit-Forward & Stirred';
-  let initialGlass = isRiff ? sourceRecipe.glass : 'Coupe';
+function labIngredientRowHtml(ing = {}) {
+  const unit = ing.unit || 'oz';
+  return `
+    <div class="lab-ing-row">
+      <input type="number" class="lab-input lab-ing-amount" step="0.25" min="0" inputmode="decimal" value="${ing.amount ?? ''}" placeholder="2">
+      <select class="lab-input lab-ing-unit">
+        ${LAB_UNITS.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('')}
+        ${LAB_UNITS.includes(unit) ? '' : `<option value="${escapeAttr(unit)}" selected>${escapeAttr(unit)}</option>`}
+      </select>
+      <input type="text" class="lab-input lab-ing-name" list="labIngredientOptions" value="${escapeAttr(ing.name)}" placeholder="Ingredient">
+      <button type="button" class="lab-ing-remove" title="Remove ingredient">✕</button>
+    </div>
+  `;
+}
+
+function openCraftLabModal(sourceRecipe = null, { editing = false } = {}) {
+  const isEdit = editing && sourceRecipe && sourceRecipe.isCustom;
+  const isRiff = Boolean(sourceRecipe) && !isEdit;
+  const title = isEdit ? `✏️ Edit: ${sourceRecipe.name}` : isRiff ? `🎨 Riff on ${sourceRecipe.name}` : '🧪 New Creation';
+
+  const base = sourceRecipe || {};
+  const initialName = isEdit ? base.name : isRiff ? `${base.name} (Riff)` : '';
+  const initialCategory = isRiff ? 'Custom & Riffs' : (base.category || 'Custom & Riffs');
+  const initialIngredients = base.ingredients && base.ingredients.length
+    ? base.ingredients
+    : [{ amount: 2, unit: 'oz', name: '' }, { amount: 0.75, unit: 'oz', name: '' }, { amount: 0.75, unit: 'oz', name: '' }];
+
+  const allIngredients = inventoryManager.getAllIngredients();
 
   elements.craftLabModalSheet.innerHTML = `
     <div class="hud-sheet-header">
-      <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 700; color: var(--text-primary);">
-        ${title}
-      </div>
+      <div class="lab-title">${escapeAttr(title)}</div>
       <button class="hud-close-x" id="craftLabCloseBtn">✕</button>
     </div>
 
-    <!-- Smart Whisperer Insight -->
-    <div style="background: rgba(245, 166, 35, 0.08); border-left: 3px solid var(--accent-amber); padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 16px;">
-      <div style="font-size: 11px; font-weight: 800; color: var(--accent-amber); text-transform: uppercase;">
-        💡 Mixologist Whisperer
-      </div>
-      <div style="font-size: 12.5px; color: var(--text-primary); margin-top: 2px;">
-        ${isRiff ? `Riffing preserves the canonical baseline. Your custom ratios will be saved as an independent creation!` : `Experiment with ratios (2:1:1 sour or 2:1 Manhattan ratio) and tag flavor profiles.`}
-      </div>
+    <div class="lab-whisper">
+      <div class="lab-whisper-label">💡 Mixologist Whisperer</div>
+      <div>${isRiff
+        ? 'The original stays untouched. Your riff saves as its own drink, linked back to the classic.'
+        : 'Start from a proven ratio: 2 : ¾ : ¾ for sours, 2 : 1 + bitters for stirred drinks, equal parts for Last Word–style builds.'}</div>
     </div>
 
-    <form id="craftLabForm" style="display: flex; flex-direction: column; gap: 14px;">
-      <div>
-        <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Cocktail Name</label>
-        <input type="text" id="labDrinkName" class="atelier-search-input" value="${initialName}" placeholder="e.g. Smoky Mezcal Negroni" required>
+    <form id="craftLabForm" class="lab-form" novalidate>
+      <label class="lab-field">
+        <span class="lab-label">Cocktail Name</span>
+        <input type="text" id="labDrinkName" class="lab-input" value="${escapeAttr(initialName)}" placeholder="e.g. Smoky Mezcal Negroni" required>
+      </label>
+
+      <div class="lab-grid-2">
+        <label class="lab-field">
+          <span class="lab-label">Category</span>
+          <select id="labCategory" class="lab-input">
+            ${LAB_CATEGORIES.map(c => `<option value="${escapeAttr(c)}" ${c === initialCategory ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </label>
+        <label class="lab-field">
+          <span class="lab-label">Glassware</span>
+          <input type="text" id="labGlass" class="lab-input" list="labGlassOptions" value="${escapeAttr(base.glass || 'Coupe')}">
+        </label>
+        <label class="lab-field">
+          <span class="lab-label">Ice</span>
+          <input type="text" id="labIce" class="lab-input" list="labIceOptions" value="${escapeAttr(base.ice || 'None (Chilled Glass)')}">
+        </label>
+        <label class="lab-field">
+          <span class="lab-label">Method</span>
+          <input type="text" id="labMethod" class="lab-input" list="labMethodOptions" value="${escapeAttr(base.method || 'Stir 30s & Strain')}">
+        </label>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div>
-          <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Category</label>
-          <select id="labCategory" class="atelier-search-input" style="padding-right: 12px;">
-            <option value="Spirit-Forward & Stirred" ${initialCategory === 'Spirit-Forward & Stirred' ? 'selected' : ''}>Spirit-Forward</option>
-            <option value="Acid-Driven Sours & Smashes" ${initialCategory === 'Acid-Driven Sours & Smashes' ? 'selected' : ''}>Sours & Smashes</option>
-            <option value="Equal-Parts & Modern Classics" ${initialCategory === 'Equal-Parts & Modern Classics' ? 'selected' : ''}>Equal-Parts</option>
-            <option value="Highballs & Spritzes" ${initialCategory === 'Highballs & Spritzes' ? 'selected' : ''}>Highballs</option>
-            <option value="Custom & Riffs" selected>Custom & Riffs</option>
-          </select>
+      <div class="lab-field">
+        <span class="lab-label">Spec</span>
+        <div id="labIngredientRows" class="lab-ing-list">
+          ${initialIngredients.map(labIngredientRowHtml).join('')}
         </div>
-        <div>
-          <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Glassware</label>
-          <select id="labGlass" class="atelier-search-input" style="padding-right: 12px;">
-            <option value="Coupe" ${initialGlass.includes('Coupe') ? 'selected' : ''}>Coupe</option>
-            <option value="Rocks Glass" ${initialGlass.includes('Rocks') ? 'selected' : ''}>Rocks</option>
-            <option value="Highball" ${initialGlass.includes('Highball') ? 'selected' : ''}>Highball</option>
-            <option value="Nick & Nora" ${initialGlass.includes('Nick') ? 'selected' : ''}>Nick & Nora</option>
-          </select>
-        </div>
+        <button type="button" class="lab-add-ing" id="labAddIngBtn">+ Add Ingredient</button>
+        <div class="lab-live-metrics" id="labLiveMetrics"></div>
       </div>
 
-      <button type="submit" class="deck-btn-mix" style="margin-top: 10px;">
-        <span>Save Creation to Book 💾</span>
+      <label class="lab-field">
+        <span class="lab-label">Directions <span class="lab-hint">One step per line</span></span>
+        <textarea id="labInstructions" class="lab-input lab-textarea" rows="4" placeholder="Stir with ice for 30 seconds.&#10;Strain into a chilled coupe.">${escapeAttr((base.instructions || []).join('\n'))}</textarea>
+      </label>
+
+      <label class="lab-field">
+        <span class="lab-label">Tasting Note <span class="lab-hint">Optional</span></span>
+        <input type="text" id="labNote" class="lab-input" value="${escapeAttr(isEdit ? (base.techniqueRule || '') : '')}" placeholder="What makes this one sing?">
+      </label>
+
+      <div class="lab-error" id="labError" hidden></div>
+
+      <button type="submit" class="deck-btn-mix">
+        <span>${isEdit ? 'Save Changes' : 'Save to Cocktail Book'}</span>
       </button>
     </form>
+
+    <datalist id="labIngredientOptions">${allIngredients.map(i => `<option value="${escapeAttr(i.name)}"></option>`).join('')}</datalist>
+    <datalist id="labGlassOptions">${LAB_GLASSES.map(g => `<option value="${g}"></option>`).join('')}</datalist>
+    <datalist id="labIceOptions">${LAB_ICE.map(g => `<option value="${g}"></option>`).join('')}</datalist>
+    <datalist id="labMethodOptions">${LAB_METHODS.map(g => `<option value="${g}"></option>`).join('')}</datalist>
   `;
 
   elements.craftLabModalOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
 
-  document.getElementById('craftLabCloseBtn').onclick = () => {
-    elements.craftLabModalOverlay.classList.remove('active');
+  const rowsContainer = document.getElementById('labIngredientRows');
+  const metricsEl = document.getElementById('labLiveMetrics');
+  const errorEl = document.getElementById('labError');
+
+  const resolveIngredient = (name) => {
+    const clean = name.trim();
+    const match = allIngredients.find(i => i.name.toLowerCase() === clean.toLowerCase());
+    if (match) return { id: match.id, name: match.name };
+    // Keep the original spec's id when a riff leaves the name unchanged
+    const original = (base.ingredients || []).find(i => i.name.toLowerCase() === clean.toLowerCase());
+    if (original) return { id: original.id, name: original.name };
+    return { id: clean.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), name: clean };
   };
+
+  const readIngredients = () => Array.from(rowsContainer.querySelectorAll('.lab-ing-row')).map(row => {
+    const name = row.querySelector('.lab-ing-name').value.trim();
+    if (!name) return null;
+    const amountRaw = parseFloat(row.querySelector('.lab-ing-amount').value);
+    const unit = row.querySelector('.lab-ing-unit').value;
+    const resolved = resolveIngredient(name);
+    const ing = { id: resolved.id, name: resolved.name, unit };
+    if (!Number.isNaN(amountRaw)) ing.amount = amountRaw;
+    return ing;
+  }).filter(Boolean);
+
+  const updateMetrics = () => {
+    const ings = readIngredients();
+    const liquidOz = ings.filter(i => i.unit === 'oz' && i.amount).reduce((a, i) => a + i.amount, 0);
+    if (liquidOz === 0) {
+      metricsEl.textContent = '';
+      return;
+    }
+    const metrics = calculateBatchMetrics({
+      category: document.getElementById('labCategory').value,
+      method: document.getElementById('labMethod').value,
+      ingredients: ings
+    }, 1);
+    const vol = state.activeUnit === 'ml' ? `${Math.round(liquidOz * 29.57)} ml` : `${Math.round(liquidOz * 100) / 100} oz`;
+    metricsEl.textContent = `${vol} of liquid${metrics.calculatedAbv > 0 ? ` · ~${metrics.calculatedAbv}% ABV after dilution` : ''}`;
+  };
+
+  const bindRow = (row) => {
+    row.querySelector('.lab-ing-remove').onclick = () => {
+      row.remove();
+      updateMetrics();
+    };
+    row.querySelectorAll('input, select').forEach(el => { el.oninput = updateMetrics; });
+  };
+  rowsContainer.querySelectorAll('.lab-ing-row').forEach(bindRow);
+  document.getElementById('craftLabForm').addEventListener('input', () => { errorEl.hidden = true; });
+  document.getElementById('labMethod').oninput = updateMetrics;
+  document.getElementById('labCategory').onchange = updateMetrics;
+  updateMetrics();
+
+  document.getElementById('labAddIngBtn').onclick = () => {
+    soundEffects.playClick();
+    rowsContainer.insertAdjacentHTML('beforeend', labIngredientRowHtml({ unit: 'oz' }));
+    const row = rowsContainer.lastElementChild;
+    bindRow(row);
+    row.querySelector('.lab-ing-name').focus();
+  };
+
+  const closeLab = () => {
+    elements.craftLabModalOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  };
+  document.getElementById('craftLabCloseBtn').onclick = closeLab;
 
   document.getElementById('craftLabForm').onsubmit = (e) => {
     e.preventDefault();
-    soundEffects.playChime();
     const name = document.getElementById('labDrinkName').value.trim();
-    const category = document.getElementById('labCategory').value;
-    const glass = document.getElementById('labGlass').value;
+    const ingredients = readIngredients();
+    const instructions = document.getElementById('labInstructions').value
+      .split('\n').map(line => line.trim()).filter(Boolean);
+    const note = document.getElementById('labNote').value.trim();
 
-    const baseIngs = sourceRecipe ? sourceRecipe.ingredients : [
-      { id: 'bourbon', name: 'Bourbon', amount: 2, unit: 'oz' },
-      { id: 'sweet-vermouth', name: 'Sweet Vermouth', amount: 0.75, unit: 'oz' }
-    ];
+    if (!name) {
+      errorEl.textContent = 'Give your drink a name.';
+      errorEl.hidden = false;
+      return;
+    }
+    if (ingredients.length < 2) {
+      errorEl.textContent = 'Add at least two ingredients to the spec.';
+      errorEl.hidden = false;
+      return;
+    }
 
-    const customDrink = {
+    const drink = {
       name,
-      category,
-      glass,
-      ice: sourceRecipe ? sourceRecipe.ice : 'Large Clear Ice Cube',
-      method: sourceRecipe ? sourceRecipe.method : 'Stirred with Ice & Strained',
-      ingredients: baseIngs,
-      instructions: sourceRecipe ? sourceRecipe.instructions : ['Stir with dense ice for 30s. Strain into chilled glass.'],
-      isRiff,
-      parentRecipeId: sourceRecipe ? sourceRecipe.id : null,
-      riffParentName: sourceRecipe ? sourceRecipe.name : null,
-      tags: ['Custom', 'Riff']
+      category: document.getElementById('labCategory').value,
+      glass: document.getElementById('labGlass').value.trim() || 'Coupe',
+      ice: document.getElementById('labIce').value.trim() || 'None (Chilled Glass)',
+      method: document.getElementById('labMethod').value.trim() || 'Stir 30s & Strain',
+      ingredients,
+      instructions: instructions.length ? instructions : ['Combine ingredients with ice, chill, and strain into the prepared glass.'],
+      techniqueRule: note
     };
 
-    inventoryManager.addCustomRecipe(customDrink);
-    elements.craftLabModalOverlay.classList.remove('active');
-    showToast(`Saved "${name}" to your Cocktail Book!`);
+    soundEffects.playChime();
+    if (isEdit) {
+      inventoryManager.updateCustomRecipe(sourceRecipe.id, drink);
+      showToast(`Updated "${name}"`);
+    } else {
+      inventoryManager.addCustomRecipe({
+        ...drink,
+        isRiff,
+        parentRecipeId: isRiff ? sourceRecipe.id : null,
+        riffParentName: isRiff ? sourceRecipe.name : null,
+        tags: isRiff ? ['Riff', 'Custom'] : ['Custom'],
+        flavor: isRiff ? sourceRecipe.flavor : undefined
+      });
+      showToast(`Saved "${name}" to your Cocktail Book`);
+    }
+    closeLab();
     renderBarHub();
   };
 }
@@ -1427,6 +1905,13 @@ function setupEventListeners() {
     soundEffects.playClick();
     openCraftLabModal();
   };
+  const labHeaderBtn = document.getElementById('craftLabHeaderBtn');
+  if (labHeaderBtn) {
+    labHeaderBtn.onclick = () => {
+      soundEffects.playClick();
+      openCraftLabModal();
+    };
+  }
 
   // Modal Overlay Click outside to close
   elements.hudModalOverlay.onclick = (e) => {
@@ -1436,6 +1921,7 @@ function setupEventListeners() {
   elements.craftLabModalOverlay.onclick = (e) => {
     if (e.target === elements.craftLabModalOverlay) {
       elements.craftLabModalOverlay.classList.remove('active');
+      document.body.style.overflow = '';
     }
   };
 
@@ -1471,6 +1957,8 @@ function switchHub(hubName) {
   elements.cabinetHub.style.display = hubName === 'cabinet' ? 'block' : 'none';
   elements.academyHub.style.display = hubName === 'academy' ? 'block' : 'none';
 
+  if (elements.craftLabFab) elements.craftLabFab.style.display = hubName === 'bar' ? '' : 'none';
+
   // Toggle Nav Button Styles
   elements.bottomNav.querySelectorAll('.nav-hub-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-hub') === hubName);
@@ -1488,6 +1976,7 @@ function switchHub(hubName) {
 export function initAtelierApp() {
   initDom();
   setupEventListeners();
+  updateHostBadge();
   renderBarHub();
 }
 

@@ -24,14 +24,15 @@
         <div class="brand-crest">🍸</div>
         <div class="brand-text">
           <span class="brand-name">BarCraft</span>
-          <span class="brand-tag">v3 Atelier</span>
+          <span class="brand-tag">Atelier v3.1</span>
         </div>
       </div>
       <div class="header-right">
-        <span class="hud-pill" id="inStockPillCount">0 In Stock</span>
+        <span class="hud-pill stock-pill" id="inStockPillCount">0 in stock</span>
+        <button class="hud-btn lab-header-btn" id="craftLabHeaderBtn" title="Open Craft Lab">🧪 Lab</button>
         <button class="hud-btn" id="unitToggleBtn" title="Toggle Units (oz / ml)">oz</button>
         <button class="hud-btn host-mode-btn" id="hostModeBtn" title="Launch Guest Party Menu">🎉 Host</button>
-        <a href="../" class="hud-btn" style="text-decoration:none; color:var(--text-secondary); font-size:11px;" title="Switch to Classic Standard UI">Classic UI →</a>
+        <a href="../" class="hud-btn classic-link" title="Switch to Classic Standard UI">Classic</a>
       </div>
     </header>
 
@@ -119,9 +120,9 @@
   </div> <!-- End .atelier-app -->
 
   <!-- Floating Action Button: The Craft Lab (Riff Studio) -->
-  <button class="atelier-fab" id="craftLabFab" title="Open Craft Lab (Riff or Create Cocktails)">
+  <button class="atelier-fab" id="craftLabFab" title="Open Craft Lab (Riff or Create Cocktails)" aria-label="Open Craft Lab">
     <span>🧪</span>
-    <span>Craft Lab</span>
+    <span class="fab-label">Craft Lab</span>
   </button>
 
   <!-- ======================================================================
