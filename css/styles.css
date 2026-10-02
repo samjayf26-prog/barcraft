@@ -3359,3 +3359,396 @@ body {
   transform: scale(0.98);
 }
 
+
+/* ==========================================================================
+   v2.5 Polish Layer
+   Cleaner header, calmer surfaces, tidier filters, and consistent focus states.
+   ========================================================================== */
+:root {
+  --border-light: #ECE8E1;
+  --shadow-subtle: 0 1px 2px rgba(28, 27, 26, 0.04), 0 1px 1px rgba(28, 27, 26, 0.02);
+  --shadow-card: 0 6px 20px rgba(28, 27, 26, 0.07), 0 1px 3px rgba(28, 27, 26, 0.04);
+  --focus-ring: 0 0 0 3px rgba(255, 94, 30, 0.22);
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Header: brand on the left, actions wrap underneath on narrow screens */
+.app-header {
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 6px 0 18px 0;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  box-shadow: none;
+}
+
+.brand-icon::after {
+  width: 8px;
+  height: 8px;
+  top: -1px;
+  right: -1px;
+  box-shadow: 0 0 0 2px var(--bg-cream);
+}
+
+.brand-title {
+  font-size: 22px;
+  letter-spacing: -0.6px;
+  line-height: 1.1;
+}
+
+.brand-version {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-color: transparent;
+}
+
+.brand-subtitle {
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.header-actions {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.add-drink-btn,
+.mode-switch-btn,
+.unit-toggle-btn {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.add-drink-btn {
+  background: var(--accent-orange);
+  box-shadow: 0 2px 6px var(--accent-orange-glow);
+}
+
+.add-drink-btn:hover {
+  background: var(--accent-orange-hover);
+  filter: none;
+}
+
+.mode-switch-btn {
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.mode-switch-btn:hover {
+  border-color: #D6D1C8;
+  color: var(--text-primary);
+}
+
+.mode-switch-btn.mode-switch-accent {
+  background: #FFF6E6;
+  border-color: #F6DDB0;
+  color: #A4520A;
+}
+
+.unit-toggle-btn {
+  min-width: 40px;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .header-actions {
+    width: 100%;
+  }
+  .header-actions .add-drink-btn {
+    margin-right: auto;
+  }
+}
+
+/* Daily hero card */
+.daily-drink-card {
+  padding: 20px 20px 18px;
+  border-radius: 18px;
+  border-color: transparent;
+  box-shadow: 0 10px 30px rgba(28, 27, 26, 0.16);
+}
+
+.daily-drink-card::before {
+  opacity: 0.25;
+}
+
+.daily-badge-row {
+  margin-bottom: 12px;
+}
+
+.daily-tag {
+  font-size: 10.5px;
+  border-color: transparent;
+  background-color: rgba(255, 94, 30, 0.16);
+}
+
+.shuffle-btn {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.daily-drink-title {
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.daily-drink-summary {
+  color: #B9B5AD;
+  margin-bottom: 16px;
+}
+
+.daily-card-footer {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.daily-status-indicator .status-pill {
+  background: rgba(46, 125, 50, 0.16);
+  color: #8FD694;
+  border-color: transparent;
+}
+
+.daily-btn {
+  white-space: nowrap;
+  padding: 9px 18px;
+  margin-left: auto;
+  box-shadow: none;
+}
+
+.daily-btn:hover {
+  background: var(--accent-orange-hover);
+}
+
+/* Search & filters */
+.search-input {
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-subtle);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-input:focus {
+  border-color: var(--accent-orange);
+  box-shadow: var(--focus-ring);
+}
+
+.filter-scroll-row {
+  padding-bottom: 8px;
+}
+
+.filter-chip {
+  font-size: 12.5px;
+  padding: 6px 12px;
+}
+
+.filter-chip:hover:not(.active) {
+  border-color: #D6D1C8;
+  color: var(--text-primary);
+}
+
+.filter-chip .chip-count {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  background-color: var(--bg-cream-darker);
+}
+
+.secondary-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.secondary-filters.collapsed {
+  display: none;
+}
+
+.filter-select {
+  min-width: 0;
+  height: 38px;
+  font-size: 13px;
+  border-radius: 10px;
+  text-overflow: ellipsis;
+  transition: border-color 0.15s ease;
+}
+
+.filter-select:hover {
+  border-color: #D6D1C8;
+}
+
+@media (max-width: 600px) {
+  .secondary-filters {
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .secondary-filters::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Recipe cards */
+.recipe-list {
+  gap: 12px;
+}
+
+.recipe-card {
+  padding: 16px 18px;
+  border-radius: 16px;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.recipe-card:hover {
+  border-color: #E0DBD2;
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.recipe-title {
+  font-size: 17px;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+
+.recipe-meta-row {
+  color: var(--text-muted);
+}
+
+.ing-tag {
+  border-color: transparent;
+  background-color: var(--bg-cream);
+  color: #45423D;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+}
+
+.recipe-card-footer {
+  border-top-color: #F2EFE9;
+}
+
+.tag-label {
+  background: transparent;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+.tag-label + .tag-label::before {
+  content: '·';
+  margin-right: 6px;
+}
+
+/* Recipe detail sheet */
+.modal-sheet {
+  border-radius: 22px 22px 0 0;
+}
+
+.modal-title {
+  font-size: 24px;
+  letter-spacing: -0.6px;
+  line-height: 1.2;
+}
+
+.modal-close-btn {
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--bg-cream-darker);
+}
+
+.serving-scaler-box {
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--border-light);
+}
+
+.scaler-label {
+  font-size: 11.5px;
+}
+
+/* Bottom navigation: keep it aligned with the content column on wide screens */
+.bottom-nav {
+  padding-left: max(4px, calc((100vw - 720px) / 2));
+  padding-right: max(4px, calc((100vw - 720px) / 2));
+  background-color: rgba(255, 255, 255, 0.9);
+  border-top-color: var(--border-light);
+}
+
+.nav-item {
+  font-size: 10.5px;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.nav-item .nav-icon {
+  font-size: 20px;
+  line-height: 1.2;
+  filter: grayscale(0.35);
+  opacity: 0.75;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.nav-item.active .nav-icon {
+  filter: none;
+  opacity: 1;
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-card,
+  .recipe-card:hover,
+  .nav-item:active {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Inventory rows: keep price pills and stock toggles on one line */
+.inv-item-info {
+  min-width: 0;
+}
+
+.inv-price-tag,
+.inv-toggle-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Header actions scroll sideways instead of wrapping when space is tight */
+@media (max-width: 600px) {
+  .header-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .header-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .header-actions > * {
+    flex-shrink: 0;
+  }
+}
