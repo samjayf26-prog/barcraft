@@ -2845,6 +2845,31 @@ export const MASTER_RECIPES = [
       "Serve un-stirred with a lime wheel."
     ]
   },
+  {
+    id: "elderflower-bitters-spritz",
+    name: "Elderflower Bitters Spritz",
+    category: "Acid-Driven Sours & Smashes",
+    isFavorite: false,
+    glass: "Tall Highball Glass",
+    ice: "Fresh Ice Packed",
+    method: "Shake & Soda Top",
+    techniqueRule: "Low-proof, not a mocktail: St. Germain is ~20% ABV, so 1 oz in a tall spritz lands around 3% ABV (about a third of a standard drink). For lighter, use 0.5 oz and add extra soda. For zero-proof, swap in 0.5–0.75 oz elderflower cordial (e.g. Belvoir), which is sweeter and less intense than the liqueur.",
+    tags: ["Highball", "Low-ABV", "Floral", "Effervescent", "Refreshing"],
+    flavor: { boozy: 1, sweet: 3, sour: 3, bitter: 2, herbal: 4 },
+    ingredients: [
+      { id: "st-germain", name: "Elderflower Liqueur (St. Germain)", amount: 1.0, unit: "oz" },
+      { id: "orange-bitters", name: "Orange Bitters", amount: 3, unit: "dashes", note: "Or Angostura for a spicier take" },
+      { id: "lemon-juice", name: "Fresh Lemon Juice", amount: 0.75, unit: "oz" },
+      { id: "club-soda", name: "Club Soda", amount: 3.5, unit: "oz", note: "3–4 oz, top to fill (or dry tonic)" }
+    ],
+    instructions: [
+      "Shake St. Germain, bitters, and fresh lemon juice with ice for 10 seconds.",
+      "Strain into a tall glass over fresh ice.",
+      "Top with cold soda water (or dry tonic) and lift once with a barspoon.",
+      "Garnish with a lemon twist."
+    ],
+    timer: { type: "shake", seconds: 10, label: "10s Shake" }
+  },
 
   // ==========================================
   // V. ZERO-PROOF DIVISION (Mocktails)
