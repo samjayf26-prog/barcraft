@@ -66,7 +66,7 @@ const INGREDIENT_COLORS = {
   'vodka': ['#E4EEF5', 0.14], 'white-rum': ['#EEF2F4', 0.14], 'rhum-agricole': ['#EEF0E6', 0.16], 'cachaca': ['#EEF0E6', 0.16],
   'pisco': ['#F1EEDD', 0.16], 'tequila-blanco': ['#EAF1EE', 0.16], 'tequila-reposado': ['#E9C46A', 0.5], 'mezcal': ['#E7E5D3', 0.22],
   'bourbon': ['#C26A1E', 0.82], 'rye-whiskey': ['#B85C1C', 0.82], 'blended-scotch': ['#C98A2B', 0.72], 'islay-scotch': ['#B9832D', 0.75],
-  'cognac': ['#A8521A', 0.84], 'applejack': ['#C77B2A', 0.72], 'dark-rum': ['#4A1E08', 0.94],
+  'cognac': ['#A8521A', 0.84], 'jamaican-rum': ['#C7802E', 0.68], 'applejack': ['#C77B2A', 0.72], 'dark-rum': ['#4A1E08', 0.94],
   // Modifiers & liqueurs
   'sweet-vermouth': ['#6E1A16', 0.9], 'dry-vermouth': ['#EDE6B8', 0.3], 'lillet-blanc': ['#F2D77E', 0.5],
   'campari': ['#D0102C', 0.9], 'aperol': ['#FF5A1F', 0.86], 'cynar': ['#3B2412', 0.92], 'averna-amaro': ['#2E1A0E', 0.94],
@@ -81,14 +81,14 @@ const INGREDIENT_COLORS = {
   'lime-juice': ['#D7E79C', 0.7], 'lemon-juice': ['#F6E9A2', 0.72], 'grapefruit-juice': ['#F6A99A', 0.78],
   'pineapple-juice': ['#F6CF4F', 0.88], 'cranberry-juice': ['#A3102F', 0.92], 'cold-brew': ['#2B170B', 0.97], 'fresh-espresso': ['#2A150A', 0.98],
   'simple-syrup': ['#F4F4EE', 0.14], 'brown-simple-syrup': ['#B0702A', 0.6], 'agave-syrup': ['#E8B95A', 0.45], 'honey-syrup': ['#E0A526', 0.65],
-  'honey-ginger-syrup': ['#DDA336', 0.68], 'maple-syrup': ['#9A5414', 0.8], 'raspberry-syrup': ['#B5123E', 0.9], 'orgeat': ['#F2EADB', 0.88],
+  'honey-ginger-syrup': ['#DDA336', 0.68], 'apple-cider-syrup': ['#9A4E17', 0.82], 'maple-syrup': ['#9A5414', 0.8], 'raspberry-syrup': ['#B5123E', 0.9], 'orgeat': ['#F2EADB', 0.88],
   'heavy-cream': ['#FBF6EA', 0.97], 'cream-of-coconut': ['#FAF6EC', 0.96],
   // Mixers
   'club-soda': ['#E8F3FA', 0.1], 'ginger-beer': ['#E9D7A1', 0.6], 'tonic-water': ['#EEF5F8', 0.12],
   // Bitters
   'angostura-bitters': ['#5A1309', 0.95], 'orange-bitters': ['#C8561C', 0.85], 'peychauds-bitters': ['#C3172E', 0.9],
   'chocolate-bitters': ['#3B1F10', 0.95], 'blood-orange-bitters': ['#B42A1E', 0.9], 'lime-bitters': ['#8AAE3A', 0.85],
-  'apple-bitters': ['#B8862E', 0.85], 'spicy-bitters': ['#8E2A10', 0.9], 'australian-bitters': ['#6B2A12', 0.9],
+  'apple-bitters': ['#B8862E', 0.85], 'black-walnut-bitters': ['#3A2414', 0.95], 'spicy-bitters': ['#8E2A10', 0.9], 'australian-bitters': ['#6B2A12', 0.9],
   // Produce
   'fresh-mint': ['#3E9B4F', 1], 'fresh-basil': ['#2F8A45', 1], 'fresh-raspberries': ['#C2224A', 1], 'fresh-strawberries': ['#E0393E', 1],
   'fresh-ginger-root': ['#E9D29A', 1], 'fresh-peach': ['#F5A86B', 1], 'fresh-eggs': ['#F4EAD2', 1]
@@ -388,6 +388,7 @@ function detectGarnish(recipe) {
   if (/onion/.test(text)) g.onion = { count: /two|onions/.test(text) ? 2 : 1 };
   if (/mint/.test(text)) g.mint = { bouquet: /bouquet|generous|sprigs/.test(text) };
   if (/pineapple/.test(text)) g.pineapple = true;
+  if (/apple (slice|slices|fan|wheel|chip)/.test(text) && !/pineapple (slice|wheel)/.test(text)) g.apple = { dried: /dehydrated|dried/.test(text) };
   if (/blackberr|raspberr|berries/.test(text)) g.berries = /blackberr/.test(text) ? 'black' : 'rasp';
   if (/candied ginger/.test(text)) g.ginger = true;
   if (/nutmeg|cinnamon/.test(text)) g.dust = 'spice';
@@ -630,6 +631,49 @@ const GARNISH_ART = {
       return d;
     };
     return { defs: '', body: `<line x1="-20" y1="-16" x2="14" y2="8" stroke="#D8C08A" stroke-width="1.3" stroke-linecap="round"/>${berry(-5, -5)}${berry(6, 3)}` };
+  },
+
+  apple(uid, { dried }) {
+    const id = `${uid}-apple`;
+    const defs = `
+      <radialGradient id="${id}-flesh" cx="0.5" cy="0.45" r="0.6">
+        <stop offset="0" stop-color="${dried ? '#F6D58A' : '#FFF8E2'}"/><stop offset="1" stop-color="${dried ? '#D9A24A' : '#F1E3B8'}"/>
+      </radialGradient>
+      <linearGradient id="${id}-skin" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#D8323C"/><stop offset="0.6" stop-color="#A3161F"/><stop offset="1" stop-color="#6E0C14"/>
+      </linearGradient>`;
+    if (dried) {
+      // Translucent dehydrated cross-section: wavy red edge, golden flesh, star-shaped core
+      let edge = '';
+      for (let k = 0; k <= 36; k++) {
+        const a = (k / 36) * Math.PI * 2;
+        const r = 12.5 + Math.sin(k * 2.7) * 0.6;
+        edge += `${k ? 'L' : 'M'} ${(Math.cos(a) * r).toFixed(2)} ${(Math.sin(a) * r).toFixed(2)} `;
+      }
+      let star = '';
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2 - Math.PI / 2;
+        star += `<ellipse cx="${(Math.cos(a) * 2.6).toFixed(2)}" cy="${(Math.sin(a) * 2.6).toFixed(2)}" rx="1.9" ry="0.8" transform="rotate(${(a * 180 / Math.PI).toFixed(0)} ${(Math.cos(a) * 2.6).toFixed(2)} ${(Math.sin(a) * 2.6).toFixed(2)})" fill="rgba(140,80,20,0.55)"/>`;
+        star += `<ellipse cx="${(Math.cos(a) * 2.8).toFixed(2)}" cy="${(Math.sin(a) * 2.8).toFixed(2)}" rx="0.7" ry="0.4" transform="rotate(${(a * 180 / Math.PI).toFixed(0)} ${(Math.cos(a) * 2.8).toFixed(2)} ${(Math.sin(a) * 2.8).toFixed(2)})" fill="#4A2A10"/>`;
+      }
+      const body = `
+        <path d="${edge}Z" fill="url(#${id}-skin)" opacity="0.9"/>
+        <circle r="11.4" fill="url(#${id}-flesh)" opacity="0.92"/>
+        <circle r="6.5" fill="none" stroke="rgba(160,100,30,0.25)" stroke-width="0.6"/>
+        ${star}
+        <path d="M -8 -6 A 10 10 0 0 1 1 -10" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.9" stroke-linecap="round"/>`;
+      return { defs, body };
+    }
+    // A fan of three thin slices: red skin along the curve, pale flesh, a seed or two
+    const slice = (rot, dx, dy) => `
+      <g transform="translate(${dx} ${dy}) rotate(${rot})">
+        <path d="M -13 0 A 13 9 0 0 1 13 0 Z" fill="url(#${id}-flesh)"/>
+        <path d="M -13 0 A 13 9 0 0 1 13 0" fill="none" stroke="url(#${id}-skin)" stroke-width="1.8"/>
+        <path d="M -4 0 Q 0 -4.5 4 0" fill="none" stroke="rgba(190,160,90,0.45)" stroke-width="0.6"/>
+        <ellipse cx="-1.4" cy="-1.6" rx="0.7" ry="1.1" fill="#4A2A10"/>
+        <path d="M -10 -1.5 A 11 7 0 0 1 -2 -7.2" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="0.6" stroke-linecap="round"/>
+      </g>`;
+    return { defs, body: slice(-28, -6, 3) + slice(0, 0, 0) + slice(26, 6, 3) };
   },
 
   ginger() {
@@ -1103,6 +1147,10 @@ export class GlassViz {
     const surfaceTop = g.toScreenY(Math.max(this.liquidTopY, this.mainTopY + this.foamHeight));
     if (gar.wheel) add(GARNISH_ART.wheel(this.uid, gar.wheel), g.cx + rimR - 4, g.rimY + 2, -16);
     else if (gar.twist) add(GARNISH_ART.twist(this.uid, gar.twist), g.cx + rimR - 20, g.rimY - 3, 6);
+    if (gar.apple) {
+      const onLeft = Boolean(gar.wheel || gar.twist);
+      add(GARNISH_ART.apple(this.uid, gar.apple), onLeft ? g.cx - rimR + 6 : g.cx + rimR - 8, g.rimY - (gar.apple.dried ? -2 : 4), onLeft ? 18 : -14, false, 0.95);
+    }
     if (gar.pineapple) add(GARNISH_ART.pineapple(this.uid), g.cx - rimR + 8, g.rimY + 2, -14, false, 0.9);
     if (gar.cherry) {
       const restY = this.iceType === 'none' ? g.floorY - 7.5 : g.rimY + 4;

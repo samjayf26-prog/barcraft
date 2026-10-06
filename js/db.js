@@ -1124,6 +1124,36 @@ export const INITIAL_INVENTORY = [
     "suggestedPrice": "$2\u2013$3",
     "defaultListType": "wishlist",
     "valueRationale": "Muddle with gin and lemon for the vibrant green Gin Basil Smash."
+  },
+  {
+    "id": "jamaican-rum",
+    "name": "Jamaican Rum",
+    "category": "Base Spirits",
+    "inStock": false,
+    "benchmark": "Appleton Estate Signature",
+    "suggestedPrice": "$22\u2013$28",
+    "defaultListType": "wishlist",
+    "valueRationale": "Golden Jamaican pot-and-column blend with orange peel, molasses, and gentle funk. Lifts rum sours without the heaviness of a black rum."
+  },
+  {
+    "id": "apple-cider-syrup",
+    "name": "Apple Cider Syrup",
+    "category": "Syrups",
+    "inStock": false,
+    "benchmark": "Homemade: 4 cups unfiltered cider + 1 cinnamon stick, reduced to ~1 cup",
+    "suggestedPrice": "$5 DIY",
+    "defaultListType": "staples",
+    "valueRationale": "Bring 4 cups unfiltered apple cider to a boil with 1 cinnamon stick. Reduce until about 1 cup remains (60\u201390 minutes). Remove the cinnamon, add a pinch of salt, strain, cool, and store in the fridge. Concentrated orchard sweetness for fall Old Fashioneds, Manhattans, and sours."
+  },
+  {
+    "id": "black-walnut-bitters",
+    "name": "Black Walnut Bitters",
+    "category": "Bitters",
+    "inStock": false,
+    "benchmark": "Fee Brothers Black Walnut",
+    "suggestedPrice": "$9\u2013$12",
+    "defaultListType": "wishlist",
+    "valueRationale": "Toasted nut, dark spice, and a faint sweetness. A natural partner for bourbon, apple, and maple."
   }
 ];
 
@@ -2869,6 +2899,84 @@ export const MASTER_RECIPES = [
       "Garnish with a lemon twist."
     ],
     timer: { type: "shake", seconds: 10, label: "10s Shake" }
+  },
+
+  {
+    id: "apple-old-fashioned",
+    name: "The Apple Old Fashioned",
+    category: "Spirit-Forward & Stirred",
+    isFavorite: false,
+    glass: "Rocks Glass",
+    ice: "Single Large Cube",
+    method: "Stir 30s",
+    techniqueRule: "Reduced apple cider syrup stands in for sugar, bringing concentrated orchard fruit and a whisper of cinnamon. Black walnut bitters add a toasted, nutty depth under the double-oaked bourbon.",
+    tags: ["Spirit-Forward", "Whiskey", "Apple", "Fall", "Stirred"],
+    flavor: { boozy: 5, sweet: 3, sour: 0, bitter: 2, herbal: 2 },
+    ingredients: [
+      { id: "bourbon", name: "Bourbon (Woodford Reserve Double Oaked)", amount: 2.0, unit: "oz" },
+      { id: "apple-cider-syrup", name: "Apple Cider Syrup", amount: 0.5, unit: "oz", note: "Homemade, see Backbar" },
+      { id: "angostura-bitters", name: "Angostura Aromatic Bitters", amount: 1, unit: "dash" },
+      { id: "black-walnut-bitters", name: "Black Walnut Bitters", amount: 1, unit: "dash" }
+    ],
+    instructions: [
+      "Combine bourbon, apple cider syrup, and both bitters in a mixing glass with ice.",
+      "Stir for 30 seconds until well chilled.",
+      "Strain into a rocks glass over a single large cube.",
+      "Express orange oils over the drink and garnish with apple slices."
+    ],
+    timer: { type: "stir", seconds: 30, label: "30s Stir Timer" }
+  },
+  {
+    id: "upstate-manhattan",
+    name: "The Upstate Manhattan",
+    category: "Spirit-Forward & Stirred",
+    isFavorite: false,
+    glass: "Nick & Nora or Coupe",
+    ice: "None (Chilled Glass)",
+    method: "Stir 30s",
+    techniqueRule: "A quarter ounce of apple cider syrup rounds out 100-proof rye and rich Torino vermouth, turning a classic Manhattan into an orchard-country nightcap.",
+    tags: ["Spirit-Forward", "Whiskey", "Apple", "Fall", "Stirred"],
+    flavor: { boozy: 5, sweet: 3, sour: 0, bitter: 3, herbal: 3 },
+    ingredients: [
+      { id: "rye-whiskey", name: "Rye Whiskey (Rittenhouse 100 Proof)", amount: 2.0, unit: "oz" },
+      { id: "sweet-vermouth", name: "Sweet Vermouth (Cocchi di Torino)", amount: 0.75, unit: "oz" },
+      { id: "apple-cider-syrup", name: "Apple Cider Syrup", amount: 0.25, unit: "oz", note: "Homemade, see Backbar" },
+      { id: "angostura-bitters", name: "Angostura Aromatic Bitters", amount: 1, unit: "dash" },
+      { id: "orange-bitters", name: "Orange Bitters (Regan's No. 6)", amount: 1, unit: "dash" }
+    ],
+    instructions: [
+      "Combine rye, sweet vermouth, apple cider syrup, and both bitters in a mixing glass with ice.",
+      "Stir for 30 seconds until well chilled.",
+      "Strain into a chilled Nick & Nora or coupe.",
+      "Garnish with apple slices."
+    ],
+    timer: { type: "stir", seconds: 30, label: "30s Stir Timer" }
+  },
+  {
+    id: "kingston-windfall",
+    name: "The Kingston Windfall",
+    category: "Acid-Driven Sours & Smashes",
+    isFavorite: false,
+    glass: "Coupe",
+    ice: "None (Chilled Glass)",
+    method: "Hard Shake 12s",
+    techniqueRule: "A Jamaican rum sour sweetened two ways: apple cider syrup for fruit and spice, rich 3:1 honey syrup for body. Shake hard so the honey fully dissolves.",
+    tags: ["Rum", "Sour", "Apple", "Honey", "Fall", "Shaken"],
+    flavor: { boozy: 3, sweet: 3, sour: 4, bitter: 1, herbal: 2 },
+    ingredients: [
+      { id: "jamaican-rum", name: "Jamaican Rum (Appleton Estate Signature)", amount: 1.5, unit: "oz" },
+      { id: "lemon-juice", name: "Fresh Lemon Juice", amount: 0.75, unit: "oz" },
+      { id: "apple-cider-syrup", name: "Apple Cider Syrup", amount: 0.75, unit: "oz", note: "Homemade, see Backbar" },
+      { id: "honey-syrup", name: "Honey Syrup", amount: 0.25, unit: "oz", note: "Rich 3:1 honey:water" },
+      { id: "angostura-bitters", name: "Angostura Aromatic Bitters", amount: 1, unit: "dash" }
+    ],
+    instructions: [
+      "Combine rum, lemon juice, apple cider syrup, rich honey syrup, and bitters in a shaker.",
+      "Fill with ice and shake hard for 12 seconds.",
+      "Strain into a chilled coupe.",
+      "Garnish with a dehydrated apple slice."
+    ],
+    timer: { type: "shake", seconds: 12, label: "12s Shake" }
   },
 
   // ==========================================
@@ -7088,6 +7196,66 @@ export const SUBSTITUTION_KNOWLEDGE_BASE = [
     confidenceLabel: "Acceptable Alternative",
     title: "Club Soda for Ginger Beer",
     flavorNote: "Provides effervescence without ginger heat and sugar. Add a dash of aromatic bitters or ginger syrup if available.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "apple-cider-syrup-to-maple",
+    originalId: "apple-cider-syrup",
+    substituteId: "maple-syrup",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Maple Syrup for Apple Cider Syrup",
+    flavorNote: "Keeps the fall warmth and body but loses the bright apple. Add a dash of apple bitters if you have them.",
+    ratioAdjustment: "Use about two-thirds the amount; maple is sweeter than reduced cider."
+  },
+  {
+    id: "apple-cider-syrup-to-honey",
+    originalId: "apple-cider-syrup",
+    substituteId: "honey-syrup",
+    confidence: "creative",
+    confidenceLabel: "Creative Twist",
+    title: "Honey Syrup for Apple Cider Syrup",
+    flavorNote: "Floral rather than fruity. Works best in the Kingston Windfall, where honey is already in the mix.",
+    ratioAdjustment: "1:1 ratio."
+  },
+  {
+    id: "black-walnut-to-chocolate",
+    originalId: "black-walnut-bitters",
+    substituteId: "chocolate-bitters",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Chocolate Bitters for Black Walnut Bitters",
+    flavorNote: "Similar dark, roasted, nutty depth that pairs naturally with bourbon and apple.",
+    ratioAdjustment: "1:1 dash for dash."
+  },
+  {
+    id: "black-walnut-to-angostura",
+    originalId: "black-walnut-bitters",
+    substituteId: "angostura-bitters",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "An Extra Dash of Angostura for Black Walnut Bitters",
+    flavorNote: "Loses the nutty note but keeps the drink balanced and aromatic.",
+    ratioAdjustment: "1:1 dash for dash."
+  },
+  {
+    id: "jamaican-rum-to-dark-rum",
+    originalId: "jamaican-rum",
+    substituteId: "dark-rum",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Dark Rum for Jamaican Rum",
+    flavorNote: "Heavier molasses and a darker color, but the same Caribbean backbone.",
+    ratioAdjustment: "1:1 ratio, or split 1 oz dark rum + 0.5 oz white rum to lighten it."
+  },
+  {
+    id: "jamaican-rum-to-white-rum",
+    originalId: "jamaican-rum",
+    substituteId: "white-rum",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "Multi-Island White Rum for Jamaican Rum",
+    flavorNote: "A blend with Jamaican pot-still (like Planteray 3 Stars) keeps the funk in a lighter, brighter sour.",
     ratioAdjustment: "1:1 ratio."
   }
 ];

@@ -147,6 +147,7 @@ const INGREDIENT_ABV = {
   'cognac': 40,
   'pisco': 42,
   'applejack': 50,
+  'jamaican-rum': 40,
   'campari': 25,
   'aperol': 11,
   'sweet-vermouth': 16,
