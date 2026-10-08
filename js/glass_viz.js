@@ -62,7 +62,7 @@ export function resolveGlassType(glassText = '') {
 // ----------------------------------------------------------------------------
 const INGREDIENT_COLORS = {
   // Base spirits
-  'london-dry-gin': ['#DCEBF5', 0.16], 'old-tom-gin': ['#EFE7CF', 0.2], 'barrel-rested-gin': ['#E3B866', 0.5],
+  'london-dry-gin': ['#DCEBF5', 0.16], 'plymouth-gin': ['#E6EEF0', 0.16], 'old-tom-gin': ['#EFE7CF', 0.2], 'barrel-rested-gin': ['#E3B866', 0.5],
   'vodka': ['#E4EEF5', 0.14], 'white-rum': ['#EEF2F4', 0.14], 'rhum-agricole': ['#EEF0E6', 0.16], 'cachaca': ['#EEF0E6', 0.16],
   'pisco': ['#F1EEDD', 0.16], 'tequila-blanco': ['#EAF1EE', 0.16], 'tequila-reposado': ['#E9C46A', 0.5], 'mezcal': ['#E7E5D3', 0.22],
   'bourbon': ['#C26A1E', 0.82], 'rye-whiskey': ['#B85C1C', 0.82], 'blended-scotch': ['#C98A2B', 0.72], 'islay-scotch': ['#B9832D', 0.75],

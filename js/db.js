@@ -1126,6 +1126,16 @@ export const INITIAL_INVENTORY = [
     "valueRationale": "Muddle with gin and lemon for the vibrant green Gin Basil Smash."
   },
   {
+    "id": "plymouth-gin",
+    "name": "Plymouth Gin",
+    "category": "Base Spirits",
+    "inStock": false,
+    "benchmark": "Plymouth Original Dry",
+    "suggestedPrice": "$30\u2013$36",
+    "defaultListType": "wishlist",
+    "valueRationale": "Softer, earthier, and less juniper-forward than London Dry, with a rounder citrus and root character. Lets delicate modifiers like elderflower lead."
+  },
+  {
     "id": "jamaican-rum",
     "name": "Jamaican Rum",
     "category": "Base Spirits",
@@ -2977,6 +2987,55 @@ export const MASTER_RECIPES = [
       "Garnish with a dehydrated apple slice."
     ],
     timer: { type: "shake", seconds: 12, label: "12s Shake" }
+  },
+  {
+    id: "elder-fashioned",
+    name: "The Elder Fashioned",
+    category: "Spirit-Forward & Stirred",
+    isFavorite: false,
+    glass: "Rocks Glass",
+    ice: "Single Large Cube",
+    method: "Stir 30s",
+    techniqueRule: "St. Germain does most of the sweetening, so the semi-rich syrup (1.5:1 sugar:water) is just half a barspoon to round out the bourbon. Elderflower's pear and lychee notes pick up the vanilla in Elijah Craig.",
+    tags: ["Spirit-Forward", "Whiskey", "Floral", "Elderflower", "Stirred"],
+    flavor: { boozy: 5, sweet: 3, sour: 0, bitter: 2, herbal: 3 },
+    ingredients: [
+      { id: "bourbon", name: "Bourbon (Elijah Craig Small Batch)", amount: 2.0, unit: "oz" },
+      { id: "st-germain", name: "Elderflower Liqueur (St. Germain)", amount: 0.5, unit: "oz" },
+      { id: "simple-syrup", name: "Simple Syrup", amount: 0.5, unit: "barspoon", note: "Semi-rich 1.5:1 sugar:water" },
+      { id: "orange-bitters", name: "Orange Bitters (Regan's No. 6)", amount: 1, unit: "dash" }
+    ],
+    instructions: [
+      "Combine bourbon, St. Germain, semi-rich simple syrup, and orange bitters in a mixing glass with ice.",
+      "Stir for 30 seconds until well chilled.",
+      "Strain into a rocks glass over a single large cube.",
+      "Express orange oils over the drink and garnish with the orange peel."
+    ],
+    timer: { type: "stir", seconds: 30, label: "30s Stir Timer" }
+  },
+  {
+    id: "elder-fashion",
+    name: "The Elder Fashion",
+    category: "Spirit-Forward & Stirred",
+    isFavorite: false,
+    glass: "Rocks Glass",
+    ice: "Single Large Cube",
+    method: "Stir 30s",
+    techniqueRule: "The gin take on the Elder Fashioned: no added syrup, since the St. Germain carries all the sweetness. Soft Plymouth gin lets the elderflower lead, and grapefruit oils tie the two together.",
+    tags: ["Spirit-Forward", "Gin", "Floral", "Elderflower", "Stirred"],
+    flavor: { boozy: 4, sweet: 3, sour: 0, bitter: 2, herbal: 4 },
+    ingredients: [
+      { id: "plymouth-gin", name: "Plymouth Gin", amount: 2.0, unit: "oz" },
+      { id: "st-germain", name: "Elderflower Liqueur (St. Germain)", amount: 0.5, unit: "oz" },
+      { id: "orange-bitters", name: "Orange Bitters (Regan's No. 6)", amount: 2, unit: "dashes" }
+    ],
+    instructions: [
+      "Combine Plymouth gin, St. Germain, and orange bitters in a mixing glass with ice.",
+      "Stir for 30 seconds until well chilled.",
+      "Strain into a rocks glass over a single large cube.",
+      "Express grapefruit oils over the drink and garnish with the grapefruit peel."
+    ],
+    timer: { type: "stir", seconds: 30, label: "30s Stir Timer" }
   },
 
   // ==========================================
@@ -7237,6 +7296,26 @@ export const SUBSTITUTION_KNOWLEDGE_BASE = [
     title: "An Extra Dash of Angostura for Black Walnut Bitters",
     flavorNote: "Loses the nutty note but keeps the drink balanced and aromatic.",
     ratioAdjustment: "1:1 dash for dash."
+  },
+  {
+    id: "plymouth-to-london-dry",
+    originalId: "plymouth-gin",
+    substituteId: "london-dry-gin",
+    confidence: "recommended",
+    confidenceLabel: "Recommended Match",
+    title: "London Dry Gin for Plymouth Gin",
+    flavorNote: "More juniper and a sharper edge, so the elderflower sits a little further back. Still a great drink.",
+    ratioAdjustment: "1:1 ratio, or pull back to 1.75 oz with a bolder gin like Tanqueray."
+  },
+  {
+    id: "plymouth-to-old-tom",
+    originalId: "plymouth-gin",
+    substituteId: "old-tom-gin",
+    confidence: "acceptable",
+    confidenceLabel: "Acceptable Alternative",
+    title: "Old Tom Gin for Plymouth Gin",
+    flavorNote: "Similarly soft and round, but slightly sweeter. Pairs nicely with the elderflower.",
+    ratioAdjustment: "1:1 ratio."
   },
   {
     id: "jamaican-rum-to-dark-rum",

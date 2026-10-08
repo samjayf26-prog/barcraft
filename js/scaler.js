@@ -43,6 +43,16 @@ export function formatFractionalOz(amount) {
   return `${rounded} oz`;
 }
 
+// Fractional counts for non-oz units ("0.5 barspoon" -> "½ barspoon")
+const UNIT_FRACTIONS = { 0.25: '¼', 0.33: '⅓', 0.5: '½', 0.66: '⅔', 0.75: '¾' };
+function formatCount(amount) {
+  const rounded = Math.round(amount * 100) / 100;
+  const whole = Math.floor(rounded);
+  const frac = UNIT_FRACTIONS[Math.round((rounded - whole) * 100) / 100];
+  if (frac) return whole > 0 ? `${whole}${frac}` : frac;
+  return String(rounded);
+}
+
 export function ozToMl(ozAmount) {
   // Standard Difford's & global craft cocktail rounding
   const standardConversions = {
@@ -77,7 +87,8 @@ export function formatAmount(amount, unit = 'oz', ingUnit = 'oz') {
     }
     return formatFractionalOz(amount);
   }
-  return `${amount} ${ingUnit}`.trim();
+  const unitLabel = ingUnit === 'barspoon' && amount > 1 ? 'barspoons' : ingUnit;
+  return `${typeof amount === 'number' ? formatCount(amount) : amount} ${unitLabel}`.trim();
 }
 
 /**
@@ -116,7 +127,7 @@ export function scaleIngredient(ingredient, multiplier = 1, unit = 'oz') {
   } else {
     // Fallback or top up
     scaled.displayText = ingredient.amount 
-      ? `${ingredient.amount * multiplier} ${ingredient.unit}`
+      ? `${formatCount(ingredient.amount * multiplier)} ${ingredient.unit === 'barspoon' && ingredient.amount * multiplier > 1 ? 'barspoons' : ingredient.unit}`
       : (ingredient.note || 'To taste');
   }
 
@@ -148,6 +159,7 @@ const INGREDIENT_ABV = {
   'pisco': 42,
   'applejack': 50,
   'jamaican-rum': 40,
+  'plymouth-gin': 41,
   'campari': 25,
   'aperol': 11,
   'sweet-vermouth': 16,
