@@ -3038,6 +3038,33 @@ export const MASTER_RECIPES = [
     timer: { type: "stir", seconds: 30, label: "30s Stir Timer" }
   },
 
+  {
+    id: "smoke-in-the-pines",
+    name: "Smoke in the Pines",
+    category: "Acid-Driven Sours & Smashes",
+    isFavorite: false,
+    glass: "Coupe",
+    ice: "None (Chilled Glass)",
+    method: "Hard Shake 12s",
+    techniqueRule: "Gin stays the backbone while a half ounce of mezcal adds just enough smoke to contrast the fresh botanicals. Black walnut bitters bridge the two with a darker, toasted note, and the apple-cinnamon syrup rounds it out.",
+    tags: ["Gin", "Mezcal", "Herbal", "Smoky", "Sour", "Fall", "Shaken"],
+    flavor: { boozy: 4, sweet: 2, sour: 3, bitter: 2, herbal: 4 },
+    ingredients: [
+      { id: "london-dry-gin", name: "London Dry Gin", amount: 1.5, unit: "oz" },
+      { id: "mezcal", name: "Mezcal", amount: 0.5, unit: "oz" },
+      { id: "apple-cider-syrup", name: "Apple Cider Syrup", amount: 0.5, unit: "oz", note: "Apple-cinnamon; homemade, see Backbar" },
+      { id: "lemon-juice", name: "Fresh Lemon Juice", amount: 0.75, unit: "oz" },
+      { id: "black-walnut-bitters", name: "Black Walnut Bitters", amount: 1, unit: "dash" }
+    ],
+    instructions: [
+      "Combine gin, mezcal, apple cider syrup, lemon juice, and black walnut bitters in a shaker.",
+      "Fill with ice and shake hard for 12 seconds.",
+      "Strain into a chilled coupe.",
+      "Express a lemon peel over the drink and garnish with the peel and a small rosemary sprig."
+    ],
+    timer: { type: "shake", seconds: 12, label: "12s Shake" }
+  },
+
   // ==========================================
   // V. ZERO-PROOF DIVISION (Mocktails)
   // ==========================================

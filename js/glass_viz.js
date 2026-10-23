@@ -387,6 +387,7 @@ function detectGarnish(recipe) {
   if (/olive/.test(text)) g.olive = { count: /two|olives/.test(text) ? 2 : 1 };
   if (/onion/.test(text)) g.onion = { count: /two|onions/.test(text) ? 2 : 1 };
   if (/mint/.test(text)) g.mint = { bouquet: /bouquet|generous|sprigs/.test(text) };
+  if (/rosemary/.test(text)) g.rosemary = true;
   if (/pineapple/.test(text)) g.pineapple = true;
   if (/apple (slice|slices|fan|wheel|chip)/.test(text) && !/pineapple (slice|wheel)/.test(text)) g.apple = { dried: /dehydrated|dried/.test(text) };
   if (/blackberr|raspberr|berries/.test(text)) g.berries = /blackberr/.test(text) ? 'black' : 'rasp';
@@ -591,6 +592,35 @@ const GARNISH_ART = {
     const body = bouquet
       ? sprig(-8, 4, -14, 1) + sprig(6, 6, 12, 0.92) + sprig(-1, 2, 0, 1.08)
       : sprig(0, 4, -6, 1);
+    return { defs, body };
+  },
+
+  rosemary(uid) {
+    const id = `${uid}-rosemary`;
+    const defs = `
+      <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#2F5A36"/><stop offset="0.5" stop-color="#4E7E4E"/><stop offset="1" stop-color="#8FB08A"/>
+      </linearGradient>
+      <linearGradient id="${id}-stem" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#6B5232"/><stop offset="1" stop-color="#5E7A4A"/>
+      </linearGradient>`;
+    // A woody stem lined with narrow needles that shorten toward the tip
+    const len = 36;
+    let needles = '';
+    for (let i = 0; i < 26; i++) {
+      const t = i / 25;
+      const y = -2 - t * (len - 3);
+      const side = i % 2 ? 1 : -1;
+      const nl = 7.5 - t * 3.6;
+      const ang = side * (58 - t * 20);
+      needles += `<g transform="translate(${(Math.sin(t * 2.2) * 1.2).toFixed(2)} ${y.toFixed(2)}) rotate(${ang.toFixed(1)})">
+        <path d="M 0 0 Q 0.9 ${(-nl * 0.5).toFixed(2)} 0 ${(-nl).toFixed(2)} Q -0.9 ${(-nl * 0.5).toFixed(2)} 0 0 Z" fill="url(#${id})"/>
+        <path d="M 0 -0.4 L 0 ${(-nl + 0.6).toFixed(2)}" stroke="rgba(200,225,195,0.45)" stroke-width="0.25"/>
+      </g>`;
+    }
+    const body = `
+      <path d="M 0 2 C 0.8 -10, 2.2 -22, 1.2 -${len}" fill="none" stroke="url(#${id}-stem)" stroke-width="1.5" stroke-linecap="round"/>
+      ${needles}`;
     return { defs, body };
   },
 
@@ -1160,6 +1190,7 @@ export class GlassViz {
     if (gar.onion) add(GARNISH_ART.onion(this.uid, gar.onion), g.cx - 2, g.rimY + Math.min(26, g.height * 0.36), 0, true);
     if (gar.berries) add(GARNISH_ART.berries(this.uid, gar.berries), g.cx + 4, g.rimY - 2, 0);
     if (gar.ginger) add(GARNISH_ART.ginger(this.uid), g.cx + rimR - 10, g.rimY - 4, 0);
+    if (gar.rosemary) add(GARNISH_ART.rosemary(this.uid), g.cx - g.radiusAt(g.height) * 0.45, g.rimY + 6, -16, false, 1.05);
     if (gar.mint) add(GARNISH_ART.mint(this.uid, gar.mint), g.cx - rimR * 0.42, g.rimY + 8, -8, false, 1.05);
     if (gar.beans) add(GARNISH_ART.beans(this.uid), g.cx, surfaceTop - 1, 0, true);
 
