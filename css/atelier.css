@@ -2521,7 +2521,12 @@ select.lab-input {
    ========================================================================== */
 :root {
   --tex-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.96  0 0 0 0 0.9  0 0 0 0 0.8  0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --tex-wood: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='160'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.18' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.07  0 0 0 0 0.03  1.3 0 0 0 -0.45'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
+  /* Seasoned cast iron: fine bright speckle over shallow pitting */
+  --tex-iron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='i'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.86  0 0 0 0 0.83  0 0 0 0 0.79  0 0 0 1.4 -0.98'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23i)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.04  0 0 0 0 0.03  0 0 0 -1.6 0.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  /* Brushed copper: horizontal streaks plus an angled sheen */
+  --tex-brushed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='80'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.9' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 0.94  0 0 0 0 0.88  0.7 0 0 0 -0.38'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  --metal-iron: linear-gradient(180deg, #3B3632 0%, #2B2724 55%, #221F1C 100%);
+  --metal-copper: linear-gradient(105deg, transparent 28%, rgba(255, 238, 220, 0.3) 44%, transparent 60%), linear-gradient(180deg, #E6A57C 0%, #C9794C 40%, #A85A36 72%, #C7835A 100%);
   --tex-linen: repeating-linear-gradient(0deg, rgba(255, 240, 215, 0.018) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(255, 240, 215, 0.014) 0 1px, transparent 1px 3px);
 
   --bg-canvas: #1F1712;
@@ -2607,18 +2612,19 @@ body {
   border-color: rgba(207, 132, 76, 0.35);
 }
 
-/* Header and bottom nav read like oiled wood */
+/* Bottom nav and logo badge in seasoned cast iron, edged in copper */
 .atelier-bottom-nav {
-  background-color: rgba(41, 29, 21, 0.94);
-  background-image: var(--tex-wood), linear-gradient(180deg, rgba(255, 230, 190, 0.04), transparent);
-  border-top: 1px solid rgba(232, 206, 168, 0.12);
-  box-shadow: 0 -10px 24px rgba(12, 7, 3, 0.35);
+  background-color: #2A2623;
+  background-image: var(--tex-iron), var(--metal-iron);
+  border-top: 1px solid rgba(201, 122, 76, 0.5);
+  box-shadow: 0 -10px 24px rgba(12, 7, 3, 0.4), inset 0 1px 0 rgba(255, 220, 190, 0.08);
 }
 
 .brand-crest {
-  background-color: #4A3424;
-  background-image: var(--tex-wood);
-  border-color: rgba(232, 206, 168, 0.18);
+  background-color: #2E2A27;
+  background-image: var(--tex-iron), var(--metal-iron);
+  border: 1px solid rgba(201, 122, 76, 0.55);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 220, 190, 0.1);
 }
 
 .brand-crest::after {
@@ -2635,14 +2641,16 @@ body {
   color: var(--text-gold);
 }
 
-/* Copper buttons with a hint of grain */
+/* Primary buttons in brushed copper */
 .deck-btn-mix,
 .party-order-btn,
 .atelier-fab {
-  background-color: var(--accent-amber);
-  background-image: var(--tex-wood), linear-gradient(180deg, #D99360, #BE7440);
-  color: #2A1C12;
-  box-shadow: 0 6px 16px -6px rgba(207, 132, 76, 0.6), inset 0 1px 0 rgba(255, 230, 200, 0.35);
+  background-color: #C47A4E;
+  background-image: var(--tex-brushed), var(--metal-copper);
+  border: 1px solid rgba(110, 52, 26, 0.55);
+  color: #2A1A10;
+  text-shadow: 0 1px 0 rgba(255, 225, 200, 0.35);
+  box-shadow: 0 6px 16px -6px rgba(170, 90, 50, 0.7), inset 0 1px 0 rgba(255, 236, 215, 0.55), inset 0 -1px 0 rgba(90, 40, 18, 0.35);
 }
 
 .hud-btn.host-mode-btn {
@@ -2695,10 +2703,11 @@ body {
   gap: 6px;
   padding: 0 14px;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(207, 132, 76, 0.45);
-  background-color: rgba(207, 132, 76, 0.16);
-  background-image: var(--tex-wood);
-  color: var(--text-gold);
+  border: 1px solid rgba(201, 122, 76, 0.6);
+  background-color: #2E2A27;
+  background-image: var(--tex-iron), var(--metal-iron);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 190, 0.08);
+  color: #E2A77C;
   font-family: inherit;
   font-size: 13px;
   font-weight: 800;
@@ -2708,7 +2717,8 @@ body {
 }
 
 .choose-btn:hover {
-  background-color: rgba(207, 132, 76, 0.26);
+  border-color: #D9905F;
+  color: #F0BC92;
 }
 
 .choose-btn:active {
@@ -2820,10 +2830,11 @@ body {
 }
 
 .style-chip.active {
-  background-color: var(--accent-amber);
-  background-image: var(--tex-wood), linear-gradient(180deg, #D99360, #BE7440);
-  border-color: transparent;
-  color: #2A1C12;
+  background-color: #C47A4E;
+  background-image: var(--tex-brushed), var(--metal-copper);
+  border-color: rgba(110, 52, 26, 0.55);
+  color: #2A1A10;
+  box-shadow: inset 0 1px 0 rgba(255, 236, 215, 0.5);
 }
 
 .style-chip.active .style-chip-count {
