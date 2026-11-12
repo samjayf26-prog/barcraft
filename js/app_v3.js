@@ -6,7 +6,6 @@
 import { inventoryManager } from './inventory.js';
 import { 
   analyzeRecipesAvailability, 
-  filterRecipes, 
   getAllRecipes, 
   getSubstitutionsForRecipe, 
   calculateUnlockRecommendations,
@@ -17,13 +16,18 @@ import { CocktailTimer, soundEffects, wakeLockManager } from './timers.js';
 import { quizEngine, RANK_LADDER } from './quiz.js';
 import { MECHANICAL_RULES } from './db.js';
 import { GlassViz, renderStaticGlass } from './glass_viz.js';
+import {
+  STYLE_FILTERS, SHOW_FILTERS, matchesStyle, matchesShow, parseQuery, matchesSearch,
+  SEARCH_SUGGESTIONS, CHOOSER_STEPS, recommendDrinks
+} from './atelier_finder.js';
 
 // Application State
 const state = {
   activeHub: 'bar', // 'bar' | 'cabinet' | 'academy'
   barViewMode: 'deck', // 'deck' | 'grid'
-  activeMood: 'all', // 'all' | 'nightcap' | 'crisp' | 'aperitivo' | 'tropical' | 'smoky' | 'zero-proof'
-  readinessFilter: 'all', // 'all' | 'can-make' | 'substitutes' | 'missing-1' | 'favorites' | 'want-to-try'
+  activeStyle: 'all', // drink style id from STYLE_FILTERS
+  showFilter: 'all', // availability id from SHOW_FILTERS
+  chooser: { step: 0, answers: {} },
   searchQuery: '',
   activeUnit: localStorage.getItem('barcraft_unit') || 'oz',
   deckIndex: 0,
@@ -57,12 +61,18 @@ function initDom() {
   elements.academyHub = document.getElementById('academyHub');
 
   // Search & Filters in Bar Hub
-  elements.moodCarousel = document.getElementById('moodCarousel');
+  elements.styleFilterRow = document.getElementById('styleFilterRow');
+  elements.showFilterSelect = document.getElementById('showFilterSelect');
+  elements.resultsCount = document.getElementById('resultsCount');
+  elements.clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  elements.searchHints = document.getElementById('searchHints');
+  elements.helpChooseBtn = document.getElementById('helpChooseBtn');
+  elements.chooserOverlay = document.getElementById('chooserOverlay');
+  elements.chooserSheet = document.getElementById('chooserSheet');
   elements.atelierSearchInput = document.getElementById('atelierSearchInput');
   elements.clearSearchBtn = document.getElementById('clearSearchBtn');
   elements.viewModeDeckBtn = document.getElementById('viewModeDeckBtn');
   elements.viewModeGridBtn = document.getElementById('viewModeGridBtn');
-  elements.readinessPillsRow = document.getElementById('readinessPillsRow');
   elements.barContentContainer = document.getElementById('barContentContainer');
 
   // Cabinet Hub Containers
@@ -132,44 +142,50 @@ function renderBarHub() {
   const analyzed = analyzeRecipesAvailability();
   const inStockIds = inventoryManager.getInStockIngredientIds();
 
-  // Update in-stock counter in header
   if (elements.inStockPillCount) {
     elements.inStockPillCount.textContent = `${inStockIds.size} in stock`;
   }
 
-  // Filter recipes based on active mood, search query, and readiness
-  const filtered = filterRecipes(analyzed, {
-    availabilityFilter: state.readinessFilter,
-    moodFilter: state.activeMood,
-    searchQuery: state.searchQuery
+  // Search narrows everything; style and "show" each count against the other
+  const parsed = parseQuery(state.searchQuery);
+  const searched = analyzed.filter(a => matchesSearch(a.recipe, parsed));
+  const byShow = searched.filter(a => matchesShow(a, state.showFilter));
+  const byStyle = searched.filter(a => matchesStyle(a.recipe, state.activeStyle));
+  const filtered = byShow.filter(a => matchesStyle(a.recipe, state.activeStyle));
+
+  // Style chips with live counts; empty styles hide unless selected
+  const chips = STYLE_FILTERS
+    .map(f => ({ ...f, count: byShow.filter(a => f.test(a.recipe)).length }))
+    .filter(f => f.id === 'all' || f.count > 0 || f.id === state.activeStyle);
+  elements.styleFilterRow.innerHTML = chips.map(f => `
+    <button class="style-chip ${f.id === state.activeStyle ? 'active' : ''}" data-style="${f.id}" aria-pressed="${f.id === state.activeStyle}">
+      <span class="style-chip-icon" aria-hidden="true">${f.icon}</span>
+      <span>${f.label}</span>
+      <span class="style-chip-count">${f.count}</span>
+    </button>`).join('');
+  elements.styleFilterRow.querySelectorAll('[data-style]').forEach(btn => {
+    btn.onclick = () => {
+      soundEffects.playClick();
+      state.activeStyle = btn.getAttribute('data-style');
+      state.deckIndex = 0;
+      renderBarHub();
+    };
   });
+  const activeChip = elements.styleFilterRow.querySelector('.style-chip.active');
+  if (state.activeStyle === 'all') elements.styleFilterRow.scrollLeft = 0;
+  else if (activeChip) activeChip.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 
-  // Calculate readiness category counts for pills
-  const counts = {
-    all: analyzed.length,
-    'can-make': analyzed.filter(a => a.canMake).length,
-    'substitutes': analyzed.filter(a => a.canMake || a.canMakeWithSub).length,
-    'missing-1': analyzed.filter(a => a.missingCount === 1).length,
-    'favorites': analyzed.filter(a => a.isFavorite).length,
-    'want-to-try': analyzed.filter(a => a.isWantToTry).length
-  };
+  // "Show" menu with counts
+  elements.showFilterSelect.innerHTML = SHOW_FILTERS.map(f => {
+    const n = byStyle.filter(a => f.test(a)).length;
+    return `<option value="${f.id}" ${f.id === state.showFilter ? 'selected' : ''}>${f.label} (${n})</option>`;
+  }).join('');
 
-  // Update readiness pills
-  elements.readinessPillsRow.querySelectorAll('.readiness-pill').forEach(pill => {
-    const key = pill.getAttribute('data-readiness');
-    pill.classList.toggle('active', key === state.readinessFilter);
-    const countSpan = pill.querySelector('.pill-cnt');
-    if (countSpan && counts[key] !== undefined) {
-      countSpan.textContent = counts[key];
-    }
-  });
+  // Result count and a single clear control
+  const anyFilter = state.activeStyle !== 'all' || state.showFilter !== 'all' || Boolean(state.searchQuery.trim());
+  elements.resultsCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'drink' : 'drinks'}`;
+  elements.clearFiltersBtn.hidden = !anyFilter;
 
-  // Update mood chips active state
-  elements.moodCarousel.querySelectorAll('.mood-chip').forEach(chip => {
-    chip.classList.toggle('active', chip.getAttribute('data-mood') === state.activeMood);
-  });
-
-  // Render Content based on view mode (Deck vs Grid)
   if (state.barViewMode === 'deck') {
     renderBarDeckView(filtered);
   } else {
@@ -177,11 +193,45 @@ function renderBarHub() {
   }
 }
 
+function resetBarFilters() {
+  state.activeStyle = 'all';
+  state.showFilter = 'all';
+  state.searchQuery = '';
+  state.deckIndex = 0;
+  if (elements.atelierSearchInput) elements.atelierSearchInput.value = '';
+  if (elements.clearSearchBtn) elements.clearSearchBtn.style.display = 'none';
+  renderSearchHints();
+  renderBarHub();
+}
+
+// Tappable example searches, shown while the empty search box has focus
+function renderSearchHints() {
+  if (!elements.searchHints) return;
+  const show = document.activeElement === elements.atelierSearchInput && !state.searchQuery.trim();
+  elements.searchHints.hidden = !show;
+  if (!show) return;
+  elements.searchHints.innerHTML = `
+    <span class="search-hints-label">Try</span>
+    ${SEARCH_SUGGESTIONS.map(q => `<button type="button" class="search-hint" data-hint="${q}">${q}</button>`).join('')}
+    <span class="search-hints-tip">Search names, ingredients, glasses or flavors. Use “no” to exclude: <em>sour no egg</em>.</span>`;
+  elements.searchHints.querySelectorAll('[data-hint]').forEach(btn => {
+    btn.onmousedown = (e) => e.preventDefault(); // keep focus in the input
+    btn.onclick = () => {
+      state.searchQuery = btn.getAttribute('data-hint');
+      elements.atelierSearchInput.value = state.searchQuery;
+      elements.clearSearchBtn.style.display = 'block';
+      state.deckIndex = 0;
+      renderSearchHints();
+      renderBarHub();
+    };
+  });
+}
+
 // "Tonight's Pour" Swipeable Deck View (Zero Decision Fatigue)
 function renderBarDeckView(recipesList) {
   // Respect the active readiness filter; when 'all' is selected, sort makeable drinks to the top
   let pool = [...recipesList];
-  if (state.readinessFilter === 'all') {
+  if (state.showFilter === 'all') {
     pool.sort((a, b) => {
       const scoreA = a.canMake ? 3 : (a.canMakeWithSub ? 2 : (a.missingCount === 1 ? 1 : 0));
       const scoreB = b.canMake ? 3 : (b.canMakeWithSub ? 2 : (b.missingCount === 1 ? 1 : 0));
@@ -204,13 +254,7 @@ function renderBarDeckView(recipesList) {
     `;
     const resetBtn = document.getElementById('deckResetFiltersBtn');
     if (resetBtn) {
-      resetBtn.onclick = () => {
-        state.activeMood = 'all';
-        state.readinessFilter = 'all';
-        state.searchQuery = '';
-        if (elements.atelierSearchInput) elements.atelierSearchInput.value = '';
-        renderBarHub();
-      };
+      resetBtn.onclick = () => resetBarFilters();
     }
     return;
   }
@@ -613,7 +657,6 @@ function renderCabinetHub() {
             <div class="bottle-info">
               <span class="bottle-name">${bottle.name}</span>
               ${bottle.benchmark ? `<span class="bottle-meta">${bottle.benchmark}</span>` : ''}
-              ${bottle.suggestedPrice ? `<span class="bottle-price-pill">${bottle.suggestedPrice}</span>` : ''}
             </div>
             <button class="stock-toggle-switch ${inStock ? 'in-stock' : 'out-stock'}" data-stock-toggle="${bottle.id}">
               ${inStock ? '✓ Stocked' : '+ Add'}
@@ -658,7 +701,7 @@ function renderCabinetHub() {
           <div class="shopping-item-row">
             <div>
               <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${item.name}</div>
-              <div style="font-size: 11.5px; color: var(--accent-amber);">${item.suggestedPrice || 'Suggested benchmark: $25–$35'}</div>
+              ${item.benchmark ? `<div style="font-size: 11.5px; color: var(--text-secondary);">${item.benchmark}</div>` : ''}
             </div>
             <div class="shopping-row-actions">
               <button class="hud-btn" data-shop-bump="${item.id}" title="Move to ${state.activeShoppingSubtab === 'staples' ? 'wishlist' : 'staples'}">⇄</button>
@@ -1802,6 +1845,137 @@ function openCraftLabModal(sourceRecipe = null, { editing = false } = {}) {
 }
 
 // ============================================================================
+// HELP ME CHOOSE (a few quick decisions, then recommendations)
+// ============================================================================
+function openChooser() {
+  state.chooser = { step: 0, answers: {} };
+  renderChooser();
+  elements.chooserOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeChooser() {
+  elements.chooserOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function renderChooser() {
+  const { step, answers } = state.chooser;
+  const total = CHOOSER_STEPS.length;
+  const dots = CHOOSER_STEPS.map((_, i) => `<span class="chooser-dot ${i < step ? 'done' : ''} ${i === step ? 'current' : ''}"></span>`).join('');
+
+  const header = `
+    <div class="hud-sheet-header">
+      <div>
+        <div class="chooser-title">Help me choose</div>
+        <div class="chooser-dots" aria-label="Step ${Math.min(step + 1, total)} of ${total}">${dots}</div>
+      </div>
+      <button class="hud-close-x" id="chooserCloseBtn" aria-label="Close">✕</button>
+    </div>`;
+
+  if (step < total) {
+    const s = CHOOSER_STEPS[step];
+    elements.chooserSheet.innerHTML = `${header}
+      <div class="chooser-question">${s.question}</div>
+      <div class="chooser-options ${s.options.length > 5 ? 'two-col' : ''}">
+        ${s.options.map(o => `
+          <button class="chooser-option ${answers[s.id] === o.id ? 'selected' : ''}" data-answer="${o.id}">
+            <span class="chooser-option-icon" aria-hidden="true">${o.icon}</span>
+            <span class="chooser-option-text">
+              <span class="chooser-option-label">${o.label}</span>
+              ${o.hint ? `<span class="chooser-option-hint">${o.hint}</span>` : ''}
+            </span>
+          </button>`).join('')}
+      </div>
+      <div class="chooser-nav">
+        ${step > 0 ? '<button class="deck-btn-nav" id="chooserBackBtn">‹ Back</button>' : '<span></span>'}
+        <span class="chooser-step-label">Step ${step + 1} of ${total}</span>
+      </div>`;
+
+    elements.chooserSheet.querySelectorAll('[data-answer]').forEach(btn => {
+      btn.onclick = () => {
+        soundEffects.playClick();
+        state.chooser.answers[s.id] = btn.getAttribute('data-answer');
+        state.chooser.step += 1;
+        renderChooser();
+      };
+    });
+  } else {
+    const { picks, relaxed } = recommendDrinks(analyzeRecipesAvailability(), answers, 3);
+    elements.chooserSheet.innerHTML = `${header}
+      <div class="chooser-question">${picks.length ? (relaxed ? 'Nothing fit every answer, so here are the closest' : 'Try one of these') : 'No drinks found'}</div>
+      <div class="chooser-picks">
+        ${picks.map((p, i) => `
+          <div class="chooser-pick ${i === 0 ? 'top' : ''}">
+            <div class="chooser-pick-glass" data-pick-glass="${p.recipe.id}" aria-hidden="true"></div>
+            <div class="chooser-pick-body">
+              ${i === 0 ? '<span class="chooser-best">Best match</span>' : ''}
+              <div class="chooser-pick-name">${p.recipe.name}</div>
+              <div class="chooser-pick-reasons">${p.reasons.map(r => `<span>${r}</span>`).join('')}</div>
+              <div class="chooser-pick-actions">
+                <button class="deck-btn-mix" data-pick-mix="${p.recipe.id}"><span>Mix this →</span></button>
+                <button class="deck-btn-nav" data-pick-show="${p.recipe.id}">View card</button>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="chooser-nav">
+        <button class="deck-btn-nav" id="chooserBackBtn">‹ Back</button>
+        <button class="deck-btn-nav" id="chooserRestartBtn">Start over</button>
+        <button class="deck-btn-nav" id="chooserShuffleBtn">🎲 Others</button>
+      </div>`;
+
+    picks.forEach(p => {
+      const el = elements.chooserSheet.querySelector(`[data-pick-glass="${p.recipe.id}"]`);
+      if (el) renderStaticGlass(el, p.recipe);
+    });
+    const find = (id) => picks.find(p => p.recipe.id === id)?.recipe;
+    elements.chooserSheet.querySelectorAll('[data-pick-mix]').forEach(btn => {
+      btn.onclick = () => {
+        const r = find(btn.getAttribute('data-pick-mix'));
+        closeChooser();
+        if (r) openBartenderHUD(r);
+      };
+    });
+    elements.chooserSheet.querySelectorAll('[data-pick-show]').forEach(btn => {
+      btn.onclick = () => {
+        const r = find(btn.getAttribute('data-pick-show'));
+        closeChooser();
+        if (!r) return;
+        // Show just this drink on the deck
+        state.activeStyle = 'all';
+        state.showFilter = 'all';
+        state.searchQuery = r.name;
+        state.deckIndex = 0;
+        state.barViewMode = 'deck';
+        elements.atelierSearchInput.value = r.name;
+        elements.clearSearchBtn.style.display = 'block';
+        elements.viewModeDeckBtn.classList.add('active');
+        elements.viewModeGridBtn.classList.remove('active');
+        if (state.activeHub !== 'bar') switchHub('bar'); else renderBarHub();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+    });
+    document.getElementById('chooserRestartBtn').onclick = () => {
+      state.chooser = { step: 0, answers: {} };
+      renderChooser();
+    };
+    document.getElementById('chooserShuffleBtn').onclick = () => {
+      // Reshuffle among equally good matches
+      state.chooser.answers.seed = (state.chooser.answers.seed || 0) + 3;
+      renderChooser();
+    };
+  }
+
+  document.getElementById('chooserCloseBtn').onclick = closeChooser;
+  const back = document.getElementById('chooserBackBtn');
+  if (back) back.onclick = () => {
+    state.chooser.step = Math.max(0, state.chooser.step - 1);
+    renderChooser();
+  };
+}
+
+// ============================================================================
 // Event Listeners & Hub Switching
 // ============================================================================
 function setupEventListeners() {
@@ -1834,38 +2008,51 @@ function setupEventListeners() {
   // Search input
   elements.atelierSearchInput.oninput = (e) => {
     state.searchQuery = e.target.value;
+    state.deckIndex = 0;
     elements.clearSearchBtn.style.display = state.searchQuery ? 'block' : 'none';
+    renderSearchHints();
     renderBarHub();
+  };
+  elements.atelierSearchInput.onfocus = renderSearchHints;
+  elements.atelierSearchInput.onblur = () => setTimeout(renderSearchHints, 120);
+  elements.atelierSearchInput.onkeydown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      resetBarFilters();
+    } else if (e.key === 'Enter') {
+      elements.atelierSearchInput.blur();
+    }
   };
 
   elements.clearSearchBtn.onclick = () => {
     soundEffects.playClick();
     state.searchQuery = '';
+    state.deckIndex = 0;
     elements.atelierSearchInput.value = '';
     elements.clearSearchBtn.style.display = 'none';
+    renderSearchHints();
     renderBarHub();
   };
 
-  // Mood Chips
-  elements.moodCarousel.querySelectorAll('.mood-chip').forEach(chip => {
-    chip.onclick = () => {
-      soundEffects.playClick();
-      const mood = chip.getAttribute('data-mood');
-      state.activeMood = mood;
-      state.deckIndex = 0;
-      renderBarHub();
-    };
-  });
+  // "Show" availability menu and the one-tap clear
+  elements.showFilterSelect.onchange = () => {
+    state.showFilter = elements.showFilterSelect.value;
+    state.deckIndex = 0;
+    renderBarHub();
+  };
+  elements.clearFiltersBtn.onclick = () => {
+    soundEffects.playClick();
+    resetBarFilters();
+  };
 
-  // Readiness Filter Pills
-  elements.readinessPillsRow.querySelectorAll('.readiness-pill').forEach(pill => {
-    pill.onclick = () => {
-      soundEffects.playClick();
-      state.readinessFilter = pill.getAttribute('data-readiness');
-      state.deckIndex = 0;
-      renderBarHub();
-    };
-  });
+  // Help me choose
+  elements.helpChooseBtn.onclick = () => {
+    soundEffects.playClick();
+    openChooser();
+  };
+  elements.chooserOverlay.onclick = (e) => {
+    if (e.target === elements.chooserOverlay) closeChooser();
+  };
 
   // View Mode Switcher (Deck vs Grid)
   elements.viewModeDeckBtn.onclick = () => {
@@ -1909,10 +2096,14 @@ function setupEventListeners() {
     }
   };
 
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && elements.chooserOverlay.classList.contains('active')) closeChooser();
+  });
+
   // Keyboard Left / Right arrow navigation for Tonight's Pour Deck
   window.addEventListener('keydown', (e) => {
     if (state.activeHub !== 'bar' || state.barViewMode !== 'deck') return;
-    if (state.activeModalRecipe || elements.craftLabModalOverlay.classList.contains('active')) return;
+    if (state.activeModalRecipe || elements.craftLabModalOverlay.classList.contains('active') || elements.chooserOverlay.classList.contains('active')) return;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
 
     if (e.key === 'ArrowRight') {

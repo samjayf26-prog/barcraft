@@ -455,10 +455,9 @@ function renderInventoryTab() {
           <div class="inv-item-row">
             <div class="inv-item-info">
               <div class="inv-item-name">${item.name}</div>
-              ${(item.suggestedPrice || item.benchmark) ? `
+              ${item.benchmark ? `
                 <div class="inv-item-meta-line">
-                  ${item.suggestedPrice ? `<span class="inv-price-tag">${item.suggestedPrice}</span>` : ''}
-                  ${item.benchmark ? `<span class="inv-benchmark-text">${item.benchmark}</span>` : ''}
+                  <span class="inv-benchmark-text">${item.benchmark}</span>
                 </div>
               ` : ''}
               ${item.valueRationale ? `
@@ -507,7 +506,7 @@ function renderInventoryTab() {
 // Render: Shopping List Tab
 // ============================================================================
 // ============================================================================
-// Render: Shopping List Tab (Staples vs. Wishlist & Price Targets)
+// Render: Shopping List Tab (Staples vs. Wishlist)
 // ============================================================================
 function renderShoppingTab() {
   const shoppingList = inventoryManager.getShoppingList();
@@ -529,7 +528,7 @@ function renderShoppingTab() {
         <div style="font-size: 36px; margin-bottom: 8px;">🛒</div>
         <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">Shopping List is Clear</div>
         <div style="font-size: 13px; color: var(--text-secondary); max-width: 320px; margin: 0 auto 16px auto;">
-          Marking an ingredient out of stock automatically adds it here with suggested price guidelines!
+          Marking an ingredient out of stock automatically adds it here.
         </div>
         <button id="shopAddManualBtn" class="unit-toggle-btn" style="background: var(--text-primary); color: #fff; border: none; padding: 8px 18px;">
           + Add Bottle / Ingredient
@@ -581,7 +580,6 @@ function renderShoppingTab() {
               <div class="shopping-item-details">
                 <div class="shopping-item-text ${item.checked ? 'checked' : ''}">
                   <span>${item.name}</span>
-                  ${item.suggestedPrice ? `<span class="shopping-price-tag">${item.suggestedPrice}</span>` : ''}
                 </div>
                 <div class="shopping-item-sub">
                   <span>${item.category}</span>
@@ -589,7 +587,7 @@ function renderShoppingTab() {
                 </div>
                 ${item.valueRationale ? `
                   <details class="inv-guide-details" style="margin-top: 4px;">
-                    <summary class="inv-guide-summary">Pricing Rationale ▾</summary>
+                    <summary class="inv-guide-summary">Buying Guide ▾</summary>
                     <div class="inv-guide-text">${item.valueRationale}</div>
                   </details>
                 ` : ''}
@@ -815,7 +813,6 @@ function renderGuideTab() {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
               <span style="font-weight: 800; font-size: 15px; color: var(--text-primary);">${cat.category}</span>
               <div style="display: flex; gap: 6px; align-items: center;">
-                <span class="shopping-price-tag">${cat.recommendedRange}</span>
                 <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${cat.spendTier.includes('HIGH') ? '#FFEBE6' : cat.spendTier.includes('LOW') ? '#E8F5E9' : '#FFF3E0'}; color: ${cat.spendTier.includes('HIGH') ? 'var(--status-red)' : cat.spendTier.includes('LOW') ? 'var(--status-green)' : 'var(--accent-orange)'};">
                   ${cat.spendTier}
                 </span>
@@ -832,7 +829,7 @@ function renderGuideTab() {
                 <div style="background: var(--surface-card); padding: 8px 10px; border-radius: 6px; font-size: 12px; border: 1px solid var(--border-light);">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                     <span style="font-weight: 700; color: var(--text-primary);">${p.name}</span>
-                    <span style="font-weight: 700; color: var(--accent-orange);">${p.price} (${p.proof}° proof)</span>
+                    <span style="font-weight: 700; color: var(--accent-orange);">${p.proof}° proof</span>
                   </div>
                   <div style="font-size: 11px; color: var(--text-muted);">${p.role}</div>
                 </div>

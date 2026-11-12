@@ -5,11 +5,11 @@
 // ============================================================================
 
 export const BUDGETING_RULES = {
-  "title": "$200 Base Spirit & Bottle Budgeting Rule",
+  "title": "Base Spirit & Bottle Budgeting Rule",
   "tiers": [
     {
-      "tier": "Tier 1: High Capital Allocation ($45\u2013$70+)",
-      "allocation": "Bourbon ($50\u2013$65), Tequila Blanco ($50\u2013$65), Peated Scotch ($60\u2013$75)",
+      "tier": "Tier 1: High Capital Allocation",
+      "allocation": "Bourbon, Tequila Blanco, Peated Scotch",
       "strategy": "Maximize spend here. Flavor directly scales with proof and agricultural production. For Bourbon and Rye, demand 100+ proof (Bottled-in-Bond or Barrel Proof) so alcohol density withstands ice dilution. For Agave, demand 100% Blue Weber Agave, tahona-crushed, and zero additives.",
       "benchmarks": [
         "Wild Turkey 101 / Rare Breed (Bourbon)",
@@ -18,9 +18,9 @@ export const BUDGETING_RULES = {
       ]
     },
     {
-      "tier": "Tier 2: Mid-Range Structural Backbones ($25\u2013$38)",
-      "allocation": "London Dry Gin ($25\u2013$35), Rye ($25\u2013$35), Aged Rum ($25\u2013$35), Dry Cura\u00e7ao ($32), Campari ($32)",
-      "strategy": "High botanical density and proofs between 44\u201350% ABV at modest cost. Beefeater, Tanqueray, and Ford's have intense juniper backbones that hold through citrus and vermouth. Rittenhouse Bonded 100-proof rye dominates Manhattans for under $30.",
+      "tier": "Tier 2: Mid-Range Structural Backbones",
+      "allocation": "London Dry Gin, Rye, Aged Rum, Dry Cura\u00e7ao, Campari",
+      "strategy": "High botanical density and proofs between 44\u201350% ABV at modest cost. Beefeater, Tanqueray, and Ford's have intense juniper backbones that hold through citrus and vermouth. Rittenhouse Bonded 100-proof rye dominates Manhattans.",
       "benchmarks": [
         "Beefeater / Tanqueray / Ford's (Gin)",
         "Rittenhouse Bonded (Rye)",
@@ -29,9 +29,9 @@ export const BUDGETING_RULES = {
       ]
     },
     {
-      "tier": "Tier 3: Strict Minimum Spending ($15\u2013$22)",
-      "allocation": "Vodka ($15\u2013$20), White Rum ($20\u2013$25), Sweet & Dry Vermouth ($14\u2013$20 half bottles)",
-      "strategy": "Vodka is chemically defined as neutral spirit without distinctive character. Spending more than $20 on luxury vodka is wasted capital\u2014it tastes identical to Smirnoff or Stolichnaya in cocktails. For Vermouth, always buy 375ml half-bottles and keep them in the fridge.",
+      "tier": "Tier 3: Strict Minimum Spending",
+      "allocation": "Vodka, White Rum, Sweet & Dry Vermouth",
+      "strategy": "Vodka is chemically defined as neutral spirit without distinctive character. Luxury vodka is wasted money\u2014it tastes identical to Smirnoff or Stolichnaya in cocktails. For Vermouth, always buy 375ml half-bottles and keep them in the fridge.",
       "benchmarks": [
         "Smirnoff / Stolichnaya (Vodka)",
         "Planteray 3 Stars / Probitas (Rum)",
@@ -39,9 +39,9 @@ export const BUDGETING_RULES = {
       ]
     },
     {
-      "tier": "Tier 4: Pennies DIY Home Production ($1 DIY)",
+      "tier": "Tier 4: Pennies DIY Home Production",
       "allocation": "Simple Syrup, Demerara Syrup, Honey Syrup, Agave Syrup",
-      "strategy": "Never purchase pre-bottled simple syrup ($6\u2013$9 for sugar water). Dissolve equal parts cane sugar in warm water for 2 minutes for under $0.20. Dilute honey and agave 1:1 with warm water to prevent ice coagulation.",
+      "strategy": "Never purchase pre-bottled simple syrup. Dissolve equal parts cane sugar in warm water for 2 minutes. Dilute honey and agave 1:1 with warm water to prevent ice coagulation.",
       "benchmarks": [
         "Equal parts white cane sugar : warm water",
         "Equal parts turbinado/demerara : warm water",
@@ -56,31 +56,26 @@ export const BOTTLE_PRICING_KNOWLEDGE_BASE = {
   "categories": [
     {
       "category": "American Whiskey (Bourbon & Rye)",
-      "recommendedRange": "$25 \u2013 $60",
       "spendTier": "HIGH",
       "keyInsight": "Proof is king. Look for Bottled-in-Bond (exactly 100 proof) or barrel proof. 80-proof whiskey washes out into watery sugar when stirred with ice or shaken with lemon.",
       "topValuePicks": [
         {
           "name": "Wild Turkey 101 Bourbon",
-          "price": "$26\u2013$30",
           "proof": 101,
           "role": "The gold-standard high-proof budget bourbon for Sours and Old Fashioneds."
         },
         {
           "name": "Rittenhouse Rye Bottled-in-Bond",
-          "price": "$26\u2013$30",
           "proof": 100,
           "role": "Unbeatable rye spice and proof density for Manhattans and Sazeracs."
         },
         {
           "name": "Elijah Craig Small Batch",
-          "price": "$32\u2013$38",
           "proof": 94,
           "role": "Rich charred oak, vanilla, and caramel balance."
         },
         {
           "name": "Wild Turkey Rare Breed",
-          "price": "$52\u2013$60",
           "proof": 116.8,
           "role": "Uncut barrel-proof majesty; creates transcendent Old Fashioneds."
         }
@@ -88,31 +83,26 @@ export const BOTTLE_PRICING_KNOWLEDGE_BASE = {
     },
     {
       "category": "Agave Spirits (Tequila & Mezcal)",
-      "recommendedRange": "$38 \u2013 $65",
       "spendTier": "HIGH",
       "keyInsight": "Never buy 'Mixto' (51% agave, 49% industrial cane sugar). Always verify '100% de Agave' and prioritize additive-free distilleries. Terroir and slow brick-oven roasting shine cleanly in sours.",
       "topValuePicks": [
         {
           "name": "Tequila Ocho Plata",
-          "price": "$50\u2013$60",
           "proof": 80,
           "role": "Single-estate, additive-free benchmark; sublime agave sweetness and pepper."
         },
         {
           "name": "Siete Leguas Blanco",
-          "price": "$52\u2013$62",
           "proof": 80,
           "role": "Tahona-milled authentic heritage tequila with earth and citrus depth."
         },
         {
           "name": "Cimarron Blanco",
-          "price": "$28\u2013$34 (1 Liter)",
           "proof": 80,
           "role": "Best value 100% agave well spirit on earth for high-volume Margaritas."
         },
         {
           "name": "Del Maguey Vida Mezcal",
-          "price": "$38\u2013$45",
           "proof": 84,
           "role": "Artisanal Espad\u00edn roasted in conical earthen pits; definitive smoke and tropical fruit."
         }
@@ -120,31 +110,26 @@ export const BOTTLE_PRICING_KNOWLEDGE_BASE = {
     },
     {
       "category": "Gin (London Dry, Old Tom, Botanical)",
-      "recommendedRange": "$22 \u2013 $38",
       "spendTier": "MODERATE",
       "keyInsight": "Do not overspend on boutique floral gins for classic cocktail work. High botanical volume and 44\u201347% ABV density (Beefeater at 44%, Tanqueray at 47.3%) provide the essential juniper skeleton.",
       "topValuePicks": [
         {
           "name": "Beefeater London Dry",
-          "price": "$22\u2013$26",
           "proof": 88,
           "role": "Benchmark citrus-forward London dry; flawless in French 75, Gimlets, and Negronis."
         },
         {
           "name": "Tanqueray Export Strength",
-          "price": "$25\u2013$30",
           "proof": 94.6,
           "role": "Four-botanical powerhouse that punches cleanly through sweet vermouth."
         },
         {
           "name": "Ford's Gin",
-          "price": "$26\u2013$32",
           "proof": 90,
           "role": "Formulated specifically by bartenders as a versatile universal mixing gin."
         },
         {
           "name": "Hayman's Old Tom",
-          "price": "$30\u2013$36",
           "proof": 82.8,
           "role": "Rich, subtly sweet historic gin for authentic Martinez and Tom Collins."
         }
@@ -152,31 +137,26 @@ export const BOTTLE_PRICING_KNOWLEDGE_BASE = {
     },
     {
       "category": "Rum & Sugarcane (White, Dark, Agricole, Cacha\u00e7a)",
-      "recommendedRange": "$20 \u2013 $36",
       "spendTier": "MODERATE",
       "keyInsight": "Avoid artificially sweetened spiced rums and neutral industrial molasses rums. Look for multi-island blends with high-ester Jamaican pot-still rum or pure fresh cane juice spirits.",
       "topValuePicks": [
         {
           "name": "Planteray (Plantation) 3 Stars",
-          "price": "$20\u2013$25",
           "proof": 82.4,
           "role": "Blend of Barbados, Trinidad, and unaged Jamaican pot-still. Unrivaled Daiquiri base."
         },
         {
           "name": "Gosling's Black Seal",
-          "price": "$22\u2013$26",
           "proof": 80,
           "role": "Bermudian molasses dark rum; essential float for Dark 'n' Stormy and Mai Tai."
         },
         {
           "name": "Cl\u00e9ment / Rhum J.M Blanc (Agricole)",
-          "price": "$30\u2013$36",
           "proof": 100,
           "role": "Distilled from fresh Martinique sugarcane juice with vibrant grassy vegetal notes."
         },
         {
           "name": "Novo Fogo Cacha\u00e7a",
-          "price": "$26\u2013$32",
           "proof": 80,
           "role": "Organic Brazilian fresh cane spirit with banana, passionfruit, and grassy notes for Caipirinhas."
         }
@@ -184,19 +164,16 @@ export const BOTTLE_PRICING_KNOWLEDGE_BASE = {
     },
     {
       "category": "Vodka",
-      "recommendedRange": "$14 \u2013 $20",
       "spendTier": "LOW (ECONOMIZE)",
-      "keyInsight": "Spending >$22 is pure marketing. In double-blind cocktail tests, $16 vodka (Smirnoff, Stolichnaya) performs indistinguishably from $50 bottles in Espresso Martinis, Mules, and Cosmopolitans.",
+      "keyInsight": "Premium vodka pricing is mostly marketing. In double-blind cocktail tests, workhorse vodka (Smirnoff, Stolichnaya) performs indistinguishably from luxury bottles in Espresso Martinis, Mules, and Cosmopolitans.",
       "topValuePicks": [
         {
           "name": "Smirnoff No. 21",
-          "price": "$14\u2013$17",
           "proof": 80,
           "role": "Consistently rated #1 in blind tastings; ultra-clean neutral ethanol profile."
         },
         {
           "name": "Stolichnaya / Luksusowa",
-          "price": "$16\u2013$20",
           "proof": 80,
           "role": "Smooth wheat or Polish potato distillate for clean highballs."
         }
@@ -204,25 +181,21 @@ export const BOTTLE_PRICING_KNOWLEDGE_BASE = {
     },
     {
       "category": "Aromatized Wines (Sweet & Dry Vermouth, Lillet)",
-      "recommendedRange": "$12 \u2013 $22",
       "spendTier": "STORAGE-CRITICAL",
       "keyInsight": "Vermouth is fortified wine, NOT a distilled spirit. Once opened, it oxidizes within weeks at room temperature. Buy 375ml half-bottles and keep stored inside the refrigerator at 38\u00b0F.",
       "topValuePicks": [
         {
           "name": "Dolin Blanc / Dry",
-          "price": "$12\u2013$16 (375ml)",
           "proof": 35,
           "role": "Clean, alpine herb French vermouth for Dry Martinis and Corpse Revivers."
         },
         {
           "name": "Cocchi Storico di Torino",
-          "price": "$14\u2013$18 (375ml)",
           "proof": 32,
           "role": "Rich cacao, vanilla, and rhubarb sweet vermouth; the ultimate Manhattan partner."
         },
         {
           "name": "Carpano Antica Formula",
-          "price": "$20\u2013$24 (375ml)",
           "proof": 33,
           "role": "Vanilla-heavy, opulent vermouth for robust 100-proof rye whiskey cocktails."
         }
@@ -230,31 +203,26 @@ export const BOTTLE_PRICING_KNOWLEDGE_BASE = {
     },
     {
       "category": "Specialty Herbal Liqueurs & Amari",
-      "recommendedRange": "$24 \u2013 $75",
       "spendTier": "VARIABLE / LONG LASTING",
-      "keyInsight": "Used in 0.25\u20130.75 oz measures. A $70 bottle of Green Chartreuse or $35 bottle of Maraschino lasts 40\u201380 cocktails, making the cost per drink only $0.45\u2013$0.90.",
+      "keyInsight": "Used in 0.25\u20130.75 oz measures. A bottle of Green Chartreuse or Maraschino lasts 40\u201380 cocktails, so the cost per drink stays low.",
       "topValuePicks": [
         {
           "name": "Campari",
-          "price": "$30\u2013$36",
           "proof": 48,
           "role": "Bitter gentian and bitter orange; irreplaceable structural heart of Negroni and Boulevardier."
         },
         {
           "name": "Green Chartreuse",
-          "price": "$65\u2013$78",
           "proof": 110,
           "role": "Monastic secret of 130 alpine plants; impossible to substitute in The Last Word."
         },
         {
           "name": "Luxardo Maraschino",
-          "price": "$34\u2013$40",
           "proof": 64,
           "role": "Dry cherry pit and herbal aroma; 1 bottle lasts for years in Aviations and Martinezes."
         },
         {
           "name": "Pierre Ferrand Dry Cura\u00e7ao",
-          "price": "$32\u2013$38",
           "proof": 80,
           "role": "Bitter Laraha orange peel with French brandy base; replaces cheap cloying triple secs."
         }
@@ -291,7 +259,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Wild Turkey 101 / Rare Breed / Elijah Craig",
-    "suggestedPrice": "$45\u2013$60",
     "defaultListType": "staples",
     "valueRationale": "Target 100+ proof (Bottled-in-Bond). Higher alcohol density resists melted ice dilution in Old Fashioneds."
   },
@@ -301,7 +268,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Old Overholt / Rittenhouse Bonded",
-    "suggestedPrice": "$26\u2013$35",
     "defaultListType": "staples",
     "valueRationale": "100-proof bonded rye gives aggressive pepper spice that punches through sweet vermouth in Manhattans."
   },
@@ -311,7 +277,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Beefeater / Tanqueray / Ford's",
-    "suggestedPrice": "$24\u2013$34",
     "defaultListType": "staples",
     "valueRationale": "Target 44\u201347% ABV. High juniper and citrus botanical density provides the essential structural backbone."
   },
@@ -321,7 +286,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Hayman's / Ransom",
-    "suggestedPrice": "$32\u2013$42",
     "defaultListType": "wishlist",
     "valueRationale": "Subtly sweet, malted 19th-century gin style. Unlocks authentic Martinezes and historic fizzes."
   },
@@ -331,7 +295,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Barr Hill Tom Cat / Bluecoat",
-    "suggestedPrice": "$40\u2013$50",
     "defaultListType": "wishlist",
     "valueRationale": "Charred oak aging marries botanical juniper with vanilla and caramel whiskey notes."
   },
@@ -341,7 +304,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Tequila Ocho / Siete Leguas / Fortaleza (100% Blue Agave)",
-    "suggestedPrice": "$50\u2013$65",
     "defaultListType": "staples",
     "valueRationale": "Prioritize 100% blue agave, tahona-crushed, additive-free bottles. The fresh agave terroir cannot be replicated."
   },
@@ -351,7 +313,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Tequila Ocho Reposado / Siete Leguas",
-    "suggestedPrice": "$55\u2013$70",
     "defaultListType": "wishlist",
     "valueRationale": "Aged 2\u201311 months in oak casks; adds mellow vanilla and baking spice to agave cocktails."
   },
@@ -361,7 +322,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Del Maguey Vida (Artisanal Espad\u00edn)",
-    "suggestedPrice": "$38\u2013$48",
     "defaultListType": "wishlist",
     "valueRationale": "Earthen pit-roasted agave provides unmistakable woodsmoke, vegetal mineral terroir, and tropical fruit."
   },
@@ -371,7 +331,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Planteray 3 Stars / Probitas",
-    "suggestedPrice": "$20\u2013$26",
     "defaultListType": "staples",
     "valueRationale": "Multi-island blend with real pot-still character. Avoid flavorless industrial column-still rums."
   },
@@ -381,7 +340,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Gosling's Black Seal / Jamaican Pot Still",
-    "suggestedPrice": "$24\u2013$34",
     "defaultListType": "wishlist",
     "valueRationale": "High-ester molasses funk and heavy oak color. Essential float for Dark 'n' Stormy and Mai Tai."
   },
@@ -391,7 +349,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Cl\u00e9ment / Rhum J.M Blanc (50% ABV)",
-    "suggestedPrice": "$30\u2013$40",
     "defaultListType": "wishlist",
     "valueRationale": "Distilled from 100% pure fresh-pressed Martinique sugarcane juice. Grassy, floral, and vibrant for Ti' Punch."
   },
@@ -401,7 +358,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Novo Fogo / Avu\u00e1 / Leblon",
-    "suggestedPrice": "$25\u2013$34",
     "defaultListType": "wishlist",
     "valueRationale": "Brazilian fresh sugarcane spirit. Vibrant, grassy, and fruity\u2014the indispensable soul of the Caipirinha."
   },
@@ -411,9 +367,8 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Smirnoff No. 21 / Stolichnaya (80-proof)",
-    "suggestedPrice": "$15\u2013$20",
     "defaultListType": "staples",
-    "valueRationale": "Defined as neutral spirit without distinctive aroma or taste. Spending >$20 is wasted capital; tastes identical in cocktails."
+    "valueRationale": "Defined as neutral spirit without distinctive aroma or taste. Premium bottles are wasted money; they taste identical in cocktails."
   },
   {
     "id": "blended-scotch",
@@ -421,7 +376,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Monkey Shoulder / Famous Grouse",
-    "suggestedPrice": "$28\u2013$38",
     "defaultListType": "wishlist",
     "valueRationale": "Balanced malt and grain blend with honey and orchard fruit. Ideal base for Penicillins and Rob Roys."
   },
@@ -431,7 +385,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Laphroaig 10 / Ardbeg 10",
-    "suggestedPrice": "$60\u2013$75",
     "defaultListType": "wishlist",
     "valueRationale": "Extreme peat smoke and medicinal brine. Used in tiny float barspoons; 1 bottle lasts over 100 drinks."
   },
@@ -441,7 +394,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Pierre Ferrand 1840 / Remy Martin 1738",
-    "suggestedPrice": "$38\u2013$48",
     "defaultListType": "wishlist",
     "valueRationale": "VS or VSOP French grape brandy. Adds silky grape body and oak spice to Sidecars and Vieux Carr\u00e9."
   },
@@ -451,7 +403,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Barsol Quebranta",
-    "suggestedPrice": "$28\u2013$36",
     "defaultListType": "wishlist",
     "valueRationale": "Unaged Peruvian grape distillate. Single-distilled to proof for authentic velvety Pisco Sours."
   },
@@ -461,7 +412,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Laird's Bottled in Bond (100 Proof)",
-    "suggestedPrice": "$28\u2013$35",
     "defaultListType": "wishlist",
     "valueRationale": "100-proof American apple brandy. Brings robust baked apple and barrel spice to Pink Ladies."
   },
@@ -471,7 +421,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": true,
     "benchmark": "Dry Brut Prosecco / Champagne (La Marca / Roederer)",
-    "suggestedPrice": "$14\u2013$25",
     "defaultListType": "wishlist",
     "valueRationale": "Crisp effervescence for French 75, Spritzes, and Seelbach. Buy dry (Brut) to prevent cloying sweetness."
   },
@@ -481,7 +430,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Iconic red bitter gentian aperitivo",
-    "suggestedPrice": "$30\u2013$36",
     "defaultListType": "staples",
     "valueRationale": "Irreplaceable bitter orange and gentian backbone. Structural heart of Negroni, Boulevardier, and Jungle Bird."
   },
@@ -491,7 +439,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Bittersweet orange & gentian aperitivo (11% ABV)",
-    "suggestedPrice": "$24\u2013$30",
     "defaultListType": "wishlist",
     "valueRationale": "Gentle, accessible bittersweet orange. Essential for Paper Plane, Naked & Famous, and Spritzes."
   },
@@ -501,7 +448,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Cocchi Storico di Torino / Carpano Antica",
-    "suggestedPrice": "$14\u2013$20 (375ml)",
     "defaultListType": "staples",
     "valueRationale": "Aromatized wine. ALWAYS buy 375ml half-bottles and store in refrigerator at 38\u00b0F to prevent oxidation."
   },
@@ -511,7 +457,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Dolin Dry / Noilly Prat",
-    "suggestedPrice": "$12\u2013$16 (375ml)",
     "defaultListType": "staples",
     "valueRationale": "Crisp herbal fortified wine for Dry Martinis. Keep refrigerated; replace every 2\u20133 months."
   },
@@ -521,7 +466,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Pierre Ferrand Dry Cura\u00e7ao / Cointreau",
-    "suggestedPrice": "$30\u2013$38",
     "defaultListType": "staples",
     "valueRationale": "Bitter Laraha orange peel distillate. Essential modifier for authentic Margaritas, Sidecars, and Mai Tais."
   },
@@ -531,7 +475,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "32% ABV, nutty marasca cherry-pit distillate",
-    "suggestedPrice": "$34\u2013$40",
     "defaultListType": "wishlist",
     "valueRationale": "Aromatic, dry, nutty botanical profile. Used in barspoons; 1 bottle easily lasts 40+ drinks."
   },
@@ -541,7 +484,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "110-proof monastic herbal liqueur",
-    "suggestedPrice": "$65\u2013$78",
     "defaultListType": "wishlist",
     "valueRationale": "130 secret botanicals. High price is justified by unreplicable herbal complexity in The Last Word."
   },
@@ -551,7 +493,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Milder, honey-saffron monastic liqueur",
-    "suggestedPrice": "$65\u2013$75",
     "defaultListType": "wishlist",
     "valueRationale": "Saffron, honey, and floral sweetness. Core component of Naked & Famous and Greenpoint."
   },
@@ -561,7 +502,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "St. Germain Elderflower",
-    "suggestedPrice": "$34\u2013$40",
     "defaultListType": "wishlist",
     "valueRationale": "Fresh elderflower blossoms with lychee and pear notes. Lifts gin, tequila, and sparkling fizzes."
   },
@@ -571,7 +511,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Alpine herb, grappa-based amaro with orange",
-    "suggestedPrice": "$45\u2013$55",
     "defaultListType": "wishlist",
     "valueRationale": "Grappa-based alpine amaro aged in Nevers oak. Required for the world-famous Paper Plane."
   },
@@ -581,7 +520,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Rich Sicilian amaro",
-    "suggestedPrice": "$30\u2013$38",
     "defaultListType": "wishlist",
     "valueRationale": "Dark caramel, citrus peel, and Mediterranean herbs. Transforms Manhattan into the Black Manhattan."
   },
@@ -591,7 +529,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Artichoke & herbal bittersweet amaro",
-    "suggestedPrice": "$24\u2013$30",
     "defaultListType": "wishlist",
     "valueRationale": "Savory, earthy bittersweet profile. Outstanding in Little Italy and complex Negroni riffs."
   },
@@ -601,7 +538,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Intensely herbal, menthol-camphor amaro",
-    "suggestedPrice": "$30\u2013$38",
     "defaultListType": "wishlist",
     "valueRationale": "Menthol and bitter saffron. Used in dashes and rinses; 1 bottle lasts practically forever."
   },
@@ -611,7 +547,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Disaronno / Lazzaroni",
-    "suggestedPrice": "$24\u2013$32",
     "defaultListType": "wishlist",
     "valueRationale": "Sweet almond and apricot-pit warmth for Morgenthaler Amaretto Sours and Godfathers."
   },
@@ -621,7 +556,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Bordeaux aromatized wine",
-    "suggestedPrice": "$18\u2013$24",
     "defaultListType": "wishlist",
     "valueRationale": "Candied orange, honey, and pine resin. Essential for Vesper Martini and Corpse Reviver #2."
   },
@@ -631,7 +565,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Spanish vanilla & citrus botanical liqueur",
-    "suggestedPrice": "$26\u2013$34",
     "defaultListType": "wishlist",
     "valueRationale": "Vanilla, Mediterranean citrus, and spices. The key to Carajillos and Tequiliation."
   },
@@ -641,7 +574,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Tia Maria / Mr. Black / Kahl\u00faa",
-    "suggestedPrice": "$25\u2013$34",
     "defaultListType": "staples",
     "valueRationale": "Real roasted Arabica coffee liqueur for Espresso Martinis, White Russians, and coffee builds."
   },
@@ -651,7 +583,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Pernod / St. George / Grande Absente",
-    "suggestedPrice": "$55\u2013$70",
     "defaultListType": "wishlist",
     "valueRationale": "Used strictly in rinses (Sazerac, Corpse Reviver #2); one 750ml bottle will last a decade."
   },
@@ -661,7 +592,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Rothman & Winter floral violette",
-    "suggestedPrice": "$24\u2013$30",
     "defaultListType": "wishlist",
     "valueRationale": "Floral violet flower petals. Required in quarter-ounce drops for the sky-blue Aviation."
   },
@@ -671,7 +601,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Tempus Fugit / Marie Brizard",
-    "suggestedPrice": "$22\u2013$32",
     "defaultListType": "wishlist",
     "valueRationale": "Clear cocoa and vanilla liqueur for 20th Century, Brandy Alexander, and Grasshopper."
   },
@@ -681,7 +610,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Tempus Fugit / Giffard Menthe Pastille",
-    "suggestedPrice": "$20\u2013$28",
     "defaultListType": "wishlist",
     "valueRationale": "Vibrant spearmint herbal liqueur for the classic Grasshopper and Stinger."
   },
@@ -691,7 +619,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Peter Heering Cherry Liqueur",
-    "suggestedPrice": "$30\u2013$38",
     "defaultListType": "wishlist",
     "valueRationale": "Rich Danish dark cherry liqueur for Singapore Sling and Blood and Sand."
   },
@@ -701,7 +628,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Drambuie Scottish Heather Honey Liqueur",
-    "suggestedPrice": "$35\u2013$44",
     "defaultListType": "wishlist",
     "valueRationale": "Aged Scotch whiskey infused with heather honey and herbs. Essential for the Rusty Nail."
   },
@@ -711,7 +637,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "B\u00e9n\u00e9dictine D.O.M. Herbal Liqueur",
-    "suggestedPrice": "$38\u2013$46",
     "defaultListType": "wishlist",
     "valueRationale": "Cognac-based elixir with 27 herbs and spices. Essential for Vieux Carr\u00e9 and Singapore Sling."
   },
@@ -721,7 +646,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Cordon Rouge Cognac Orange Liqueur",
-    "suggestedPrice": "$38\u2013$48",
     "defaultListType": "wishlist",
     "valueRationale": "Cognac backbone infused with bitter Caribbean oranges for premium Manhattans."
   },
@@ -731,7 +655,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Liber & Co. / Small Hand Foods Almond Orgeat",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Toasted almond, orange flower water, and rosewater. Vital for Mai Tais and Trinidad Sours."
   },
@@ -741,7 +664,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "John D. Taylor's Velvet Falernum",
-    "suggestedPrice": "$18\u2013$24",
     "defaultListType": "wishlist",
     "valueRationale": "Barbadian spiced lime, clove, ginger, and almond liqueur. Core component of Tiki drinks."
   },
@@ -751,7 +673,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "St. Elizabeth Allspice Dram",
-    "suggestedPrice": "$28\u2013$35",
     "defaultListType": "wishlist",
     "valueRationale": "Jamaican pot-still rum steeped with pimento berries. The soul of the Lion's Tail."
   },
@@ -761,7 +682,6 @@ export const INITIAL_INVENTORY = [
     "category": "Modifiers & Liqueurs",
     "inStock": true,
     "benchmark": "Lustau Jarana Fino / Tio Pepe",
-    "suggestedPrice": "$14\u2013$20",
     "defaultListType": "wishlist",
     "valueRationale": "Bone-dry, saline fortified Andalusian wine for low-ABV Bamboo and Adonis cocktails."
   },
@@ -771,7 +691,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Juiced fresh; never bottled",
-    "suggestedPrice": "$3\u2013$5 (bag of limes)",
     "defaultListType": "staples",
     "valueRationale": "Always squeeze fresh limes. Bottled lime juice has preservative oils that ruin cocktail aromatics."
   },
@@ -781,7 +700,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Juiced fresh; never bottled",
-    "suggestedPrice": "$3\u2013$5 (bag of lemons)",
     "defaultListType": "staples",
     "valueRationale": "Always squeeze fresh lemons. Acidity balance is the #1 variable in craft sours."
   },
@@ -791,7 +709,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Freshly squeezed ruby red grapefruit",
-    "suggestedPrice": "$3\u2013$5",
     "defaultListType": "staples",
     "valueRationale": "Fresh tart ruby grapefruit pairs with tequila, gin, and mezcal."
   },
@@ -801,7 +718,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Cold-pressed / Dole 100% canned juice",
-    "suggestedPrice": "$3\u2013$6",
     "defaultListType": "staples",
     "valueRationale": "Contains bromelain enzyme; creates dense natural foam heads when shaken violently."
   },
@@ -811,7 +727,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Ocean Spray 100% or pure unsweetened",
-    "suggestedPrice": "$4\u2013$6",
     "defaultListType": "wishlist",
     "valueRationale": "Adds ruby color and clean astringency to Cosmopolitans."
   },
@@ -821,7 +736,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Fresh hot espresso shot or strong cold brew",
-    "suggestedPrice": "$1\u2013$3",
     "defaultListType": "staples",
     "valueRationale": "Hot espresso whips with ice to create the signature velvety crema on Espresso Martinis."
   },
@@ -831,7 +745,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Coco Lopez / Coco Real",
-    "suggestedPrice": "$4\u2013$6",
     "defaultListType": "wishlist",
     "valueRationale": "Sweetened coconut cream for authentic Pi\u00f1a Coladas and painkillers."
   },
@@ -841,7 +754,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": true,
     "benchmark": "1 part cane sugar : 1 part water",
-    "suggestedPrice": "$1 DIY (make at home)",
     "defaultListType": "staples",
     "valueRationale": "Make at home for pennies in 2 minutes: shake equal parts white sugar and warm water."
   },
@@ -851,7 +763,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": true,
     "benchmark": "1:1 demerara / turbinado sugar",
-    "suggestedPrice": "$1 DIY",
     "defaultListType": "staples",
     "valueRationale": "Demerara sugar provides rich molasses depth for Old Fashioneds."
   },
@@ -861,7 +772,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": true,
     "benchmark": "1:1 wildflower honey and warm water",
-    "suggestedPrice": "$1 DIY",
     "defaultListType": "staples",
     "valueRationale": "Diluting honey with warm water prevents it from seizing up upon contact with cold ice."
   },
@@ -871,7 +781,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": true,
     "benchmark": "1:1 light/amber agave nectar and water",
-    "suggestedPrice": "$1 DIY",
     "defaultListType": "staples",
     "valueRationale": "Natural companion to blue agave spirits (Tequila, Mezcal)."
   },
@@ -881,7 +790,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": true,
     "benchmark": "Fresh raspberry reduction or pomegranate grenadine",
-    "suggestedPrice": "$2 DIY / $8",
     "defaultListType": "wishlist",
     "valueRationale": "Muddle fresh berries into syrup or buy pure pomegranate grenadine (Liber & Co.)."
   },
@@ -891,7 +799,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": true,
     "benchmark": "Simmered fresh ginger root in honey syrup",
-    "suggestedPrice": "$2 DIY",
     "defaultListType": "wishlist",
     "valueRationale": "Simmer sliced raw ginger root in equal parts honey and water for Penicillins."
   },
@@ -901,7 +808,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": true,
     "benchmark": "Grade A dark robust maple syrup",
-    "suggestedPrice": "$6\u2013$9",
     "defaultListType": "staples",
     "valueRationale": "Rich woodsy sweetness for autumn whiskey sours and flips."
   },
@@ -911,7 +817,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Smooth cold brew concentrate",
-    "suggestedPrice": "$3\u2013$5",
     "defaultListType": "staples",
     "valueRationale": "Smooth, low-acid coffee base for low-proof coffee cocktails."
   },
@@ -921,7 +826,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Organic heavy whipping cream",
-    "suggestedPrice": "$3\u2013$5",
     "defaultListType": "staples",
     "valueRationale": "Rich dairy texture for Ramos Gin Fizz, White Russian, and Grasshopper."
   },
@@ -931,7 +835,6 @@ export const INITIAL_INVENTORY = [
     "category": "Pantry & Juices",
     "inStock": true,
     "benchmark": "Cabernet Sauvignon, Syrah, or Malbec",
-    "suggestedPrice": "$10\u2013$15",
     "defaultListType": "wishlist",
     "valueRationale": "Floating 0.5 oz creates the iconic crimson collar on a New York Sour."
   },
@@ -941,7 +844,6 @@ export const INITIAL_INVENTORY = [
     "category": "Mixers",
     "inStock": true,
     "benchmark": "High-carbonation soda water (Q Mixers / Fever-Tree)",
-    "suggestedPrice": "$4\u2013$7",
     "defaultListType": "staples",
     "valueRationale": "Cold high-carbonation bubbles lift aromatics without adding sugar."
   },
@@ -951,7 +853,6 @@ export const INITIAL_INVENTORY = [
     "category": "Mixers",
     "inStock": true,
     "benchmark": "Fever-Tree / Reed's Extra Ginger Beer",
-    "suggestedPrice": "$5\u2013$8",
     "defaultListType": "staples",
     "valueRationale": "Real fiery ginger root bite for Mules, Bucks, and Dark 'n' Stormies."
   },
@@ -961,7 +862,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Trinidadian classic aromatic gentian bitters",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "staples",
     "valueRationale": "The bartender's salt and pepper. Essential in 80% of classic cocktails."
   },
@@ -971,7 +871,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Botanical spice bitters",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Spiced Australian botanicals for unique aromatic complexity."
   },
@@ -981,7 +880,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Regan's No. 6 or Angostura Orange",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "staples",
     "valueRationale": "Bitter orange peel and cardamom botanicals for Martinis and Old Fashioneds."
   },
@@ -991,7 +889,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Woodsy crisp apple bitters",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Crisp spiced orchard notes for seasonal whiskey drinks."
   },
@@ -1001,7 +898,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "New Orleans anise-forward red bitters",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Floral cherry-red bitters; vital for authentic Sazeracs and Vieux Carr\u00e9."
   },
@@ -1011,7 +907,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Scrappy's or Fee Brothers Aztec Chocolate",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Rich cocoa and cinnamon for rum and dark spirit stirred builds."
   },
@@ -1021,7 +916,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Citrus floral bitters",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Zesty tart citrus aromatics."
   },
@@ -1031,7 +925,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Zesty aromatic lime peel bitters",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Intense cold-pressed lime oils."
   },
@@ -1041,7 +934,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": true,
     "benchmark": "Habanero or chili bitters",
-    "suggestedPrice": "$10\u2013$14",
     "defaultListType": "wishlist",
     "valueRationale": "Controlled capsaicin heat for Margaritas and Mezcal builds."
   },
@@ -1051,7 +943,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Grade A organic eggs (albumen for foam)",
-    "suggestedPrice": "$4\u2013$6",
     "defaultListType": "staples",
     "valueRationale": "Egg white shears into microscopic velvet foam. Dry shake first for 15s."
   },
@@ -1061,7 +952,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Ripe sweet strawberries",
-    "suggestedPrice": "$3\u2013$5",
     "defaultListType": "wishlist",
     "valueRationale": "Muddle fresh for Smashes and Margaritas."
   },
@@ -1071,7 +961,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Peeled raw pungent ginger",
-    "suggestedPrice": "$1\u2013$2",
     "defaultListType": "wishlist",
     "valueRationale": "Raw gingerols provide intense heat for Fresh Ginger Gold Rush."
   },
@@ -1081,7 +970,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Aromatic spearmint leaves",
-    "suggestedPrice": "$2\u2013$3",
     "defaultListType": "staples",
     "valueRationale": "Clap mint between hands to release aromatic menthol oils without tearing bitter veins."
   },
@@ -1091,7 +979,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Crisp English cucumber",
-    "suggestedPrice": "$1\u2013$2",
     "defaultListType": "wishlist",
     "valueRationale": "Cool vegetal aroma for gin highballs."
   },
@@ -1101,7 +988,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Plump fresh raspberries",
-    "suggestedPrice": "$3\u2013$5",
     "defaultListType": "wishlist",
     "valueRationale": "Muddle into gin and tequila for berry sours and Clover Clubs."
   },
@@ -1111,7 +997,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Ripe peeled juicy peach",
-    "suggestedPrice": "$2\u2013$3",
     "defaultListType": "wishlist",
     "valueRationale": "Puree or muddle for authentic Venetian Bellinis."
   },
@@ -1121,7 +1006,6 @@ export const INITIAL_INVENTORY = [
     "category": "Produce & Perishables",
     "inStock": true,
     "benchmark": "Sweet Italian Genovese basil",
-    "suggestedPrice": "$2\u2013$3",
     "defaultListType": "wishlist",
     "valueRationale": "Muddle with gin and lemon for the vibrant green Gin Basil Smash."
   },
@@ -1131,7 +1015,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": false,
     "benchmark": "Plymouth Original Dry",
-    "suggestedPrice": "$30\u2013$36",
     "defaultListType": "wishlist",
     "valueRationale": "Softer, earthier, and less juniper-forward than London Dry, with a rounder citrus and root character. Lets delicate modifiers like elderflower lead."
   },
@@ -1141,7 +1024,6 @@ export const INITIAL_INVENTORY = [
     "category": "Base Spirits",
     "inStock": false,
     "benchmark": "Appleton Estate Signature",
-    "suggestedPrice": "$22\u2013$28",
     "defaultListType": "wishlist",
     "valueRationale": "Golden Jamaican pot-and-column blend with orange peel, molasses, and gentle funk. Lifts rum sours without the heaviness of a black rum."
   },
@@ -1151,7 +1033,6 @@ export const INITIAL_INVENTORY = [
     "category": "Syrups",
     "inStock": false,
     "benchmark": "Homemade: 4 cups unfiltered cider + 1 cinnamon stick, reduced to ~1 cup",
-    "suggestedPrice": "$5 DIY",
     "defaultListType": "staples",
     "valueRationale": "Bring 4 cups unfiltered apple cider to a boil with 1 cinnamon stick. Reduce until about 1 cup remains (60\u201390 minutes). Remove the cinnamon, add a pinch of salt, strain, cool, and store in the fridge. Concentrated orchard sweetness for fall Old Fashioneds, Manhattans, and sours."
   },
@@ -1161,7 +1042,6 @@ export const INITIAL_INVENTORY = [
     "category": "Bitters",
     "inStock": false,
     "benchmark": "Fee Brothers Black Walnut",
-    "suggestedPrice": "$9\u2013$12",
     "defaultListType": "wishlist",
     "valueRationale": "Toasted nut, dark spice, and a faint sweetness. A natural partner for bourbon, apple, and maple."
   }

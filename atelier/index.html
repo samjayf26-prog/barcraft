@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#09090C">
+  <meta name="theme-color" content="#1F1712">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>BarCraft Atelier — Home Cocktail Companion</title>
@@ -24,7 +24,7 @@
         <div class="brand-crest">🍸</div>
         <div class="brand-text">
           <span class="brand-name">BarCraft</span>
-          <span class="brand-tag">Atelier v3.3</span>
+          <span class="brand-tag">Atelier v3.4</span>
         </div>
       </div>
       <div class="header-right">
@@ -37,66 +37,50 @@
     </header>
 
     <!-- ====================================================================
-         HUB 1: THE BAR (Explore, Moods, Tonight's Pour Deck, & Catalog Grid)
+         HUB 1: THE BAR (Search, Styles, Tonight's Pour Deck, & Catalog Grid)
          ==================================================================== -->
     <main id="barHub">
-      <!-- Contextual Mood Carousel -->
-      <section class="mood-carousel-wrap">
-        <div class="mood-carousel" id="moodCarousel">
-          <button class="mood-chip active" data-mood="all">✨ All Moods</button>
-          <button class="mood-chip" data-mood="nightcap">🌙 Cozy Nightcap</button>
-          <button class="mood-chip" data-mood="crisp">🍋 Crisp &amp; Refreshing</button>
-          <button class="mood-chip" data-mood="aperitivo">🍊 Aperitivo Hour</button>
-          <button class="mood-chip" data-mood="tropical">🌴 Tropical Escape</button>
-          <button class="mood-chip" data-mood="smoky">🔥 Bold &amp; Smoky</button>
-          <button class="mood-chip" data-mood="zero-proof">🍃 Zero-Proof</button>
-        </div>
-      </section>
-
-      <!-- Search & View Mode Switcher -->
-      <section class="atelier-search-row">
+      <!-- Search + Help me choose -->
+      <section class="finder-bar">
         <div class="atelier-search-box">
-          <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input 
-            type="text" 
-            id="atelierSearchInput" 
-            class="atelier-search-input" 
-            placeholder="Search cocktails, spirits, or flavors..."
+          <input
+            type="search"
+            id="atelierSearchInput"
+            class="atelier-search-input"
+            placeholder="Search drinks…"
+            aria-label="Search drinks"
             autocomplete="off"
             spellcheck="false"
           >
-          <button id="clearSearchBtn" class="clear-search-x">✕</button>
+          <button id="clearSearchBtn" class="clear-search-x" aria-label="Clear search">✕</button>
         </div>
-
-        <div class="view-mode-toggle">
-          <button id="viewModeDeckBtn" class="view-btn active" title="Tonight's Pour Deck View">🎴 Deck</button>
-          <button id="viewModeGridBtn" class="view-btn" title="Curated Catalog Grid">⊞ Grid</button>
-        </div>
+        <button class="choose-btn" id="helpChooseBtn" type="button">
+          <span aria-hidden="true">🧭</span> Help me choose
+        </button>
       </section>
+      <div class="search-hints" id="searchHints" hidden></div>
 
-      <!-- Readiness Quick-Filter Pills -->
-      <section class="readiness-pills-row" id="readinessPillsRow">
-        <button class="readiness-pill active" data-readiness="all">
-          All Pours (<span class="pill-cnt" id="cntAll">0</span>)
-        </button>
-        <button class="readiness-pill" data-readiness="can-make">
-          ✓ Ready to Pour (<span class="pill-cnt" id="cntCanMake">0</span>)
-        </button>
-        <button class="readiness-pill" data-readiness="substitutes">
-          🔄 Ready with Sub (<span class="pill-cnt" id="cntSub">0</span>)
-        </button>
-        <button class="readiness-pill" data-readiness="missing-1">
-          Need 1 Bottle (<span class="pill-cnt" id="cntNeed1">0</span>)
-        </button>
-        <button class="readiness-pill" data-readiness="favorites">
-          ★ Favorites (<span class="pill-cnt" id="cntFav">0</span>)
-        </button>
-        <button class="readiness-pill" data-readiness="want-to-try">
-          🔖 Want to Try (<span class="pill-cnt" id="cntTry">0</span>)
-        </button>
+      <!-- Drink-style filters (counts fill in from app_v3.js) -->
+      <section class="style-filter-row" id="styleFilterRow" aria-label="Drink styles"></section>
+
+      <!-- Result count, availability, and view mode -->
+      <section class="results-bar">
+        <div class="results-summary">
+          <span class="results-count" id="resultsCount">0 drinks</span>
+          <button class="results-clear" id="clearFiltersBtn" type="button" hidden>Clear</button>
+        </div>
+        <label class="show-select-wrap">
+          <span>Show</span>
+          <select id="showFilterSelect" class="show-select" aria-label="Show"></select>
+        </label>
+        <div class="view-mode-toggle" role="group" aria-label="View">
+          <button id="viewModeDeckBtn" class="view-btn active" title="Deck view" aria-label="Deck view">🎴</button>
+          <button id="viewModeGridBtn" class="view-btn" title="Grid view" aria-label="Grid view">⊞</button>
+        </div>
       </section>
 
       <!-- Dynamic Bar Content (Deck or Grid) -->
@@ -160,6 +144,13 @@
   <!-- Craft Lab Modal (Riff & Custom Drink Studio) -->
   <div class="hud-modal-overlay" id="craftLabModalOverlay">
     <div class="hud-modal-sheet" id="craftLabModalSheet">
+      <!-- Filled by app_v3.js -->
+    </div>
+  </div>
+
+  <!-- Help Me Choose (step-by-step recommender) -->
+  <div class="hud-modal-overlay" id="chooserOverlay">
+    <div class="hud-modal-sheet chooser-sheet" id="chooserSheet" role="dialog" aria-modal="true" aria-label="Help me choose a drink">
       <!-- Filled by app_v3.js -->
     </div>
   </div>

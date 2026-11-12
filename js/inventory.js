@@ -59,8 +59,7 @@ class InventoryManager {
           if (userItem) {
             return {
               ...initItem,
-              inStock: userItem.inStock !== undefined ? userItem.inStock : initItem.inStock,
-              customPrice: userItem.customPrice || null
+              inStock: userItem.inStock !== undefined ? userItem.inStock : initItem.inStock
             };
           }
           return { ...initItem };
@@ -126,7 +125,7 @@ class InventoryManager {
     return item;
   }
 
-  addCustomIngredient(name, category = 'Other', benchmark = '', inStock = true, defaultListType = 'wishlist', suggestedPrice = '') {
+  addCustomIngredient(name, category = 'Other', benchmark = '', inStock = true, defaultListType = 'wishlist') {
     const cleanName = name.trim();
     if (!cleanName) return null;
 
@@ -135,7 +134,6 @@ class InventoryManager {
     if (existing) {
       existing.inStock = inStock;
       if (benchmark) existing.benchmark = benchmark;
-      if (suggestedPrice) existing.suggestedPrice = suggestedPrice;
       this.saveInventory();
       this.notify('inventory_changed', { item: existing });
       return existing;
@@ -147,7 +145,6 @@ class InventoryManager {
       category: category || 'Modifiers & Liqueurs',
       inStock,
       benchmark: benchmark || 'Custom addition',
-      suggestedPrice: suggestedPrice || '',
       defaultListType: defaultListType || 'wishlist',
       valueRationale: 'Custom user addition',
       isCustom: true
@@ -165,16 +162,16 @@ class InventoryManager {
       const data = localStorage.getItem(STORAGE_KEYS.SHOPPING_LIST);
       if (data) {
         const list = JSON.parse(data);
-        // Ensure each item has listType ('staples' or 'wishlist') and price guidance
-        return list.map(item => {
+        // Ensure each item has listType ('staples' or 'wishlist') and buying notes
+        return list.map(({ suggestedPrice, ...item }) => {
           const invItem = this.getIngredientById(item.id);
           const listType = item.listType || (invItem?.defaultListType) || 'wishlist';
-          const suggestedPrice = item.suggestedPrice || (invItem?.suggestedPrice) || '';
           const valueRationale = item.valueRationale || (invItem?.valueRationale) || '';
+          const benchmark = item.benchmark || (invItem?.benchmark) || '';
           return {
             ...item,
             listType,
-            suggestedPrice,
+            benchmark,
             valueRationale
           };
         });
@@ -200,14 +197,13 @@ class InventoryManager {
   addToShoppingList(id, name, category, source = 'manual', explicitListType = null) {
     const invItem = id ? this.getIngredientById(id) : null;
     const resolvedListType = explicitListType || invItem?.defaultListType || 'wishlist';
-    const suggestedPrice = invItem?.suggestedPrice || '';
     const valueRationale = invItem?.valueRationale || '';
+    const benchmark = invItem?.benchmark || '';
 
     const existing = this.shoppingList.find(item => item.id === id || item.name.toLowerCase() === name.toLowerCase());
     if (existing) {
       existing.checked = false;
       if (explicitListType) existing.listType = explicitListType;
-      if (!existing.suggestedPrice && suggestedPrice) existing.suggestedPrice = suggestedPrice;
       if (!existing.valueRationale && valueRationale) existing.valueRationale = valueRationale;
       this.saveShoppingList();
       this.notify('shopping_changed', { list: this.shoppingList });
@@ -219,7 +215,7 @@ class InventoryManager {
       name,
       category: category || 'Pantry',
       listType: resolvedListType, // 'staples' | 'wishlist'
-      suggestedPrice,
+      benchmark,
       valueRationale,
       checked: false,
       source,

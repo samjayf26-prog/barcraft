@@ -884,6 +884,8 @@ export class GlassViz {
     const glassStroke = metal === 'copper' ? `url(#${id}-copper)` : metal === 'silver' ? 'rgba(225, 230, 238, 0.9)' : `url(#${id}-rimGrad)`;
     const glassFill = metal === 'copper' ? 'rgba(184, 98, 46, 0.3)' : metal === 'silver' ? 'rgba(210, 216, 226, 0.24)' : 'rgba(255, 255, 255, 0.035)';
 
+    // A round wooden coaster sized to the glass footprint
+    const coasterR = Math.max(34, Math.min(70, g.radiusAt(0) + 18, g.radiusAt(g.height * 0.5) * 0.9 + 6));
     const shadowR = g.spec.base > 6 ? g.radiusAt(0) + 22 : Math.max(g.radiusAt(g.height * 0.6), 30) * 0.75;
     const baseBlock = g.spec.base > 6
       ? `<rect x="${(g.cx - g.radiusAt(0) - WALL + 1).toFixed(1)}" y="${g.floorY.toFixed(1)}" width="${(2 * (g.radiusAt(0) + WALL) - 2).toFixed(1)}" height="${(g.spec.base - 1).toFixed(1)}" rx="4" fill="url(#${id}-base)"/>
@@ -930,6 +932,9 @@ export class GlassViz {
             <stop offset="0" stop-color="rgba(255,244,225,0.15)"/>
             <stop offset="1" stop-color="rgba(255,244,225,0.03)"/>
           </radialGradient>
+          <linearGradient id="${id}-wood" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#6E4A2E"/><stop offset="0.45" stop-color="#5A3B24"/><stop offset="1" stop-color="#3A2618"/>
+          </linearGradient>
           <radialGradient id="${id}-shadow" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stop-color="rgba(0,0,0,0.55)"/>
             <stop offset="1" stop-color="rgba(0,0,0,0)"/>
@@ -966,6 +971,14 @@ export class GlassViz {
         </defs>
 
         ${this.compact ? '' : `<ellipse cx="${g.cx}" cy="${(g.viewTop + g.viewH * 0.52).toFixed(1)}" rx="${VIEW_W * 0.5}" ry="${(g.viewH * 0.52).toFixed(1)}" fill="url(#${id}-spot)"/>`}
+        ${this.compact ? '' : `
+        <g class="gv-coaster">
+          <ellipse cx="${g.cx}" cy="${BASELINE + 3.5}" rx="${(coasterR + 1.5).toFixed(1)}" ry="8.2" fill="#2A1B11"/>
+          <ellipse cx="${g.cx}" cy="${BASELINE + 2}" rx="${coasterR.toFixed(1)}" ry="7.2" fill="url(#${id}-wood)"/>
+          <ellipse cx="${g.cx}" cy="${BASELINE + 2}" rx="${(coasterR * 0.72).toFixed(1)}" ry="4.8" fill="none" stroke="rgba(30,16,8,0.28)" stroke-width="0.5"/>
+          <ellipse cx="${g.cx}" cy="${BASELINE + 2}" rx="${(coasterR * 0.45).toFixed(1)}" ry="2.9" fill="none" stroke="rgba(30,16,8,0.22)" stroke-width="0.45"/>
+          <path d="M ${(g.cx - coasterR + 3).toFixed(1)} ${BASELINE + 0.4} Q ${g.cx} ${BASELINE - 5.6} ${(g.cx + coasterR - 3).toFixed(1)} ${BASELINE + 0.4}" fill="none" stroke="rgba(255,225,185,0.22)" stroke-width="0.8"/>
+        </g>`}
         <ellipse cx="${g.cx}" cy="${BASELINE + 3}" rx="${shadowR.toFixed(1)}" ry="5" fill="url(#${id}-shadow)"/>
         <ellipse class="gv-caustic" cx="${g.cx}" cy="${BASELINE + 3}" rx="${(shadowR * 0.7).toFixed(1)}" ry="3.5" fill="transparent"/>
 
