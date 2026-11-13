@@ -454,12 +454,21 @@ function renderBarDeckView(recipesList) {
       }
 
       if (isHorizontalGesture) {
+        // The card owns sideways drags; stop the browser from panning the page
+        if (e.cancelable) e.preventDefault();
         currentDeltaX = deltaX;
         const rot = deltaX * 0.04;
         const op = Math.max(0.4, 1 - Math.abs(deltaX) / 450);
         card.style.transform = `translateX(${deltaX}px) rotate(${rot}deg)`;
         card.style.opacity = `${op}`;
       }
+    }, { passive: false });
+
+    card.addEventListener('touchcancel', () => {
+      isDragging = false;
+      card.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+      card.style.transform = '';
+      card.style.opacity = '1';
     }, { passive: true });
 
     card.addEventListener('touchend', (e) => {

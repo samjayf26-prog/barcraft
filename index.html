@@ -13,6 +13,20 @@
   <meta name="theme-color" content="#F8F6F0">
   
   <link rel="manifest" href="manifest.json">
+  <script>
+    // Launched from the home screen: open Atelier unless Classic was chosen on purpose
+    (function () {
+      try {
+        var standalone = window.navigator.standalone === true ||
+          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+        var params = new URLSearchParams(location.search);
+        if (params.has('classic')) sessionStorage.setItem('barcraft_classic', '1');
+        if (standalone && !sessionStorage.getItem('barcraft_classic')) {
+          location.replace('./atelier/');
+        }
+      } catch (e) { /* storage blocked: stay on Classic */ }
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="icons/cocktail.svg">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   

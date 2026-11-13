@@ -2,11 +2,11 @@
   "name": "BarCraft — Home Bar & Cocktail Companion",
   "short_name": "BarCraft",
   "description": "Smart inventory tracker, recipe finder, technique guide, and mixing companion for your home bar.",
-  "start_url": "./index.html",
+  "start_url": "./atelier/",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#F8F6F0",
-  "theme_color": "#F8F6F0",
+  "background_color": "#1F1712",
+  "theme_color": "#1F1712",
   "orientation": "portrait-primary",
   "icons": [
     {

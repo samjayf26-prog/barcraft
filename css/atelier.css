@@ -3125,3 +3125,29 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================================
+   Swipe fix: the page never pans sideways while a card is dragged off-screen
+   ========================================================================== */
+html,
+body {
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+.deck-view-container {
+  overflow-x: clip;
+  overflow-y: visible;
+  padding: 6px 0;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.deck-card {
+  /* Vertical scrolling stays native; sideways drags go to the card */
+  touch-action: pan-y;
+}
